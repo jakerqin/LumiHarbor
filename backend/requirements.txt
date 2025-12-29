@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+sqlalchemy
+psycopg2-binary
+pydantic
+pydantic-settings
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+pillow
+python-magic
+exifread
+taskiq[redis]
+# AI 相关 (按需启用)
+# insightface
+# onnxruntime
+# sentence-transformers
