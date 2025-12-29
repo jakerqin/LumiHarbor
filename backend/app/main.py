@@ -6,6 +6,7 @@ from . import models, schemas
 from .services.historian import HistorianService
 from .config import settings
 import os
+import uvicorn
 
 # 确保数据库表已创建 (开发环境下)
 models.Base.metadata.create_all(bind=engine)
@@ -18,8 +19,8 @@ def read_root():
 
 @app.post("/tasks/import-history", tags=["Management"])
 def trigger_history_import(
-    owner_id: str, 
-    background_tasks: BackgroundTasks, 
+    owner_id: int,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     """触发历史素材扫描与导入"""
@@ -60,3 +61,11 @@ def list_assets(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """获取素材列表"""
     assets = db.query(models.Asset).order_by(models.Asset.shot_at.desc()).offset(skip).limit(limit).all()
     return assets
+
+if __name__ == "__main__":
+    uvicorn.run(
+        "app.main:app",
+        host="0.0.0.0",
+        port=8000,
+        reload=True
+    )

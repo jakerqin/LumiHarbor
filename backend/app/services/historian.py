@@ -3,8 +3,6 @@ import exifread
 from datetime import datetime
 from PIL import Image
 from pathlib import Path
-from .models import Asset
-import uuid
 
 class HistorianService:
     """负责扫描、解析和导入历史素材的服务"""
@@ -61,7 +59,6 @@ class HistorianService:
                         shot_at = datetime.fromtimestamp(os.path.getctime(full_path))
                     
                     asset = {
-                        "id": uuid.uuid4(),
                         "owner_id": owner_id,
                         "original_path": rel_path,
                         "asset_type": asset_type,

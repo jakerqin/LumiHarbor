@@ -1,24 +1,25 @@
 services:
   db:
-    image: postgres:15-alpine
+    image: mysql:8.0
     container_name: lumiharbor-db
     restart: always
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-admin}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-lumipass}
-      POSTGRES_DB: ${POSTGRES_DB:-lumiharbor}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-lumipass}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-lumiharbor}
+      MYSQL_USER: ${MYSQL_USER:-admin}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lumipass}
     volumes:
-      - ./data/postgres:/var/lib/postgresql/data
-      - ./scripts/init_db.sql:/docker-entrypoint-initdb.d/init_db.sql
+      - ./data/mysql:/var/lib/mysql
     ports:
-      - "5432:5432"
+      - "3306:3306"
 
   backend:
     build: ./backend
     container_name: lumiharbor-backend
     restart: always
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-admin}:${POSTGRES_PASSWORD:-lumipass}@db:5432/${POSTGRES_DB:-lumiharbor}
+      DATABASE_URL: mysql+pymysql://${MYSQL_USER:-admin}:${MYSQL_PASSWORD:-lumipass}@db:3306/${MYSQL_DATABASE:-lumiharbor}?charset=utf8mb4
       REDIS_URL: redis://redis:6379/0
     volumes:
       - ./backend:/app

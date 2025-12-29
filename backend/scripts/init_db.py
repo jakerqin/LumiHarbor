@@ -2,10 +2,9 @@ import sys
 import os
 
 # 将 backend 目录添加到 python 路径，以便导入 app 模块
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'backend'))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.database import engine, Base
-from app import models
 
 def init_db():
     print("正在连接数据库并创建表...")

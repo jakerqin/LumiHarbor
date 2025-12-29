@@ -1,0 +1,213 @@
+# ===========================
+# 拾光坞 (LumiHarbor) .gitignore
+# ===========================
+
+# ==================== Python ====================
+# 字节码文件
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# 虚拟环境
+venv/
+env/
+ENV/
+.venv
+.pyenv
+lumiHarbor/
+
+# Python 分发/打包
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# 单元测试 / 覆盖率
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery
+celerybeat-schedule
+celerybeat.pid
+
+# ==================== 环境变量与配置 ====================
+# 敏感配置文件（包含数据库密码、密钥等）
+.env
+.env.local
+.env.*.local
+backend/.env
+frontend/.env
+
+# 不要忽略示例配置文件
+!.env.example
+!backend/.env.example
+!frontend/.env.example
+
+# ==================== 数据库 ====================
+# SQLite（如果使用）
+*.db
+*.sqlite
+*.sqlite3
+
+# MySQL 数据文件
+data/mysql/
+data/postgres/
+
+# 数据库备份
+*.sql.gz
+*.dump
+*.backup
+
+# ==================== Docker ====================
+# Docker 数据卷
+data/
+volumes/
+
+# Docker Compose 覆盖文件（个人配置）
+docker-compose.override.yml
+
+# ==================== 项目特定 ====================
+# NAS 挂载目录（如果在本地开发）
+/nas/
+
+# 处理后的文件（缩略图、缓存等）
+processed/
+thumbnails/
+cache/
+
+# 上传的原始素材（体积太大）
+uploads/
+assets/
+
+# 日志文件
+*.log
+logs/
+backend/logs/
+
+# ==================== IDE / 编辑器 ====================
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+
+# ==================== 操作系统 ====================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ==================== Node.js / Frontend ====================
+# 依赖
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Next.js
+.next/
+out/
+frontend/.next/
+frontend/out/
+
+# 生产构建
+frontend/build/
+
+# ==================== 临时文件 ====================
+# 临时文件
+*.tmp
+*.temp
+tmp/
+temp/
+
+# 压缩包
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ==================== 安全 ====================
+# 密钥文件
+*.pem
+*.key
+*.cert
+*.crt
+id_rsa
+id_rsa.pub
+
+# GPG keys
+secring.*
+
+# ==================== 其他 ====================
+# Claude Code / AI 工具
+.claude/
+.cursor/
+
+# 测试数据
+test_data/
+sample_data/
+
+# 文档草稿
+drafts/

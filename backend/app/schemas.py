@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional, Dict
-from uuid import UUID
 
 class AssetBase(BaseModel):
     original_path: str
@@ -11,8 +10,8 @@ class AssetBase(BaseModel):
     shot_at: Optional[datetime]
 
 class AssetOut(AssetBase):
-    id: UUID
-    owner_id: UUID
+    id: int
+    owner_id: int
     thumbnail_path: Optional[str]
     exif_data: Optional[Dict]
     ai_tags: Optional[List[str]]
