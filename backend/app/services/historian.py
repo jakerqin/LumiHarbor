@@ -3,6 +3,10 @@ import exifread
 from datetime import datetime
 from PIL import Image
 from pathlib import Path
+from ..tools.utils import get_logger
+
+logger = get_logger()
+
 
 class HistorianService:
     """负责扫描、解析和导入历史素材的服务"""
@@ -34,7 +38,7 @@ class HistorianService:
             
             return metadata, shot_at
         except Exception as e:
-            print(f"Error parsing EXIF for {file_path}: {e}")
+            logger.error(f"解析EXIF失败 {file_path}: {e}")
             return {}, None
 
     @classmethod
@@ -88,5 +92,5 @@ class HistorianService:
                 img.save(thumbnail_dest_path, "WEBP", quality=80)
                 return True
         except Exception as e:
-            print(f"Error generating thumbnail for {original_full_path}: {e}")
+            logger.error(f"生成缩略图失败 {original_full_path}: {e}")
             return False
