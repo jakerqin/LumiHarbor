@@ -38,8 +38,14 @@ class HistorianService:
             return {}, None
 
     @classmethod
-    def scan_directory(cls, root_path, owner_id):
-        """扫描目录并返回待导入的素材列表"""
+    def scan_directory(cls, root_path, created_by, visibility='general'):
+        """扫描目录并返回待导入的素材列表
+
+        参数:
+            root_path: 扫描根路径
+            created_by: 创建者用户ID
+            visibility: 素材可见性 ('general' 或 'private')
+        """
         assets_to_import = []
         for root, dirs, files in os.walk(root_path):
             for file in files:
@@ -59,13 +65,14 @@ class HistorianService:
                         shot_at = datetime.fromtimestamp(os.path.getctime(full_path))
                     
                     asset = {
-                        "owner_id": owner_id,
+                        "created_by": created_by,
                         "original_path": rel_path,
                         "asset_type": asset_type,
                         "file_size": file_size,
                         "mime_type": f"{asset_type}/{ext.lstrip('.')}",
-                        "exif_data": exif,
+                        "visibility": visibility,
                         "shot_at": shot_at,
+                        "is_deleted": False,  # 新导入的素材默认未删除
                     }
                     assets_to_import.append(asset)
         return assets_to_import
