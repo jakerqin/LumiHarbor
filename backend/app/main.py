@@ -1,22 +1,45 @@
 """FastAPI 应用入口
-
-启动方式：
-    方式1（推荐）: python run.py
-    方式2: uvicorn app.main:app --reload
-    方式3: python -m app.main
 """
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.responses import JSONResponse
 from .config import settings
 from .routers import assets_router, management_router
+from . import schema
 
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
 
-@app.get("/")
+# 全局异常处理器
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """处理 HTTPException,返回统一格式的错误响应"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content=schema.ApiResponse.error(
+            code=str(exc.status_code),
+            message=exc.detail
+        ).model_dump()
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """处理所有未捕获的异常,返回统一格式的错误响应"""
+    return JSONResponse(
+        status_code=500,
+        content=schema.ApiResponse.error(
+            code="500",
+            message=f"服务器内部错误: {str(exc)}"
+        ).model_dump()
+    )
+
+
+@app.get("/", response_model=schema.ApiResponse[dict])
 def read_root():
     """根路径欢迎信息"""
-    return {"message": f"欢迎使用 {settings.PROJECT_NAME} API"}
+    return schema.ApiResponse.success(data={"message": f"欢迎使用 {settings.PROJECT_NAME} API"})
 
 
 # 注册路由模块

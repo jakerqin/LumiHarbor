@@ -10,9 +10,11 @@ Schema 说明：
     AssetOut: 资源输出 Schema（用于响应）
 """
 from .asset import AssetBase, AssetOut
+from .common import ApiResponse
 
 # 导出所有 Schema，方便其他模块导入
 __all__ = [
     'AssetBase',
     'AssetOut',
+    'ApiResponse',
 ]

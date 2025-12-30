@@ -11,7 +11,7 @@ router = APIRouter(
 )
 
 
-@router.get("", response_model=List[schema.AssetOut])
+@router.get("", response_model=schema.ApiResponse[List[schema.AssetOut]])
 def list_assets(
     skip: int = 0,
     limit: int = 100,
@@ -29,4 +29,4 @@ def list_assets(
     assets = db.query(model.Asset).order_by(
         model.Asset.shot_at.desc()
     ).offset(skip).limit(limit).all()
-    return assets
+    return schema.ApiResponse.success(data=assets)

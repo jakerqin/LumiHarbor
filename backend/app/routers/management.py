@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from ..db import get_db
 from ..config import settings
-from .. import model
+from .. import model, schema
 from ..services.historian import HistorianService
 import os
 
@@ -13,7 +13,7 @@ router = APIRouter(
 )
 
 
-@router.post("/import-history")
+@router.post("/import-history", response_model=schema.ApiResponse[dict])
 def trigger_history_import(
     created_by: int = 1,
     visibility: str = "general",
@@ -62,4 +62,4 @@ def trigger_history_import(
                 db.commit()
 
     background_tasks.add_task(run_import)
-    return {"status": "Import task started in background"}
+    return schema.ApiResponse.success(data={"status": "Import task started in background"})
