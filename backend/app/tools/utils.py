@@ -7,7 +7,7 @@ from typing import Optional
 from ..config import settings
 
 
-def get_logger() -> logging.Logger:
+def get_logger(name) -> logging.Logger:
     """获取配置好的logger实例
 
     日志格式: 时间戳 模块名 日志级别 文件名:行号 - 日志内容
@@ -22,12 +22,12 @@ def get_logger() -> logging.Logger:
     使用示例:
         from app.tools.utils import get_logger
 
-        logger = get_logger()
+        logger = get_logger(__name__)
         logger.info("这是一条信息日志")
         logger.error("这是一条错误日志")
     """
     # 获取logger实例
-    _logger = logging.getLogger(settings.PROJECT_NAME)
+    _logger = logging.getLogger(name or settings.PROJECT_NAME)
 
     # 避免重复添加handler(如果已经配置过就直接返回)
     if _logger.handlers:

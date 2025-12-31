@@ -11,6 +11,7 @@ passlib[bcrypt]
 pillow
 python-magic
 exifread
+ffmpeg-python
 taskiq[redis]
 # AI 相关 (按需启用)
 # insightface

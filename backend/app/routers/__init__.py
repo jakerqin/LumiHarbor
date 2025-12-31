@@ -5,13 +5,16 @@ Routers Package
 使用 FastAPI APIRouter 实现路由模块化。
 
 路由模块说明：
-    assets: 资源相关路由（查询、列表、详情等）
-    management: 管理任务路由（导入、清理、批处理等）
+    assets: 素材查询和管理（查询、列表、详情等）
+    ingestion: 素材摄入（本地扫描、上传等）
+    management: 系统管理任务（健康检查、统计、清理等）
 """
 from .assets import router as assets_router
+from .ingestion.scan import router as ingestion_router
 from .management import router as management_router
 
 __all__ = [
     'assets_router',
+    'ingestion_router',
     'management_router',
 ]

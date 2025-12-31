@@ -53,6 +53,7 @@
 ### 前置要求
 *   Docker & Docker Compose (推荐)
 *   Python 3.12.9 (本地开发)
+*   **ffmpeg** (视频缩略图生成，必需)
 
 ### 1. 克隆项目
 ```bash
@@ -60,7 +61,49 @@ git clone https://github.com/your-username/lumiharbor.git
 cd lumiharbor
 ```
 
-### 2. 环境配置
+### 2. 安装系统依赖
+
+#### ffmpeg 安装
+
+视频缩略图生成功能依赖 **ffmpeg**，请根据你的操作系统安装：
+
+**macOS (使用 Homebrew):**
+```bash
+brew install ffmpeg
+```
+
+**Ubuntu/Debian:**
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
+
+**CentOS/RHEL/Fedora:**
+```bash
+sudo yum install ffmpeg
+# 或
+sudo dnf install ffmpeg
+```
+
+**Windows:**
+1. 从 [ffmpeg官网](https://ffmpeg.org/download.html) 下载预编译包
+2. 解压到任意目录（如 `C:\ffmpeg`）
+3. 将 `bin` 目录添加到系统环境变量 `PATH` 中
+4. 重启命令行工具并验证：
+   ```bash
+   ffmpeg -version
+   ```
+
+**验证安装:**
+```bash
+ffmpeg -version
+# 输出应显示 ffmpeg 版本信息
+```
+
+**Docker 环境:**
+如果使用 Docker 部署，ffmpeg 已包含在镜像中，无需手动安装。
+
+### 3. 环境配置
 复制并重命名环境变量文件，根据你的环境修改（特别是 `NAS_DATA_PATH`）：
 
 ```bash
@@ -68,7 +111,7 @@ cp backend/.env.example backend/.env
 # 编辑 backend/.env 设置 NAS_DATA_PATH=/path/to/your/photos
 ```
 
-### 3. 运行项目
+### 4. 运行项目
 
 #### 方式 A：Docker 模式 (推荐，全栈环境)
 ```bash
@@ -106,7 +149,7 @@ cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### 4. 导入历史照片
+### 5. 导入历史照片
 服务启动后，调用 API 触发扫描你的 NAS 目录：
 
 ```bash

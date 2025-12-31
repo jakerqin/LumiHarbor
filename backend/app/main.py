@@ -3,7 +3,7 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from .config import settings
-from .routers import assets_router, management_router
+from .routers import assets_router, ingestion_router, management_router
 from . import schema
 
 
@@ -44,4 +44,5 @@ def read_root():
 
 # 注册路由模块
 app.include_router(assets_router)
+app.include_router(ingestion_router)
 app.include_router(management_router)
