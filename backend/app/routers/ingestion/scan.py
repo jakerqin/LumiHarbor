@@ -4,10 +4,11 @@ from sqlalchemy.orm import Session
 from ...db import get_db
 from ...config import settings
 from ... import model, schema
-from ...schema.ingestion import ScanRequest, ScanResponse
+from ...schema.ingestion import ScanRequest, ScanResponseData
 from ...services import FilesystemScanner, MetadataExtractorFactory, ThumbnailGeneratorFactory
 from ...tools.utils import get_logger
 from ...tools.file_hash import calculate_file_hash
+from ...tasks.phash_tasks import calculate_phash_task
 import os
 
 logger = get_logger(__name__)
@@ -18,7 +19,7 @@ router = APIRouter(
 )
 
 
-@router.post("/scan", response_model=schema.ApiResponse[ScanResponse])
+@router.post("/scan", response_model=schema.ApiResponse[ScanResponseData])
 def scan_and_import(
     request: ScanRequest,
     background_tasks: BackgroundTasks,
@@ -128,6 +129,26 @@ def scan_and_import(
                 else:
                     logger.warning(f"缩略图生成失败，但素材已导入: {data['original_path']}")
 
+                # 7. 发送异步任务计算感知哈希（不阻塞导入流程）
+                try:
+                    # 使用 kiq() 发送异步任务到 Redis 队列
+                    # 注意：kiq() 返回协程，需要在事件循环中执行
+                    import asyncio
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    loop.run_until_complete(
+                        calculate_phash_task.kiq(
+                            asset_id=new_asset.id,
+                            file_path=original_full_path,
+                            asset_type=asset_type
+                        )
+                    )
+                    loop.close()
+                    logger.debug(f"✅ Phash 异步任务已发送 - Asset ID: {new_asset.id}")
+                except Exception as task_error:
+                    # 异步任务发送失败不影响导入流程
+                    logger.warning(f"⚠️ Phash 异步任务发送失败 - Asset ID: {new_asset.id}: {task_error}")
+
                 imported_count += 1
 
             except Exception as e:
@@ -139,9 +160,9 @@ def scan_and_import(
 
     background_tasks.add_task(run_import)
     return schema.ApiResponse.success(
-        data=ScanResponse(
+        data=ScanResponseData(
             status="scanning",
-            path=scan_path,
-            message="素材扫描任务已在后台启动"
-        )
+            path=scan_path
+        ),
+        message="素材扫描任务已在后台启动"
     )

@@ -35,14 +35,24 @@ class ScanRequest(BaseModel):
         }
 
 
-class ScanResponse(BaseModel):
-    """扫描任务响应
+class ScanResponseData(BaseModel):
+    """扫描任务响应数据（作为 ApiResponse[ScanResponseData] 的 result 字段）
 
     Attributes:
-        status: 任务状态
+        status: 任务状态（'scanning', 'completed', 'failed'）
         path: 扫描路径
-        message: 任务消息
     """
-    status: str = Field(description="任务状态")
-    path: str = Field(description="扫描路径")
-    message: str = Field(description="任务消息")
+    status: Literal["scanning", "completed", "failed"] = Field(
+        description="任务状态"
+    )
+    path: str = Field(
+        description="扫描路径"
+    )
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "status": "scanning",
+                "path": "/Volumes/NAS/media"
+            }
+        }

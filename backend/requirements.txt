@@ -9,10 +9,13 @@ python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
 pillow
+imagehash
 python-magic
 exifread
 ffmpeg-python
-taskiq[redis]
+taskiq
+taskiq-redis
+redis
 # AI 相关 (按需启用)
 # insightface
 # onnxruntime
