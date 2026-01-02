@@ -7,6 +7,7 @@ from ... import model, schema
 from ...schema.ingestion import ScanRequest, ScanResponse
 from ...services import FilesystemScanner, MetadataExtractorFactory, ThumbnailGeneratorFactory
 from ...tools.utils import get_logger
+from ...tools.file_hash import calculate_file_hash
 import os
 
 logger = get_logger(__name__)
@@ -56,19 +57,41 @@ def scan_and_import(
 
         for idx, data in enumerate(assets_data, 1):
             try:
-                # 2. 检查是否已存在（简单去重基于路径，排除已删除的资源）
-                existing = db.query(model.Asset).filter(
-                    model.Asset.original_path == data['original_path'],
-                    model.Asset.is_deleted == False
-                ).first()
-                if existing:
-                    skipped_count += 1
-                    logger.debug(f"[{idx}/{len(assets_data)}] 跳过已存在素材: {data['original_path']}")
-                    continue
-
-                # 3. 提取元数据
+                # 2. 计算文件哈希（用于精确去重）
                 asset_type = data['asset_type']
                 original_full_path = os.path.join(scan_path, data['original_path'])
+
+                logger.debug(f"[{idx}/{len(assets_data)}] 计算文件哈希: {data['original_path']}")
+                file_hash = calculate_file_hash(original_full_path, smart_mode=True)
+                data['file_hash'] = file_hash
+
+                # 3. 基于文件哈希去重（内容级别精确去重）
+                existing = db.query(model.Asset).filter(
+                    model.Asset.file_hash == file_hash,
+                    model.Asset.is_deleted == False
+                ).first()
+
+                if existing:
+                    # 检查是否为完全相同的文件（路径也相同）
+                    if existing.original_path == data['original_path']:
+                        skipped_count += 1
+                        logger.debug(
+                            f"[{idx}/{len(assets_data)}] 跳过已存在素材: {data['original_path']} "
+                            f"(hash: {file_hash[:16]}...)"
+                        )
+                        continue
+                    else:
+                        # 相同内容，不同路径（重复备份/副本）
+                        skipped_count += 1
+                        logger.info(
+                            f"[{idx}/{len(assets_data)}] 发现重复备份文件: "
+                            f"新路径={data['original_path']}, "
+                            f"已有路径={existing.original_path}, "
+                            f"hash={file_hash[:16]}..."
+                        )
+                        continue
+
+                # 4. 提取元数据
 
                 metadata, shot_at = MetadataExtractorFactory.extract(asset_type, original_full_path)
 
@@ -81,14 +104,17 @@ def scan_and_import(
                 # 移除临时字段
                 data.pop('file_created_at', None)
 
-                # 4. 存入数据库
+                # 5. 存入数据库
                 new_asset = model.Asset(**data)
                 db.add(new_asset)
                 db.commit()
                 db.refresh(new_asset)
-                logger.info(f"[{idx}/{len(assets_data)}] 已导入素材 ID={new_asset.id}: {data['original_path']}")
+                logger.info(
+                    f"[{idx}/{len(assets_data)}] 已导入素材 ID={new_asset.id}: {data['original_path']} "
+                    f"(hash: {file_hash[:16]}...)"
+                )
 
-                # 5. 生成预览图
+                # 6. 生成预览图
                 thumb_rel_path = f"processed/thumbnails/{new_asset.id}.webp"
                 thumb_full_path = os.path.join(scan_path, thumb_rel_path)
 

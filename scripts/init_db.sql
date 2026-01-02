@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS assets (
     asset_type VARCHAR(20) NOT NULL COMMENT '资源类型: image, video, audio',
     mime_type VARCHAR(100) COMMENT 'MIME类型: image/jpeg, video/mp4',
     file_size BIGINT COMMENT '文件大小（字节）',
-    phash VARCHAR(64) COMMENT '感知哈希用于去重',
+    phash VARCHAR(64) COMMENT '感知哈希（用于查找相似素材，如相似图片搜索）',
+    file_hash VARCHAR(64) COMMENT '文件内容哈希（SHA256，用于精确去重）',
 
     -- 权限控制
     visibility VARCHAR(20) DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
