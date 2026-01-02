@@ -16,7 +16,8 @@ from .scanning import FilesystemScanner
 from .metadata import (
     MetadataExtractor,
     MetadataExtractorFactory,
-    ImageMetadataExtractor
+    ImageMetadataExtractor,
+    VideoMetadataExtractor
 )
 
 # 导入缩略图服务
@@ -32,6 +33,7 @@ def _register_services():
     """注册所有服务实例到工厂"""
     # 注册元数据提取器
     MetadataExtractorFactory.register('image', ImageMetadataExtractor())
+    MetadataExtractorFactory.register('video', VideoMetadataExtractor())
 
     # 注册缩略图生成器
     ThumbnailGeneratorFactory.register('image', ImageThumbnailGenerator())
@@ -50,6 +52,7 @@ __all__ = [
     'MetadataExtractor',
     'MetadataExtractorFactory',
     'ImageMetadataExtractor',
+    'VideoMetadataExtractor',
 
     # 缩略图服务
     'ThumbnailGenerator',

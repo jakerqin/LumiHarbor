@@ -5,9 +5,11 @@
 """
 from .extractor import MetadataExtractor, MetadataExtractorFactory
 from .image import ImageMetadataExtractor
+from .video import VideoMetadataExtractor
 
 __all__ = [
     'MetadataExtractor',
     'MetadataExtractorFactory',
     'ImageMetadataExtractor',
+    'VideoMetadataExtractor',
 ]
