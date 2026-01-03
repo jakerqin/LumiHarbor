@@ -167,6 +167,60 @@ is_deleted        BOOLEAN        # 软删除标记
 - `idx_original_path_not_deleted`: (original_path, is_deleted) - 路径查询优化
 - `idx_created_by_shot_at`: (created_by, shot_at) - 按时间查询优化
 
+### Album 表
+
+**位置**: `backend/app/model/album.py`
+
+**核心字段**:
+```python
+id                BIGINT         # 主键
+name              VARCHAR(255)   # 相册名称
+description       TEXT           # 相册描述
+start_time        DATETIME       # 相册开始时间（素材最早拍摄时间，自动维护）
+end_time          DATETIME       # 相册结束时间（素材最晚拍摄时间，自动维护）
+cover_asset_id    BIGINT         # 封面素材ID（自动选择或手动指定）
+visibility        VARCHAR(20)    # general/private
+created_by        BIGINT         # 创建者用户ID
+created_at        DATETIME       # 创建时间
+is_deleted        BOOLEAN        # 软删除标记
+```
+
+**复合索引**:
+- `idx_time_range`: (start_time, end_time) - 时间范围查询优化
+
+**时间范围维护策略**:
+- 创建相册时自动选择第一张素材的拍摄时间作为 `start_time` 和 `end_time`
+- 添加/删除素材时，应用层自动更新 `start_time`（最早）和 `end_time`（最晚）
+- 空相册时，`start_time` 和 `end_time` 为 NULL
+
+**封面逻辑**:
+- 创建相册时自动选择第一张素材（按拍摄时间最早）的 ID 存入 `cover_asset_id`
+- 用户可手动修改 `cover_asset_id` 覆盖默认选择
+- 如果封面素材被删除，应用层负责重新选择或置空
+
+### AlbumAsset 表
+
+**位置**: `backend/app/model/album_asset.py`
+
+**核心字段**:
+```python
+id                BIGINT         # 主键
+album_id          BIGINT         # 相册ID
+asset_id          BIGINT         # 素材ID
+sort_order        INT            # 排序顺序（数字越小越靠前）
+created_at        DATETIME       # 添加时间
+is_deleted        BOOLEAN        # 软删除标记
+```
+
+**复合索引**:
+- `idx_album_sort`: (album_id, sort_order) - 相册内排序优化
+- `uk_album_asset`: UNIQUE(album_id, asset_id) - 防止重复添加
+
+**关系说明**:
+- 一个素材可以属于多个相册（多对多关系）
+- 同一相册内不能重复添加同一素材（唯一约束）
+- `sort_order` 用于自定义相册内素材的显示顺序
+
 ---
 
 ## 项目结构
@@ -233,6 +287,13 @@ backend/
 ### 2. 代码规范
 
 **注释语言**: 中文 (与现有代码库保持一致)
+
+**数据库设计规范**:
+- **禁止使用外键约束 (FOREIGN KEY)**
+- 使用应用层逻辑维护数据一致性
+- 表间关联通过索引优化查询性能
+- **数据表结构变更时必须同步更新 [init_db.sql](scripts/init_db.sql)**
+- **软删除字段统一使用 `is_deleted: BOOLEAN`**（不使用 `status: tinyint`）
 
 **文件路径引用**: 使用 markdown 链接格式
 ```python

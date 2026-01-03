@@ -6,15 +6,18 @@ Routers Package
 
 路由模块说明：
     assets: 素材查询和管理（查询、列表、详情等）
+    albums: 相册管理（创建、查询、更新、删除、素材管理）
     ingestion: 素材摄入（本地扫描、上传等）
     management: 系统管理任务（健康检查、统计、清理等）
 """
 from .assets import router as assets_router
+from .albums import router as albums_router
 from .ingestion.scan import router as ingestion_router
 from .management import router as management_router
 
 __all__ = [
     'assets_router',
+    'albums_router',
     'ingestion_router',
     'management_router',
 ]

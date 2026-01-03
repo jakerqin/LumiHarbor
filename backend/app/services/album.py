@@ -1,0 +1,493 @@
+"""相册业务逻辑层"""
+from sqlalchemy.orm import Session
+from sqlalchemy import func, or_, and_
+from typing import List, Optional, Tuple
+from datetime import datetime
+from .. import model, schema
+
+
+class AlbumService:
+    """相册服务类（业务逻辑层）
+
+    负责处理相册的 CRUD 操作、时间范围自动维护、封面管理等业务逻辑
+    """
+
+    @staticmethod
+    def create_album(
+        db: Session,
+        album_data: schema.AlbumCreate,
+        created_by: int
+    ) -> model.Album:
+        """创建相册
+
+        Args:
+            db: 数据库会话
+            album_data: 相册创建数据
+            created_by: 创建者用户ID
+
+        Returns:
+            创建的相册对象
+        """
+        album = model.Album(
+            name=album_data.name,
+            description=album_data.description,
+            visibility=album_data.visibility,
+            created_by=created_by
+        )
+        db.add(album)
+        db.commit()
+        db.refresh(album)
+        return album
+
+    @staticmethod
+    def get_album_by_id(
+        db: Session,
+        album_id: int,
+        include_deleted: bool = False
+    ) -> Optional[model.Album]:
+        """根据ID获取相册
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            include_deleted: 是否包含已删除的相册
+
+        Returns:
+            相册对象，不存在返回 None
+        """
+        query = db.query(model.Album).filter(model.Album.id == album_id)
+        if not include_deleted:
+            query = query.filter(model.Album.is_deleted == False)
+        return query.first()
+
+    @staticmethod
+    def list_albums(
+        db: Session,
+        skip: int = 0,
+        limit: int = 100,
+        sort_by: str = "created_at",
+        order: str = "desc",
+        visibility: Optional[str] = None,
+        search: Optional[str] = None,
+        created_by: Optional[int] = None
+    ) -> Tuple[List[model.Album], int]:
+        """获取相册列表（支持排序、筛选、搜索）
+
+        Args:
+            db: 数据库会话
+            skip: 跳过的记录数（分页）
+            limit: 返回的最大记录数
+            sort_by: 排序字段（created_at, updated_at, name, start_time）
+            order: 排序顺序（asc, desc）
+            visibility: 可见性筛选（general, private）
+            search: 按名称模糊搜索
+            created_by: 按创建者筛选
+
+        Returns:
+            (相册列表, 总数)
+        """
+        query = db.query(model.Album).filter(model.Album.is_deleted == False)
+
+        # 筛选条件
+        if visibility:
+            query = query.filter(model.Album.visibility == visibility)
+        if created_by:
+            query = query.filter(model.Album.created_by == created_by)
+        if search:
+            query = query.filter(model.Album.name.like(f"%{search}%"))
+
+        # 获取总数
+        total = query.count()
+
+        # 排序
+        sort_field = getattr(model.Album, sort_by, model.Album.created_at)
+        if order == "desc":
+            query = query.order_by(sort_field.desc())
+        else:
+            query = query.order_by(sort_field.asc())
+
+        # 分页
+        albums = query.offset(skip).limit(limit).all()
+
+        return albums, total
+
+    @staticmethod
+    def update_album(
+        db: Session,
+        album_id: int,
+        album_data: schema.AlbumUpdate
+    ) -> Optional[model.Album]:
+        """更新相册信息
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            album_data: 更新数据
+
+        Returns:
+            更新后的相册对象，不存在返回 None
+        """
+        album = AlbumService.get_album_by_id(db, album_id)
+        if not album:
+            return None
+
+        # 仅更新提供的字段
+        update_data = album_data.model_dump(exclude_unset=True)
+        for field, value in update_data.items():
+            setattr(album, field, value)
+
+        db.commit()
+        db.refresh(album)
+        return album
+
+    @staticmethod
+    def delete_album(db: Session, album_id: int) -> bool:
+        """删除相册（软删除）
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+
+        Returns:
+            是否删除成功
+        """
+        album = AlbumService.get_album_by_id(db, album_id)
+        if not album:
+            return False
+
+        album.is_deleted = True
+        db.commit()
+        return True
+
+    @staticmethod
+    def add_asset_to_album(
+        db: Session,
+        album_id: int,
+        asset_id: int
+    ) -> Optional[model.AlbumAsset]:
+        """添加单个素材到相册
+
+        自动更新相册时间范围和封面（如果是第一个素材）
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            asset_id: 素材ID
+
+        Returns:
+            关联记录，失败返回 None
+        """
+        # 检查相册和素材是否存在
+        album = AlbumService.get_album_by_id(db, album_id)
+        if not album:
+            return None
+
+        asset = db.query(model.Asset).filter(
+            model.Asset.id == asset_id,
+            model.Asset.is_deleted == False
+        ).first()
+        if not asset:
+            return None
+
+        # 检查是否已存在（避免重复添加）
+        existing = db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.asset_id == asset_id,
+            model.AlbumAsset.is_deleted == False
+        ).first()
+        if existing:
+            return existing
+
+        # 创建关联记录
+        album_asset = model.AlbumAsset(
+            album_id=album_id,
+            asset_id=asset_id,
+            sort_order=0
+        )
+        db.add(album_asset)
+
+        # 更新相册时间范围和封面
+        AlbumService._update_album_time_range(db, album_id)
+        AlbumService._update_album_cover_if_needed(db, album_id)
+
+        db.commit()
+        db.refresh(album_asset)
+        return album_asset
+
+    @staticmethod
+    def add_assets_to_album_batch(
+        db: Session,
+        album_id: int,
+        asset_ids: List[int]
+    ) -> Tuple[int, List[int]]:
+        """批量添加素材到相册
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            asset_ids: 素材ID列表
+
+        Returns:
+            (成功添加的数量, 失败的asset_id列表)
+        """
+        album = AlbumService.get_album_by_id(db, album_id)
+        if not album:
+            return 0, asset_ids
+
+        success_count = 0
+        failed_ids = []
+
+        for asset_id in asset_ids:
+            # 检查素材是否存在
+            asset = db.query(model.Asset).filter(
+                model.Asset.id == asset_id,
+                model.Asset.is_deleted == False
+            ).first()
+            if not asset:
+                failed_ids.append(asset_id)
+                continue
+
+            # 检查是否已存在
+            existing = db.query(model.AlbumAsset).filter(
+                model.AlbumAsset.album_id == album_id,
+                model.AlbumAsset.asset_id == asset_id,
+                model.AlbumAsset.is_deleted == False
+            ).first()
+            if existing:
+                continue
+
+            # 创建关联记录
+            album_asset = model.AlbumAsset(
+                album_id=album_id,
+                asset_id=asset_id,
+                sort_order=0
+            )
+            db.add(album_asset)
+            success_count += 1
+
+        # 更新相册时间范围和封面
+        if success_count > 0:
+            AlbumService._update_album_time_range(db, album_id)
+            AlbumService._update_album_cover_if_needed(db, album_id)
+
+        db.commit()
+        return success_count, failed_ids
+
+    @staticmethod
+    def remove_asset_from_album(
+        db: Session,
+        album_id: int,
+        asset_id: int
+    ) -> bool:
+        """从相册移除素材（软删除）
+
+        自动更新相册时间范围和封面
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            asset_id: 素材ID
+
+        Returns:
+            是否移除成功
+        """
+        album_asset = db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.asset_id == asset_id,
+            model.AlbumAsset.is_deleted == False
+        ).first()
+
+        if not album_asset:
+            return False
+
+        album_asset.is_deleted = True
+
+        # 更新相册时间范围和封面
+        AlbumService._update_album_time_range(db, album_id)
+        AlbumService._update_album_cover_if_needed(db, album_id)
+
+        db.commit()
+        return True
+
+    @staticmethod
+    def get_album_assets(
+        db: Session,
+        album_id: int,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[model.Asset]:
+        """获取相册内的素材列表
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            skip: 跳过的记录数
+            limit: 返回的最大记录数
+
+        Returns:
+            素材列表（按 sort_order 排序）
+        """
+        assets = db.query(model.Asset).join(
+            model.AlbumAsset,
+            and_(
+                model.AlbumAsset.asset_id == model.Asset.id,
+                model.AlbumAsset.album_id == album_id,
+                model.AlbumAsset.is_deleted == False
+            )
+        ).filter(
+            model.Asset.is_deleted == False
+        ).order_by(
+            model.AlbumAsset.sort_order.asc(),
+            model.Asset.shot_at.desc()
+        ).offset(skip).limit(limit).all()
+
+        return assets
+
+    @staticmethod
+    def update_asset_sort(
+        db: Session,
+        album_id: int,
+        asset_id: int,
+        sort_order: int
+    ) -> bool:
+        """更新素材在相册内的排序
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            asset_id: 素材ID
+            sort_order: 新的排序顺序
+
+        Returns:
+            是否更新成功
+        """
+        album_asset = db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.asset_id == asset_id,
+            model.AlbumAsset.is_deleted == False
+        ).first()
+
+        if not album_asset:
+            return False
+
+        album_asset.sort_order = sort_order
+        db.commit()
+        return True
+
+    @staticmethod
+    def set_album_cover(
+        db: Session,
+        album_id: int,
+        cover_asset_id: int
+    ) -> Optional[model.Album]:
+        """设置相册封面
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+            cover_asset_id: 封面素材ID
+
+        Returns:
+            更新后的相册对象，失败返回 None
+        """
+        album = AlbumService.get_album_by_id(db, album_id)
+        if not album:
+            return None
+
+        # 检查素材是否在相册内
+        album_asset = db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.asset_id == cover_asset_id,
+            model.AlbumAsset.is_deleted == False
+        ).first()
+
+        if not album_asset:
+            return None
+
+        album.cover_asset_id = cover_asset_id
+        db.commit()
+        db.refresh(album)
+        return album
+
+    @staticmethod
+    def get_album_asset_count(db: Session, album_id: int) -> int:
+        """获取相册内素材数量
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+
+        Returns:
+            素材数量
+        """
+        return db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.is_deleted == False
+        ).count()
+
+    @staticmethod
+    def _update_album_time_range(db: Session, album_id: int) -> None:
+        """更新相册时间范围（内部方法）
+
+        自动根据相册内素材的拍摄时间更新 start_time 和 end_time
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+        """
+        album = db.query(model.Album).filter(model.Album.id == album_id).first()
+        if not album:
+            return
+
+        # 查询相册内素材的最早和最晚拍摄时间
+        time_range = db.query(
+            func.min(model.Asset.shot_at).label('min_time'),
+            func.max(model.Asset.shot_at).label('max_time')
+        ).join(
+            model.AlbumAsset,
+            and_(
+                model.AlbumAsset.asset_id == model.Asset.id,
+                model.AlbumAsset.album_id == album_id,
+                model.AlbumAsset.is_deleted == False
+            )
+        ).filter(
+            model.Asset.is_deleted == False,
+            model.Asset.shot_at.isnot(None)
+        ).first()
+
+        if time_range:
+            album.start_time = time_range.min_time
+            album.end_time = time_range.max_time
+        else:
+            # 相册为空或所有素材都没有拍摄时间
+            album.start_time = None
+            album.end_time = None
+
+    @staticmethod
+    def _update_album_cover_if_needed(db: Session, album_id: int) -> None:
+        """如果相册没有封面，自动选择第一张素材作为封面（内部方法）
+
+        Args:
+            db: 数据库会话
+            album_id: 相册ID
+        """
+        album = db.query(model.Album).filter(model.Album.id == album_id).first()
+        if not album or album.cover_asset_id:
+            return  # 已有封面，无需更新
+
+        # 选择拍摄时间最早的素材作为封面
+        first_asset = db.query(model.Asset).join(
+            model.AlbumAsset,
+            and_(
+                model.AlbumAsset.asset_id == model.Asset.id,
+                model.AlbumAsset.album_id == album_id,
+                model.AlbumAsset.is_deleted == False
+            )
+        ).filter(
+            model.Asset.is_deleted == False
+        ).order_by(
+            model.Asset.shot_at.asc()
+        ).first()
+
+        if first_asset:
+            album.cover_asset_id = first_asset.id

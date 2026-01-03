@@ -2,7 +2,7 @@
 Models Package
 
 导出所有数据库模型，使其他模块可以通过以下方式导入：
-    from app.model import User, Asset, Note, TagDefinition, AssetTag, Base
+    from app.model import User, Asset, Note, TagDefinition, AssetTag, Album, AlbumAsset, Base
 
 模型说明：
     User: 用户表
@@ -10,6 +10,8 @@ Models Package
     Note: 叙事笔记表
     TagDefinition: 标签元数据定义表
     AssetTag: 资源标签关联表
+    Album: 相册表
+    AlbumAsset: 相册素材关联表
 """
 from ..db import Base
 from .user import User
@@ -17,6 +19,8 @@ from .asset import Asset
 from .note import Note
 from .tag_definition import TagDefinition
 from .asset_tag import AssetTag
+from .album import Album
+from .album_asset import AlbumAsset
 
 # 导出所有模型，方便其他模块导入
 __all__ = [
@@ -26,4 +30,6 @@ __all__ = [
     'Note',
     'TagDefinition',
     'AssetTag',
+    'Album',
+    'AlbumAsset',
 ]
