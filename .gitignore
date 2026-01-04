@@ -204,6 +204,7 @@ secring.*
 # Claude Code / AI 工具
 .claude/
 .cursor/
+.spec-workflow/
 
 # 测试数据
 test_data/

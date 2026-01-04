@@ -59,8 +59,6 @@ def start_worker():
     if not check_redis_connection():
         print("⚠️  警告: Redis 未连接，跳过 Worker 启动")
         print("提示: 异步任务功能将不可用，请先启动 Redis:")
-        print("  macOS: brew services start redis")
-        print("  Linux: sudo systemctl start redis")
         return None
 
     # 获取配置
@@ -137,7 +135,7 @@ def stop_worker():
 
 def signal_handler(sig, frame):
     """处理终止信号（Ctrl+C）"""
-    print("\n\n收到终止信号，正在清理...")
+    print("\n收到终止信号，正在清理...")
     stop_worker()
     sys.exit(0)
 
@@ -164,7 +162,7 @@ if __name__ == "__main__":
             host="0.0.0.0",
             port=8000,
             reload=True,
-            log_level=settings.LOG_LEVEL
+            log_level=settings.LOG_LEVEL.lower()  # uvicorn 要求小写的日志级别
         )
     finally:
         # 确保 Worker 被停止
