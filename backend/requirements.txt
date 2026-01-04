@@ -8,7 +8,7 @@ pydantic-settings
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
-pillow
+pillow>=10.0.0,<13.0.0
 imagehash
 python-magic
 exifread

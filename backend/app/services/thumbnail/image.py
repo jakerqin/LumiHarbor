@@ -42,7 +42,7 @@ class ImageThumbnailGenerator(ThumbnailGenerator):
                 img = ImageOps.exif_transpose(img)
 
                 # 缩放图片（保持宽高比）
-                img.thumbnail(size, Image.Lanczos)
+                img.thumbnail(size, Image.Resampling.LANCZOS)
 
                 # 确保目标目录存在
                 self._ensure_dest_dir(dest_path)

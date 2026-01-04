@@ -7,13 +7,13 @@ class ScanRequest(BaseModel):
     """扫描导入请求模型
 
     Attributes:
-        source_path: 扫描路径（默认使用配置的 NAS_DATA_PATH）
+        source_path: 扫描路径
         created_by: 创建者用户ID（默认: 1）
         visibility: 素材可见性，可选 'general'(公共) 或 'private'(私有)（默认: general）
     """
     source_path: Optional[str] = Field(
         default=None,
-        description="扫描路径（默认使用配置的 NAS_DATA_PATH）"
+        description="扫描路径"
     )
     created_by: int = Field(
         default=1,

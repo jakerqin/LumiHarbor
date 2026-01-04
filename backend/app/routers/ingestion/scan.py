@@ -36,8 +36,7 @@ def scan_and_import(
     返回:
         任务状态信息
     """
-    # 使用指定路径或默认 NAS 路径
-    scan_path = request.source_path or settings.NAS_DATA_PATH
+    scan_path = request.source_path
 
     if not os.path.exists(scan_path):
         logger.error(f"扫描路径不存在: {scan_path}")
