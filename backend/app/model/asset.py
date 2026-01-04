@@ -65,8 +65,9 @@ class Asset(Base):
     __table_args__ = (
         # 基于哈希去重查询优化
         Index('idx_file_hash_not_deleted', 'file_hash', 'is_deleted'),
-        # 基于路径查询优化
-        Index('idx_original_path_not_deleted', 'original_path', 'is_deleted'),
+        # 基于路径查询优化（使用前缀索引，避免超过 3072 字节限制）
+        Index('idx_original_path_not_deleted', 'original_path', 'is_deleted',
+              mysql_length={'original_path': 255}),
         # 基于创建者和时间查询优化
         Index('idx_created_by_shot_at', 'created_by', 'shot_at'),
     )

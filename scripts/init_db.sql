@@ -45,10 +45,10 @@ CREATE TABLE IF NOT EXISTS assets (
     -- 索引
     INDEX idx_created_by (created_by),
     INDEX idx_file_hash (file_hash),
-    INDEX idx_original_path (original_path),
+    INDEX idx_original_path (original_path(255)),
     INDEX idx_shot_at (shot_at),
     INDEX idx_file_hash_not_deleted (file_hash, is_deleted),
-    INDEX idx_original_path_not_deleted (original_path, is_deleted),
+    INDEX idx_original_path_not_deleted (original_path(255), is_deleted),
     INDEX idx_created_by_shot_at (created_by, shot_at)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源核心表';
