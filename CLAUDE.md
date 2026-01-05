@@ -30,7 +30,7 @@
 **工作流程**:
 ```
 1. 扫描目录 → 2. 计算 file_hash (去重) → 3. 提取元数据 →
-4. 生成缩略图 → 5. 存入数据库 → 6. 发送异步任务计算 phash
+4. 存入数据库 → 5. 保存标签 → 6. 生成缩略图 → 7. 发送异步任务计算 phash
 ```
 
 **重要文件**:
@@ -64,7 +64,8 @@
 - 格式: WebP
 - 尺寸: 最大 400×400 (保持宽高比)
 - 质量: 80%
-- 存储路径: `processed/thumbnails/{asset_id}.webp`
+- 存储路径: `processed/thumbnails/{filename}_thumbnail.webp`
+- 命名规则: 使用原始文件名 (不含扩展名) + `_thumbnail.webp`
 
 **视频缩略图策略**:
 - 长视频 (>2s): 提取第 1 秒帧
@@ -136,6 +137,45 @@ taskiq worker app.tasks.broker:broker --workers 4
 - [broker.py](backend/app/tasks/broker.py) - Redis Broker 配置
 - [phash_tasks.py](backend/app/tasks/phash_tasks.py) - 感知哈希异步任务
 - [README.md](backend/app/tasks/README.md) - 完整使用文档
+
+### 6. 标签系统 (Tag System)
+
+**位置**: `backend/app/services/tags/`
+
+**架构设计**:
+- **三表设计**: tag_definitions (全局标签定义) + asset_template_tags (模板配置) + asset_tags (标签值存储)
+- **tag_key 关联**: 使用字符串键名直接关联,避免查询 tag_definitions 获取 ID
+- **模板系统**: 支持按资源类型 (image/video/audio) 配置不同的标签集
+- **全局标签复用**: 同一个标签可在多种资源类型中使用 (如 GPS、设备信息)
+
+**功能**:
+- 自动提取并保存 EXIF/FFmpeg 元数据为结构化标签
+- 基于模板过滤,仅保存该资源类型定义的标签
+- 支持跨类型标签复用 (如 device_make 同时用于 image 和 video)
+- 自动去重,避免重复保存相同标签
+
+**工作流程**:
+```
+1. 提取元数据 → 2. 映射为统一 tag_key → 3. 查询模板配置 →
+4. 过滤有效标签 → 5. 去重检查 → 6. 批量保存
+```
+
+**预定义标签** (15 个全局标签):
+- **设备信息**: device_make, device_model, lens_model
+- **拍摄参数**: exposure_time, aperture, iso, focal_length, white_balance, flash
+- **GPS 信息**: gps_latitude, gps_longitude, gps_altitude
+- **媒体属性**: width, height, duration
+
+**模板配置**:
+- **image 模板**: 12 个标签 (设备信息 + 拍摄参数 + GPS + 尺寸)
+- **video 模板**: 8 个标签 (设备信息 + GPS + 尺寸 + 时长)
+
+**重要文件**:
+- [service.py](backend/app/services/tags/service.py) - 标签业务逻辑 (基于模板)
+- [mapper.py](backend/app/services/tags/mapper.py) - 元数据映射器 (统一 EXIF/FFmpeg)
+- [tag_definition.py](backend/app/model/tag_definition.py) - 全局标签定义模型
+- [asset_tag.py](backend/app/model/asset_tag.py) - 标签值存储模型
+- [asset_template_tag.py](backend/app/model/asset_template_tag.py) - 模板配置模型
 
 ---
 
@@ -221,6 +261,92 @@ is_deleted        BOOLEAN        # 软删除标记
 - 同一相册内不能重复添加同一素材（唯一约束）
 - `sort_order` 用于自定义相册内素材的显示顺序
 
+### TagDefinition 表
+
+**位置**: `backend/app/model/tag_definition.py`
+
+**核心字段**:
+```python
+id                BIGINT         # 主键
+tag_key           VARCHAR(100)   # 标签键名（唯一，用于关联）
+tag_name          VARCHAR(200)   # 标签显示名称
+input_type        INT            # 输入类型（预留字段）
+extra_info        JSON           # 扩展信息（预留字段）
+description       TEXT           # 标签描述
+created_at        DATETIME       # 创建时间
+updated_at        DATETIME       # 更新时间
+is_deleted        BOOLEAN        # 软删除标记
+```
+
+**设计说明**:
+- **全局标签定义**: 不区分资源类型,同一个标签可被多种资源类型使用
+- **tag_key 唯一性**: 作为标签的全局唯一标识符,用于跨表关联
+- **无 type 字段**: 标签不属于特定类型,通过模板系统配置使用范围
+
+**索引**:
+- `UNIQUE KEY uk_tag_key`: (tag_key) - 确保全局唯一
+- `INDEX idx_tag_key`: (tag_key) - 查询优化
+
+### AssetTemplateTag 表
+
+**位置**: `backend/app/model/asset_template_tag.py`
+
+**核心字段**:
+```python
+id                BIGINT         # 主键
+template_type     VARCHAR(20)    # 模板类型: image/video/audio
+tag_key           VARCHAR(100)   # 标签键名（关联 tag_definitions）
+sort_order        INT            # 排序顺序
+is_required       BOOLEAN        # 是否必填（预留字段）
+created_at        DATETIME       # 创建时间
+updated_at        DATETIME       # 更新时间
+is_deleted        BOOLEAN        # 软删除标记
+```
+
+**设计说明**:
+- **模板配置表**: 定义每种资源类型应该使用哪些标签
+- **灵活配置**: 通过配置实现标签的跨类型复用
+- **自动匹配**: 导入流程根据 asset_type 自动匹配对应模板
+
+**复合索引**:
+- `UNIQUE KEY uk_template_tag`: (template_type, tag_key) - 防止重复配置
+- `INDEX idx_template_type`: (template_type) - 模板查询优化
+- `INDEX idx_tag_key`: (tag_key) - 标签查询优化
+
+**当前配置**:
+- **image**: 12 个标签 (device_make, device_model, lens_model, exposure_time, aperture, iso, focal_length, white_balance, flash, gps_latitude, gps_longitude, gps_altitude)
+- **video**: 8 个标签 (device_make, device_model, width, height, duration, gps_latitude, gps_longitude, gps_altitude)
+
+### AssetTag 表
+
+**位置**: `backend/app/model/asset_tag.py`
+
+**核心字段**:
+```python
+id                BIGINT         # 主键
+asset_id          BIGINT         # 素材ID
+tag_key           VARCHAR(100)   # 标签键名（直接使用字符串关联）
+tag_value         TEXT           # 标签值
+created_at        DATETIME       # 创建时间
+updated_at        DATETIME       # 更新时间
+is_deleted        BOOLEAN        # 软删除标记
+```
+
+**设计说明**:
+- **tag_key 关联**: 直接使用字符串键名,避免查询 tag_definitions 获取 ID
+- **性能优化**: 减少关联查询,提高标签读写效率
+- **灵活存储**: tag_value 为 TEXT 类型,支持多种数据格式
+
+**复合索引**:
+- `UNIQUE KEY uk_asset_tag`: (asset_id, tag_key) - 防止重复标签
+- `INDEX idx_asset_id`: (asset_id) - 素材查询优化
+- `INDEX idx_tag_key`: (tag_key) - 标签查询优化
+
+**关系说明**:
+- 一个素材可以有多个标签（一对多）
+- 同一素材不能重复添加相同的 tag_key（唯一约束）
+- 标签值通过应用层验证和过滤,仅保存模板中定义的标签
+
 ---
 
 ## 项目结构
@@ -245,6 +371,9 @@ backend/
 │   │   │   ├── image.py
 │   │   │   └── video.py
 │   │   ├── thumbnail/       # 缩略图生成
+│   │   ├── tags/            # 标签系统
+│   │   │   ├── service.py   # 标签业务逻辑 (基于模板)
+│   │   │   └── mapper.py    # 元数据映射器 (统一 EXIF/FFmpeg)
 │   │   └── filesystem.py    # 文件系统扫描
 │   ├── tasks/               # Taskiq 异步任务
 │   │   ├── broker.py        # Redis Broker
@@ -500,6 +629,59 @@ else:
 
 **效果**: 100% 成功率,兼容所有时长视频
 
+### 4. 为何使用 tag_key 关联 + 模板系统?
+
+**决策**: tag_key 字符串直接关联 + asset_template_tags 模板配置
+
+**问题**: 初始设计使用 tag_id (外键) + type 字段区分资源类型,存在以下问题:
+- GPS、设备信息等通用标签需要在每种资源类型中重复定义
+- 标签保存需要先查询 tag_definitions 获取 ID,增加数据库查询
+- type 字段限制了标签的跨类型复用
+
+**解决方案**:
+```
+三表设计:
+1. tag_definitions - 全局标签定义（无 type 字段）
+2. asset_template_tags - 模板配置（定义每种资源类型使用哪些标签）
+3. asset_tags - 标签值存储（使用 tag_key 直接关联）
+```
+
+**优势**:
+- ✅ **跨类型复用**: device_make、GPS 等标签可在 image/video 中共享
+- ✅ **性能优化**: 避免查询 tag_definitions 获取 ID,直接使用 tag_key
+- ✅ **灵活配置**: 通过模板系统控制每种资源类型的标签集
+- ✅ **易于扩展**: 新增资源类型只需添加模板配置,无需修改标签定义
+
+**对比传统方案**:
+```python
+# ❌ 传统方案 (tag_id + type)
+# 需要为 image 和 video 分别定义 device_make
+tag_definitions:
+  - id: 1, tag_key: 'image_device_make', type: 0
+  - id: 2, tag_key: 'video_device_make', type: 1
+
+asset_tags:
+  - asset_id: 123, tag_id: 1, tag_value: 'Apple'  # 需要先查询 ID
+
+# ✅ 新方案 (tag_key + template)
+# 全局定义一次,通过模板配置复用
+tag_definitions:
+  - tag_key: 'device_make', tag_name: '设备制造商'
+
+asset_template_tags:
+  - template_type: 'image', tag_key: 'device_make'
+  - template_type: 'video', tag_key: 'device_make'
+
+asset_tags:
+  - asset_id: 123, tag_key: 'device_make', tag_value: 'Apple'  # 直接使用 tag_key
+```
+
+**实现细节**:
+- 元数据提取后,通过 `MetadataTagMapper` 统一映射为 tag_key
+- `TagService` 根据 asset_type 查询模板配置,过滤有效标签
+- 批量保存前去重检查,避免重复插入
+- 数据库层 UNIQUE 约束兜底,确保 (asset_id, tag_key) 唯一
+
 ---
 
 ## 参考文档
@@ -511,5 +693,11 @@ else:
 
 ---
 
-**最后更新**: 2026-01-02
-**版本**: v1.0.0
+**最后更新**: 2026-01-05
+**版本**: v1.1.0
+
+**v1.1.0 更新内容** (2026-01-05):
+- 新增标签系统 (tag_key 关联 + 模板系统)
+- 支持自动提取并保存 EXIF/FFmpeg 元数据为结构化标签
+- 15 个预定义全局标签,支持 image 和 video 跨类型复用
+- 缩略图命名优化: `{filename}_thumbnail.webp`
