@@ -20,18 +20,15 @@ CREATE TABLE IF NOT EXISTS users (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS assets (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源唯一ID',
-
     -- 核心物理属性（不可变）
-    original_path VARCHAR(1000) NOT NULL COMMENT 'NAS 物理相对路径',
-    thumbnail_path VARCHAR(1000) COMMENT '缩略图路径',
-
+    original_path VARCHAR(255) NOT NULL COMMENT 'NAS 物理相对路径',
+    thumbnail_path VARCHAR(255) COMMENT '缩略图路径',
     -- 文件基础信息
     asset_type VARCHAR(20) NOT NULL COMMENT '资源类型: image, video, audio',
     mime_type VARCHAR(100) COMMENT 'MIME类型: image/jpeg, video/mp4',
     file_size BIGINT COMMENT '文件大小（字节）',
     phash VARCHAR(64) COMMENT '感知哈希（用于查找相似素材，如相似图片搜索）',
     file_hash VARCHAR(64) COMMENT '文件内容哈希（SHA256，用于精确去重）',
-
     -- 权限控制
     visibility VARCHAR(20) DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
 
@@ -40,7 +37,7 @@ CREATE TABLE IF NOT EXISTS assets (
     shot_at DATETIME COMMENT '拍摄时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     -- 索引
     INDEX idx_created_by (created_by),
@@ -58,48 +55,50 @@ CREATE TABLE IF NOT EXISTS assets (
 -- ==========================================
 CREATE TABLE IF NOT EXISTS tag_definitions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '标签定义ID',
-
-    -- 标签标识
     tag_key VARCHAR(100) UNIQUE NOT NULL COMMENT '标签键名（唯一）: gps_lat, camera_model, ai_tag_person',
     tag_name VARCHAR(200) NOT NULL COMMENT '标签显示名称: GPS纬度, 相机型号, AI人物标签',
-
-    -- 前端展示配置
     input_type INT(11) DEFAULT NULL COMMENT '输入组件类型：1:TextInput、2:TreeSelect、3:DateRangePicker',
     extra_info JSON COMMENT '扩展信息（JSON格式）: {"min": -90, "max": 90, "options": [...], "placeholder": "..."}',
-
-    -- 元信息
     description TEXT COMMENT '标签描述',
-
-    -- 时间戳
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
-    -- 索引
     INDEX idx_tag_key (tag_key),
     INDEX idx_input_type (input_type)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='标签元数据定义表';
+
+-- ==========================================
+-- 资源模板与标签关联表
+-- ==========================================
+CREATE TABLE IF NOT EXISTS asset_template_tags (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关联记录ID',
+    template_type VARCHAR(20) NOT NULL COMMENT '模板类型: image, video, audio',
+    tag_key VARCHAR(100) NOT NULL COMMENT '标签键名',
+    sort_order INT DEFAULT 0 COMMENT '排序顺序（前端展示）',
+    is_required BOOLEAN DEFAULT '0' COMMENT '是否必填标签',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
+    INDEX idx_template_type (template_type),
+    INDEX idx_tag_key (tag_key),
+    UNIQUE KEY uk_template_tag (template_type, tag_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源模板与标签关联表';
 
 -- ==========================================
 -- 资源标签关联表
 -- ==========================================
 CREATE TABLE IF NOT EXISTS asset_tags (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '关联记录ID',
-
     asset_id BIGINT NOT NULL COMMENT '资源ID',
-    tag_id BIGINT NOT NULL COMMENT '标签定义ID',
-
-    -- 多类型值存储（根据前端组件类型使用对应字段）
-    tag_value mediumtext CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci COMMENT '标签值',
-
-    -- 时间戳
+    tag_key VARCHAR(100) NOT NULL COMMENT '标签键名',
+    tag_value MEDIUMTEXT COMMENT '标签值',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
-
-    -- 索引
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
     INDEX idx_asset_id (asset_id),
-    INDEX idx_tag_id (tag_id)
+    INDEX idx_tag_key (tag_key),
+    UNIQUE KEY uk_asset_tag (asset_id, tag_key)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源标签关联表';
 
 -- ==========================================
@@ -110,12 +109,12 @@ CREATE TABLE IF NOT EXISTS notes (
     created_by BIGINT NOT NULL COMMENT '创建者用户ID',
     title VARCHAR(255),
     content TEXT NOT NULL,
-    is_encrypted BOOLEAN DEFAULT FALSE,
+    is_encrypted BOOLEAN DEFAULT '0',
     related_assets JSON COMMENT '关联资源列表 (JSON 数组)',
     shot_at DATETIME COMMENT '叙事发生时间',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     INDEX idx_created_by (created_by),
     INDEX idx_shot_at (shot_at)
@@ -146,7 +145,7 @@ CREATE TABLE IF NOT EXISTS albums (
     -- 时间戳
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     -- 索引
     INDEX idx_created_by (created_by),
@@ -172,7 +171,7 @@ CREATE TABLE IF NOT EXISTS album_assets (
     -- 时间戳
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '添加时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '是否删除（软删除标记）',
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     -- 索引
     INDEX idx_album_id (album_id),
@@ -181,3 +180,74 @@ CREATE TABLE IF NOT EXISTS album_assets (
     UNIQUE KEY uk_album_asset (album_id, asset_id)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='相册素材关联表';
+
+-- ==========================================
+-- 全局标签定义（可跨类型复用）
+-- ==========================================
+
+-- 相机/设备信息类 (3个)
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
+('device_make', '设备制造商', 1, JSON_OBJECT('placeholder', '如: Canon, Apple'), '拍摄设备品牌'),
+('device_model', '设备型号', 1, JSON_OBJECT('placeholder', '如: iPhone 15 Pro, Canon EOS R5'), '拍摄设备型号'),
+('lens_model', '镜头型号', 1, JSON_OBJECT('placeholder', '如: EF 24-70mm f/2.8L'), '使用的镜头型号');
+
+-- 拍摄参数类 (6个)
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
+('exposure_time', '快门速度', 1, JSON_OBJECT('placeholder', '如: 1/125, 1/500'), '曝光时间'),
+('aperture', '光圈值', 1, JSON_OBJECT('placeholder', '如: f/2.8, f/5.6'), '光圈大小'),
+('iso', 'ISO感光度', 1, JSON_OBJECT('placeholder', '如: 100, 400'), 'ISO设置'),
+('focal_length', '焦距', 1, JSON_OBJECT('placeholder', '如: 50mm, 24mm'), '镜头焦距'),
+('white_balance', '白平衡', 1, JSON_OBJECT('placeholder', '如: Auto, Daylight'), '白平衡模式'),
+('flash', '闪光灯', 1, JSON_OBJECT('placeholder', '如: Flash fired'), '闪光灯状态');
+
+-- GPS位置类 (3个)
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
+('gps_latitude', 'GPS纬度', 1, JSON_OBJECT('placeholder', '如: 39.9042° N'), '拍摄位置纬度'),
+('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 116.4074° E'), '拍摄位置经度'),
+('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 100m'), '拍摄位置海拔');
+
+-- 媒体属性类 (3个)
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
+('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 4000px'), '媒体宽度（像素）'),
+('height', '高度', 1, JSON_OBJECT('placeholder', '如: 3000px'), '媒体高度（像素）'),
+('duration', '时长', 1, JSON_OBJECT('placeholder', '如: 00:02:30'), '视频/音频时长');
+
+-- ==========================================
+-- Image 模板标签配置（12个）
+-- ==========================================
+INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required) VALUES
+-- 设备信息
+('image', 'device_make', 1, FALSE),
+('image', 'device_model', 2, FALSE),
+('image', 'lens_model', 3, FALSE),
+
+-- 拍摄参数
+('image', 'exposure_time', 4, FALSE),
+('image', 'aperture', 5, FALSE),
+('image', 'iso', 6, FALSE),
+('image', 'focal_length', 7, FALSE),
+('image', 'white_balance', 8, FALSE),
+('image', 'flash', 9, FALSE),
+
+-- GPS
+('image', 'gps_latitude', 10, FALSE),
+('image', 'gps_longitude', 11, FALSE),
+('image', 'gps_altitude', 12, FALSE);
+
+-- ==========================================
+-- Video 模板标签配置（8个）
+-- ==========================================
+INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required) VALUES
+-- 设备信息
+('video', 'device_make', 1, FALSE),
+('video', 'device_model', 2, FALSE),
+
+-- GPS（视频也可能有GPS）
+('video', 'gps_latitude', 3, FALSE),
+('video', 'gps_longitude', 4, FALSE),
+('video', 'gps_altitude', 5, FALSE),
+
+-- 媒体属性
+('video', 'width', 6, FALSE),
+('video', 'height', 7, FALSE),
+('video', 'duration', 8, FALSE);

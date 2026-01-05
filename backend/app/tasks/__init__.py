@@ -21,4 +21,8 @@
 """
 from .broker import broker
 
-__all__ = ['broker']
+# 重要：导入所有任务模块，确保任务被注册到 broker
+# Worker 启动时会加载此模块，从而注册所有任务
+from . import phash_tasks  # noqa: F401
+
+__all__ = ['broker', 'phash_tasks']

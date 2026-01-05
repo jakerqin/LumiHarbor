@@ -30,8 +30,8 @@ class Asset(Base):
     created_by = Column(BIGINT, nullable=False, index=True, comment='创建者用户ID')
 
     # 核心物理属性
-    original_path = Column(String(1000), nullable=False, index=True, comment='NAS 物理相对路径')
-    thumbnail_path = Column(String(1000), nullable=True, comment='缩略图路径')
+    original_path = Column(String(255), nullable=False, index=True, comment='NAS 物理相对路径')
+    thumbnail_path = Column(String(255), nullable=True, comment='缩略图路径')
 
     # 文件基础信息
     asset_type = Column(String(20), nullable=False, comment='资源类型: image, video, audio')

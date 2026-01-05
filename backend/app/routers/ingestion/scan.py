@@ -2,10 +2,10 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from ...db import get_db
-from ...config import settings
 from ... import model, schema
 from ...schema.ingestion import ScanRequest, ScanResponseData
 from ...services import FilesystemScanner, MetadataExtractorFactory, ThumbnailGeneratorFactory
+from ...services.tags import TagService, MetadataTagMapper
 from ...tools.utils import get_logger
 from ...tools.file_hash import calculate_file_hash
 from ...tasks.phash_tasks import calculate_phash_task
@@ -114,8 +114,35 @@ def scan_and_import(
                     f"(hash: {file_hash[:16]}...)"
                 )
 
-                # 6. 生成预览图
-                thumb_rel_path = f"processed/thumbnails/{new_asset.id}.webp"
+                # 6. 保存元数据标签（支持 image 和 video）
+                if metadata:
+                    try:
+                        # 将元数据映射为统一格式
+                        mapped_tags = MetadataTagMapper.map_metadata_to_tags(metadata)
+
+                        # 批量保存标签（自动根据 asset_type 匹配模板）
+                        saved_count = TagService.batch_save_asset_tags(
+                            db=db,
+                            asset_id=new_asset.id,
+                            asset_type=asset_type,  # 'image' 或 'video'
+                            tag_data=mapped_tags
+                        )
+
+                        if saved_count > 0:
+                            logger.debug(f"Asset {new_asset.id} ({asset_type}) 保存了 {saved_count} 个标签")
+
+                    except Exception as tag_error:
+                        # 标签保存失败不影响素材导入
+                        logger.warning(f"Asset {new_asset.id} 标签保存失败: {tag_error}")
+
+                # 7. 生成预览图
+                # 提取原始文件名（不含扩展名）
+                original_filename = os.path.basename(data['original_path'])
+                filename_without_ext = os.path.splitext(original_filename)[0]
+
+                # 生成缩略图文件名：原始文件名_thumbnail.webp
+                thumb_filename = f"{filename_without_ext}_thumbnail.webp"
+                thumb_rel_path = f"processed/thumbnails/{thumb_filename}"
                 thumb_full_path = os.path.join(scan_path, thumb_rel_path)
 
                 logger.debug(f"生成缩略图 - 原始文件: {original_full_path}")
@@ -128,7 +155,7 @@ def scan_and_import(
                 else:
                     logger.warning(f"缩略图生成失败，但素材已导入: {data['original_path']}")
 
-                # 7. 发送异步任务计算感知哈希（不阻塞导入流程）
+                # 8. 发送异步任务计算感知哈希（不阻塞导入流程）
                 try:
                     # 使用 kiq() 发送异步任务到 Redis 队列
                     # 注意：kiq() 返回协程，需要在事件循环中执行

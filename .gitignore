@@ -116,8 +116,6 @@ logs/
 backend/logs/
 
 # ==================== IDE / 编辑器 ====================
-# VS Code
-.vscode/
 *.code-workspace
 
 # PyCharm

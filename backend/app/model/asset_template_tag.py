@@ -1,34 +1,35 @@
-"""资源标签关联模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Text
+"""资源模板与标签关联模型"""
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Integer
 from datetime import datetime
 from ..db import Base
 
 
-class AssetTag(Base):
-    """资源标签关联表
+class AssetTemplateTag(Base):
+    """资源模板与标签关联表
 
-    用于存储资源与标签定义之间的多对多关系及标签值。
+    用于定义每种资源类型（模板）应该提取哪些标签。
 
     Attributes:
         id: 关联记录ID
-        asset_id: 资源ID（外键关联 assets 表）
-        tag_id: 标签定义ID（外键关联 tag_definitions 表）
-        tag_value: 标签值（根据标签类型存储不同格式的数据）
+        template_type: 模板类型（image/video/audio）
+        tag_key: 标签键名
+        sort_order: 排序顺序（前端展示）
+        is_required: 是否必填标签
         created_at: 创建时间
         updated_at: 更新时间
         is_deleted: 是否删除（软删除标记）
     """
-    __tablename__ = "asset_tags"
+    __tablename__ = "asset_template_tags"
 
     # 主键
     id = Column(BIGINT, primary_key=True, autoincrement=True, comment='关联记录ID')
 
-    # 关联字段
-    asset_id = Column(
-        BIGINT,
+    # 模板配置
+    template_type = Column(
+        String(20),
         nullable=False,
         index=True,
-        comment='资源ID'
+        comment='模板类型: image, video, audio'
     )
     tag_key = Column(
         String(100),
@@ -36,12 +37,15 @@ class AssetTag(Base):
         index=True,
         comment='标签键名'
     )
-
-    # 标签值（多类型存储）
-    tag_value = Column(
-        Text,
-        nullable=True,
-        comment='标签值'
+    sort_order = Column(
+        Integer,
+        default=0,
+        comment='排序顺序（前端展示）'
+    )
+    is_required = Column(
+        Boolean,
+        default=False,
+        comment='是否必填标签'
     )
 
     # 时间戳

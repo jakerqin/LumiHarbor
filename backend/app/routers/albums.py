@@ -40,7 +40,7 @@ def list_albums(
         schema.AlbumSortBy.CREATED_AT,
         description="排序字段"
     ),
-    order: str = Query("desc", regex="^(asc|desc)$", description="排序顺序"),
+    order: str = Query("desc", pattern="^(asc|desc)$", description="排序顺序"),
     visibility: Optional[str] = Query(None, description="可见性筛选"),
     search: Optional[str] = Query(None, description="按名称模糊搜索"),
     created_by: Optional[int] = Query(None, description="按创建者筛选"),
