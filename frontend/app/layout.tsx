@@ -18,7 +18,16 @@ const notoSansSC = Noto_Sans_SC({
 
 export const metadata: Metadata = {
   title: 'LumiHarbor - 拾光坞',
-  description: '个人生活素材管理系统',
+  description: '收集时光碎片，归航家庭港湾。个人与家庭足迹记忆管理系统。',
+  icons: {
+    icon: [
+      { url: '/favicon.svg', type: 'image/svg+xml' },
+      { url: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+    apple: [
+      { url: '/icon.svg', sizes: '512x512', type: 'image/svg+xml' },
+    ],
+  },
 };
 
 export default function RootLayout({

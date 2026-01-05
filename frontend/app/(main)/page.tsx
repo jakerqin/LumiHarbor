@@ -1,8 +1,37 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { BentoGrid } from '@/components/home/BentoGrid';
-import { MapView3D } from '@/components/home/MapView3D';
-import { Timeline } from '@/components/home/Timeline';
+
+// 动态导入重量级组件，提升首屏加载速度
+const MapView3D = dynamic(
+  () => import('@/components/home/MapView3D').then((mod) => mod.MapView3D),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex items-center justify-center h-[600px]">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
+          <p className="text-foreground-secondary">加载 3D 地图中...</p>
+        </div>
+      </div>
+    ),
+  }
+);
+
+const Timeline = dynamic(
+  () => import('@/components/home/Timeline').then((mod) => mod.Timeline),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center h-[400px]">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
+          <p className="text-foreground-secondary">加载时间轴中...</p>
+        </div>
+      </div>
+    ),
+  }
+);
 
 export default function HomePage() {
   return (

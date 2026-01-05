@@ -1,0 +1,62 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- 更深的背景，增强对比 -->
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#0a0a0f;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#12121a;stop-opacity:1" />
+    </linearGradient>
+    <!-- 更亮的主题渐变 -->
+    <linearGradient id="light-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#a78bfa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#f472b6;stop-opacity:1" />
+    </linearGradient>
+    <!-- 白色到蓝色的灯塔核心渐变 -->
+    <radialGradient id="core-gradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </radialGradient>
+    <!-- 强烈的发光效果 -->
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#60a5fa;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- 深黑色圆形背景 -->
+  <circle cx="256" cy="256" r="256" fill="url(#bg-gradient)"/>
+
+  <!-- 港湾底座（更亮加粗） -->
+  <path d="M 90 380 Q 256 320 422 380" stroke="url(#light-gradient)" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <path d="M 105 410 Q 256 360 407 410" stroke="url(#light-gradient)" stroke-width="12" fill="none" stroke-linecap="round" opacity="0.7"/>
+
+  <!-- 强烈发光层 -->
+  <circle cx="256" cy="180" r="140" fill="url(#glow)" opacity="0.6"/>
+
+  <!-- 中心灯塔核心（白色中心） -->
+  <circle cx="256" cy="180" r="90" fill="url(#core-gradient)"/>
+
+  <!-- 外圈高光 -->
+  <circle cx="256" cy="180" r="85" fill="none" stroke="#ffffff" stroke-width="3" opacity="0.8"/>
+
+  <!-- 光束扩散效果（更亮加宽） -->
+  <path d="M 256 180 L 220 360 L 256 330 L 292 360 Z" fill="url(#light-gradient)" opacity="0.85"/>
+
+  <!-- 时光碎片（更亮更饱和） -->
+  <circle cx="140" cy="150" r="22" fill="#a78bfa" opacity="1"/>
+  <circle cx="372" cy="150" r="22" fill="#f472b6" opacity="1"/>
+  <circle cx="110" cy="240" r="18" fill="#60a5fa" opacity="0.95"/>
+  <circle cx="402" cy="240" r="18" fill="#f472b6" opacity="0.95"/>
+  <circle cx="160" cy="300" r="15" fill="#a78bfa" opacity="0.9"/>
+  <circle cx="352" cy="300" r="15" fill="#60a5fa" opacity="0.9"/>
+
+  <!-- 光芒线条（更亮更粗） -->
+  <path d="M 256 90 L 256 30" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" opacity="1"/>
+  <path d="M 180 120 L 130 70" stroke="#a78bfa" stroke-width="8" stroke-linecap="round" opacity="0.95"/>
+  <path d="M 332 120 L 382 70" stroke="#f472b6" stroke-width="8" stroke-linecap="round" opacity="0.95"/>
+
+  <!-- 额外的辐射光线（增强视觉效果） -->
+  <path d="M 165 155 L 110 130" stroke="#60a5fa" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+  <path d="M 347 155 L 402 130" stroke="#f472b6" stroke-width="6" stroke-linecap="round" opacity="0.8"/>
+</svg>
