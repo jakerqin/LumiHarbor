@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Play, MapPin, Calendar } from '@phosphor-icons/react';
+import { Play, MapPin, Calendar } from 'lucide-react';
 import { Asset } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 
@@ -45,7 +45,7 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
 
         {asset.type === 'video' && (
           <div className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
-            <Play size={20} weight="fill" className="text-white" />
+            <Play size={20} fill="currentColor" className="text-white" />
           </div>
         )}
 
@@ -57,7 +57,7 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
           <div className="absolute bottom-0 left-0 right-0 p-6 space-y-2">
             {asset.location && (
               <div className="flex items-center gap-2 text-white/90">
-                <MapPin size={16} weight="fill" />
+                <MapPin size={16} fill="currentColor" />
                 <span className="text-sm font-medium">{asset.location.name}</span>
               </div>
             )}

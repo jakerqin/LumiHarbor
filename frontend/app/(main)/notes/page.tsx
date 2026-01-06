@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Article,
+  FileText,
   Plus,
   SquaresFour,
   ClockCounterClockwise,
-} from '@phosphor-icons/react/dist/ssr';
+} from 'lucide-react';
 import { NoteGrid } from '@/components/notes/NoteGrid';
 import { NoteTimeline } from '@/components/notes/NoteTimeline';
 
@@ -34,7 +34,7 @@ export default function NotesPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-                <Article size={40} weight="duotone" className="text-primary" />
+                <FileText size={40} className="text-primary" />
                 笔记
               </h1>
               <p className="text-foreground-secondary">记录生活中的点点滴滴</p>
@@ -51,7 +51,7 @@ export default function NotesPage() {
                       : 'hover:bg-white/5 text-foreground-secondary'
                   }`}
                 >
-                  <SquaresFour size={20} weight="duotone" />
+                  <SquaresFour size={20} />
                   <span className="text-sm font-medium">网格</span>
                 </button>
                 <button
@@ -62,7 +62,7 @@ export default function NotesPage() {
                       : 'hover:bg-white/5 text-foreground-secondary'
                   }`}
                 >
-                  <ClockCounterClockwise size={20} weight="duotone" />
+                  <ClockCounterClockwise size={20} />
                   <span className="text-sm font-medium">时间轴</span>
                 </button>
               </div>
@@ -74,7 +74,7 @@ export default function NotesPage() {
                 onClick={handleCreateNote}
                 className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
               >
-                <Plus size={20} weight="bold" />
+                <Plus size={20} />
                 <span className="font-medium">写笔记</span>
               </motion.button>
             </div>

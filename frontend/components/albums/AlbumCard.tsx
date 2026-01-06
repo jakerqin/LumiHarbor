@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { Image as ImageIcon, CalendarBlank } from '@phosphor-icons/react/dist/ssr';
+import { Image as ImageIcon, Calendar } from 'lucide-react';
 import type { Album } from '@/lib/api/albums';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -28,7 +28,7 @@ export function AlbumCard({ album, onClick }: AlbumCardProps) {
 
         {/* 数量标识 */}
         <div className="absolute top-3 right-3 px-3 py-1.5 bg-black/60 backdrop-blur-sm rounded-lg flex items-center gap-2">
-          <ImageIcon size={16} weight="duotone" className="text-white" />
+          <ImageIcon size={16} className="text-white" />
           <span className="text-sm text-white font-medium">{album.assetCount}</span>
         </div>
 
@@ -47,7 +47,7 @@ export function AlbumCard({ album, onClick }: AlbumCardProps) {
         )}
 
         <div className="flex items-center gap-2 text-xs text-foreground-tertiary">
-          <CalendarBlank size={14} weight="duotone" />
+          <Calendar size={14} />
           <span>
             {album.startTime && album.endTime
               ? `${format(new Date(album.startTime), 'yyyy.MM.dd', { locale: zhCN })} - ${format(

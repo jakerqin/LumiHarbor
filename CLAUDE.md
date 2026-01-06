@@ -18,7 +18,7 @@
 **前端：**
 - **框架**: Next.js 14 (App Router) + TypeScript
 - **样式**: Tailwind CSS + 自定义深色主题
-- **图标**: Phosphor Icons (Duotone 风格)
+- **图标**: lucide-react
 - **字体**: Space Grotesk (英文) + Noto Sans SC (中文)
 - **3D 渲染**: React Three Fiber + @react-three/drei
 - **动画**: Framer Motion

@@ -3,14 +3,14 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Funnel,
+  Filter,
   X,
   Image as ImageIcon,
-  VideoCamera,
+  Video,
   MapPin,
   Tag,
-  SortAscending,
-} from '@phosphor-icons/react/dist/ssr';
+  ArrowUpDown,
+} from 'lucide-react';
 import type { AssetsFilter } from '@/lib/api/assets';
 
 interface AssetFilterProps {
@@ -63,7 +63,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             : 'bg-background-secondary hover:bg-background-tertiary text-foreground'
         }`}
       >
-        <Funnel size={20} weight="duotone" />
+        <Filter size={20} />
         <span>筛选</span>
         {hasActiveFilter && (
           <span className="w-5 h-5 bg-white/20 rounded-full text-xs flex items-center justify-center">
@@ -96,7 +96,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             {/* 类型筛选 */}
             <div>
               <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
-                <ImageIcon size={16} weight="duotone" />
+                <ImageIcon size={16} />
                 <span>素材类型</span>
               </div>
               <div className="flex gap-2">
@@ -118,7 +118,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
                       : 'bg-background-tertiary hover:bg-white/5'
                   }`}
                 >
-                  <ImageIcon size={16} weight="duotone" />
+                  <ImageIcon size={16} />
                   图片
                 </button>
                 <button
@@ -129,7 +129,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
                       : 'bg-background-tertiary hover:bg-white/5'
                   }`}
                 >
-                  <VideoCamera size={16} weight="duotone" />
+                  <Video size={16} />
                   视频
                 </button>
               </div>
@@ -138,7 +138,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             {/* 地点筛选 */}
             <div>
               <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
-                <MapPin size={16} weight="duotone" />
+                <MapPin size={16} />
                 <span>拍摄地点</span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -171,7 +171,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             {/* 标签筛选 */}
             <div>
               <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
-                <Tag size={16} weight="duotone" />
+                <Tag size={16} />
                 <span>标签</span>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -194,7 +194,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             {/* 排序方式 */}
             <div>
               <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
-                <SortAscending size={16} weight="duotone" />
+                <ArrowUpDown size={16} />
                 <span>排序方式</span>
               </div>
               <div className="flex gap-2">

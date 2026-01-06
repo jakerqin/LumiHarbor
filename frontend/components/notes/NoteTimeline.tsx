@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { CalendarBlank, Tag } from '@phosphor-icons/react/dist/ssr';
+import { Calendar, Tag } from 'lucide-react';
 import { notesApi, type Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -98,7 +98,7 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
 
                     {/* 日期 */}
                     <div className="flex items-center gap-2 text-xs text-foreground-tertiary mb-3">
-                      <CalendarBlank size={14} weight="duotone" />
+                      <Calendar size={14} />
                       <span>{format(new Date(note.createdAt), 'PPP', { locale: zhCN })}</span>
                     </div>
 
@@ -118,7 +118,7 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
                             key={tag}
                             className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-lg flex items-center gap-1"
                           >
-                            <Tag size={14} weight="duotone" />
+                            <Tag size={14} />
                             {tag}
                           </span>
                         ))}

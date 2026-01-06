@@ -45,7 +45,7 @@ export function Timeline() {
     .sort((a, b) => b - a);
 
   return (
-    <div className="max-w-5xl mx-auto px-8">
+    <div className="max-w-7xl mx-auto">
       <div className="mb-12">
         <h2 className="text-4xl font-heading font-bold mb-2">大事记</h2>
         <p className="text-foreground-secondary">记录生活中的重要时刻</p>

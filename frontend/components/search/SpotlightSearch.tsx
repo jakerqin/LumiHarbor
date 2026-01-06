@@ -3,14 +3,14 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  MagnifyingGlass,
+  Search,
   X,
   Image as ImageIcon,
-  VideoCamera,
+  Video,
   FolderOpen,
-  Article,
+  FileText,
   ArrowRight,
-} from '@phosphor-icons/react/dist/ssr';
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { searchApi, type SearchResult } from '@/lib/api/search';
 
@@ -123,7 +123,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
             >
               {/* 搜索输入 */}
               <div className="flex items-center gap-3 px-6 py-5 border-b border-white/10">
-                <MagnifyingGlass size={24} weight="duotone" className="text-primary" />
+                <Search size={24} className="text-primary" />
                 <input
                   ref={inputRef}
                   type="text"
@@ -159,7 +159,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
 
                 {!loading && query && totalResults === 0 && (
                   <div className="py-12 text-center text-foreground-secondary">
-                    <MagnifyingGlass size={48} weight="duotone" className="mx-auto mb-3 opacity-50" />
+                    <Search size={48} className="mx-auto mb-3 opacity-50" />
                     <p>未找到相关结果</p>
                   </div>
                 )}
@@ -170,7 +170,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                     {results.assets.length > 0 && (
                       <div className="mb-6">
                         <div className="px-6 py-2 text-sm text-foreground-secondary flex items-center gap-2">
-                          <ImageIcon size={16} weight="duotone" />
+                          <ImageIcon size={16} />
                           素材 ({results.assets.length})
                         </div>
                         {results.assets.map((asset, index) => (
@@ -192,7 +192,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                             <div className="flex-1 text-left">
                               <div className="flex items-center gap-2 mb-1">
                                 {asset.type === 'video' && (
-                                  <VideoCamera size={16} weight="duotone" className="text-accent-purple" />
+                                  <Video size={16} className="text-accent-purple" />
                                 )}
                                 <span className="text-foreground">
                                   {asset.location?.name || '未知位置'}
@@ -212,7 +212,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                     {results.albums.length > 0 && (
                       <div className="mb-6">
                         <div className="px-6 py-2 text-sm text-foreground-secondary flex items-center gap-2">
-                          <FolderOpen size={16} weight="duotone" />
+                          <FolderOpen size={16} />
                           相册 ({results.albums.length})
                         </div>
                         {results.albums.map((album, index) => {
@@ -250,7 +250,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                     {results.notes.length > 0 && (
                       <div>
                         <div className="px-6 py-2 text-sm text-foreground-secondary flex items-center gap-2">
-                          <Article size={16} weight="duotone" />
+                          <FileText size={16} />
                           笔记 ({results.notes.length})
                         </div>
                         {results.notes.map((note, index) => {
@@ -267,7 +267,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                               }`}
                             >
                               <div className="w-16 h-16 bg-gradient-to-br from-accent-purple to-accent-pink rounded-lg flex items-center justify-center">
-                                <Article size={32} weight="duotone" className="text-white" />
+                                <FileText size={32} className="text-white" />
                               </div>
                               <div className="flex-1 text-left">
                                 <div className="text-foreground mb-1">{note.title}</div>
@@ -286,7 +286,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
 
                 {!loading && !query && (
                   <div className="py-12 text-center text-foreground-secondary">
-                    <MagnifyingGlass size={48} weight="duotone" className="mx-auto mb-3 opacity-50" />
+                    <Search size={48} className="mx-auto mb-3 opacity-50" />
                     <p>输入关键词开始搜索</p>
                     <p className="text-sm mt-2 text-foreground-tertiary">
                       支持搜索素材、相册、笔记

@@ -6,7 +6,7 @@
 
 - **框架**: Next.js 14 (App Router) + TypeScript
 - **样式**: Tailwind CSS + 自定义深色主题
-- **图标**: Phosphor Icons (Duotone 风格)
+- **图标**: lucide-react
 - **字体**: Space Grotesk (英文标题) + Noto Sans SC (中文正文)
 - **3D 渲染**: React Three Fiber + @react-three/drei
 - **动画**: Framer Motion
@@ -260,8 +260,8 @@ npm run lint
 
 ### 图标
 
-- **库**: Phosphor Icons
-- **权重**: Duotone (双色调)
+- **库**: lucide-react
+
 - **尺寸**: 24px (导航栏)
 
 ## 注意事项

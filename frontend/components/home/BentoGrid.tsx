@@ -44,27 +44,25 @@ export function BentoGrid() {
   }
 
   return (
-    <div className="h-full w-full px-8 py-12 overflow-hidden">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h2 className="text-4xl font-heading font-bold mb-2">
-            精选时光
-          </h2>
-          <p className="text-foreground-secondary">
-            AI 为你挑选的高光时刻
-          </p>
-        </div>
+    <div className="max-w-7xl mx-auto">
+      <div className="mb-12">
+        <h2 className="text-4xl font-heading font-bold mb-2">
+          精选时光
+        </h2>
+        <p className="text-foreground-secondary">
+          AI 为你挑选的高光时刻
+        </p>
+      </div>
 
-        <div className="grid grid-cols-3 gap-4 auto-rows-min">
-          {assets.map((asset, index) => (
-            <BentoCard
-              key={asset.id}
-              asset={asset}
-              size={bentoSizes[index]}
-              index={index}
-            />
-          ))}
-        </div>
+      <div className="grid grid-cols-3 gap-4 auto-rows-min">
+        {assets.map((asset, index) => (
+          <BentoCard
+            key={asset.id}
+            asset={asset}
+            size={bentoSizes[index]}
+            index={index}
+          />
+        ))}
       </div>
     </div>
   );

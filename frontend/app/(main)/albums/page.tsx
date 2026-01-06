@@ -1,7 +1,7 @@
 'use client';
 
 import { AlbumGrid } from '@/components/albums/AlbumGrid';
-import { FolderOpen, Plus } from '@phosphor-icons/react/dist/ssr';
+import { FolderOpen, Plus } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 export default function AlbumsPage() {
@@ -18,7 +18,7 @@ export default function AlbumsPage() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-                <FolderOpen size={40} weight="duotone" className="text-primary" />
+                <FolderOpen size={40} className="text-primary" />
                 相册
               </h1>
               <p className="text-foreground-secondary">整理和管理你的照片集合</p>
@@ -31,7 +31,7 @@ export default function AlbumsPage() {
               onClick={handleCreateAlbum}
               className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
             >
-              <Plus size={20} weight="bold" />
+              <Plus size={20} />
               <span className="font-medium">创建相册</span>
             </motion.button>
           </div>

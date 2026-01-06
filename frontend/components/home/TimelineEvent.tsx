@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MapPin, ImageSquare, VideoCamera } from '@phosphor-icons/react';
+import { MapPin, Image as ImageIcon, Video } from 'lucide-react';
 import { Event } from '@/lib/api/types';
 
 interface TimelineEventProps {
@@ -59,18 +59,18 @@ export function TimelineEvent({ event, index }: TimelineEventProps) {
 
           <div className="flex items-center gap-4 text-sm text-foreground-tertiary">
             <div className="flex items-center gap-1">
-              <ImageSquare size={16} />
+              <ImageIcon size={16} />
               <span>{event.relatedAssets.photoCount} 张照片</span>
             </div>
             <div className="flex items-center gap-1">
-              <VideoCamera size={16} />
+              <Video size={16} />
               <span>{event.relatedAssets.videoCount} 个视频</span>
             </div>
           </div>
 
           {event.location && (
             <div className="flex items-center gap-2 text-sm text-foreground-tertiary">
-              <MapPin size={16} weight="fill" />
+              <MapPin size={16} />
               <span>{event.location.name}</span>
             </div>
           )}

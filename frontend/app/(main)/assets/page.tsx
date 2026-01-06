@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 import { AssetGrid } from '@/components/assets/AssetGrid';
 import { AssetFilter } from '@/components/assets/AssetFilter';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
-import { ImageSquare } from '@phosphor-icons/react/dist/ssr';
+import { Image } from 'lucide-react';
 
 export default function AssetsPage() {
   const [filter, setFilter] = useState<AssetsFilter>({});
@@ -35,7 +35,7 @@ export default function AssetsPage() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-                <ImageSquare size={40} weight="duotone" className="text-primary" />
+                <Image size={40} className="text-primary" />
                 素材库
               </h1>
               <p className="text-foreground-secondary">浏览和管理所有照片、视频素材</p>

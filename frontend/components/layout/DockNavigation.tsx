@@ -4,18 +4,19 @@ import { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  House,
-  ImageSquare,
-  Article,
-  MapTrifold,
+  Home,
+  Image,
+  FileText,
+  Map,
   FolderOpen,
-  MagnifyingGlass,
-  Gear,
-} from '@phosphor-icons/react';
+  Search,
+  Settings,
+} from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
+import type { LucideIcon } from 'lucide-react';
 
 interface DockItem {
-  icon: React.ComponentType<{ size?: number; weight?: string; className?: string }>;
+  icon?: LucideIcon;
   label: string;
   href?: string;
   action?: string;
@@ -24,14 +25,14 @@ interface DockItem {
 }
 
 const dockItems: DockItem[] = [
-  { icon: House, label: '首页', href: '/', shortcut: 'H' },
-  { icon: ImageSquare, label: '素材', href: '/assets', shortcut: 'A' },
-  { icon: Article, label: '笔记', href: '/notes', shortcut: 'N' },
-  { icon: MapTrifold, label: '地图', href: '/map', shortcut: 'M' },
+  { icon: Home, label: '首页', href: '/', shortcut: 'H' },
+  { icon: Image, label: '素材', href: '/assets', shortcut: 'A' },
+  { icon: FileText, label: '笔记', href: '/notes', shortcut: 'N' },
+  { icon: Map, label: '地图', href: '/map', shortcut: 'M' },
   { icon: FolderOpen, label: '相册', href: '/albums', shortcut: 'L' },
   { type: 'divider' } as DockItem,
-  { icon: MagnifyingGlass, label: '搜索', action: 'search', shortcut: 'K' },
-  { icon: Gear, label: '设置', href: '/settings', shortcut: ',' },
+  { icon: Search, label: '搜索', action: 'search', shortcut: 'K' },
+  { icon: Settings, label: '设置', href: '/settings', shortcut: ',' },
 ];
 
 export function DockNavigation() {
@@ -65,7 +66,7 @@ export function DockNavigation() {
         initial={{ x: '100%' }}
         animate={{ x: isVisible ? '0%' : '100%' }}
         transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-        className="fixed right-0 top-1/2 -translate-y-1/2 z-50"
+        className="fixed right-0 top-0 h-screen flex items-center z-50"
       >
         <div className="w-20 py-6 px-4 bg-black/40 backdrop-blur-2xl border-l border-white/10 rounded-l-3xl shadow-[-8px_0_32px_rgba(0,0,0,0.3)]">
           <div className="space-y-3">
@@ -99,7 +100,6 @@ export function DockNavigation() {
                 >
                   <Icon
                     size={28}
-                    weight="duotone"
                     className={cn(
                       'transition-colors',
                       isActive ? 'text-white' : 'text-white/70'
@@ -118,7 +118,8 @@ export function DockNavigation() {
                     <motion.div
                       initial={{ opacity: 0, x: 10 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="absolute right-full mr-4 px-3 py-2 bg-black/90 backdrop-blur-sm text-white text-sm rounded-lg whitespace-nowrap shadow-lg"
+                      exit={{ opacity: 0, x: 10 }}
+                      className="absolute right-16 top-1/2 -translate-y-1/2 px-3 py-2 bg-black/90 backdrop-blur-sm text-white text-sm rounded-lg whitespace-nowrap shadow-lg border border-white/10 pointer-events-none"
                     >
                       {item.label}
                       <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-white/10 rounded">
