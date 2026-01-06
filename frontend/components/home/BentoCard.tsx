@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
 import { Play, MapPin, Calendar } from 'lucide-react';
 import { Asset } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
@@ -15,6 +15,8 @@ interface BentoCardProps {
 
 export function BentoCard({ asset, size, index }: BentoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
 
   const sizeClasses = {
     small: 'col-span-1 row-span-1 h-64',
@@ -22,17 +24,44 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
     large: 'col-span-2 row-span-2 h-[520px]',
   };
 
+  // 初始化淡入缩放动画
+  useEffect(() => {
+    if (!cardRef.current) return;
+
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, scale: 0.9 },
+      {
+        opacity: 1,
+        scale: 1,
+        duration: 0.5,
+        delay: index * 0.1,
+        ease: 'power2.out',
+      }
+    );
+  }, [index]);
+
+  // Hover 遮罩层动画
+  useEffect(() => {
+    if (!overlayRef.current) return;
+
+    gsap.to(overlayRef.current, {
+      opacity: isHovered ? 1 : 0,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  }, [isHovered]);
+
   return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+    <div
+      ref={cardRef}
       className={cn(
         'relative overflow-hidden rounded-2xl cursor-pointer group',
         sizeClasses[size]
       )}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      style={{ opacity: 0 }}
     >
       <div className="relative w-full h-full">
         <Image
@@ -49,10 +78,10 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
           </div>
         )}
 
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: isHovered ? 1 : 0 }}
+        <div
+          ref={overlayRef}
           className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
+          style={{ opacity: 0 }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-6 space-y-2">
             {asset.location && (
@@ -86,8 +115,8 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
               </div>
             )}
           </div>
-        </motion.div>
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

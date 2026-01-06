@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
 import { Calendar, Tag } from 'lucide-react';
 import { notesApi, type Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
@@ -15,11 +15,32 @@ interface NoteTimelineProps {
 export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
+  const noteRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['notes-timeline', page, pageSize],
     queryFn: () => notesApi.getNotes(page, pageSize),
   });
+
+  // 笔记卡片淡入动画
+  useEffect(() => {
+    if (!data) return;
+
+    noteRefs.current.forEach((noteEl, index) => {
+      if (!noteEl) return;
+      gsap.fromTo(
+        noteEl,
+        { opacity: 0, x: -20 },
+        {
+          opacity: 1,
+          x: 0,
+          duration: 0.4,
+          delay: index * 0.1,
+          ease: 'power2.out',
+        }
+      );
+    });
+  }, [data]);
 
   if (isLoading) {
     return (
@@ -72,13 +93,14 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
             {/* 笔记列表 */}
             <div className="space-y-6">
               {notesByMonth[month].map((note, index) => (
-                <motion.div
+                <div
                   key={note.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
+                  ref={(el) => {
+                    noteRefs.current[index] = el;
+                  }}
                   onClick={() => onNoteClick?.(note.id)}
                   className="relative ml-20 group cursor-pointer"
+                  style={{ opacity: 0 }}
                 >
                   {/* 连接线 */}
                   <div className="absolute left-[-48px] top-6 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
@@ -125,7 +147,7 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
               ))}
             </div>
           </div>

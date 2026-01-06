@@ -1,20 +1,21 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useRef } from 'react';
 import {
   FileText,
   Plus,
-  SquaresFour,
-  ClockCounterClockwise,
+  LayoutGrid,
+  History,
 } from 'lucide-react';
 import { NoteGrid } from '@/components/notes/NoteGrid';
 import { NoteTimeline } from '@/components/notes/NoteTimeline';
+import { createHoverHandlers, createTapHandlers } from '@/lib/utils/gsap';
 
 type ViewMode = 'grid' | 'timeline';
 
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const createButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleCreateNote = () => {
     // TODO: 打开创建笔记对话框
@@ -25,6 +26,9 @@ export default function NotesPage() {
     // TODO: 打开笔记详情模态框
     console.log('Open note:', id);
   };
+
+  const hoverHandlers = createHoverHandlers(createButtonRef.current);
+  const tapHandlers = createTapHandlers(createButtonRef.current);
 
   return (
     <div className="min-h-screen py-12 px-8">
@@ -51,7 +55,7 @@ export default function NotesPage() {
                       : 'hover:bg-white/5 text-foreground-secondary'
                   }`}
                 >
-                  <SquaresFour size={20} />
+                  <LayoutGrid size={20} />
                   <span className="text-sm font-medium">网格</span>
                 </button>
                 <button
@@ -62,21 +66,22 @@ export default function NotesPage() {
                       : 'hover:bg-white/5 text-foreground-secondary'
                   }`}
                 >
-                  <ClockCounterClockwise size={20} />
+                  <History size={20} />
                   <span className="text-sm font-medium">时间轴</span>
                 </button>
               </div>
 
               {/* 创建按钮 */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
+              <button
+                ref={createButtonRef}
                 onClick={handleCreateNote}
+                {...hoverHandlers}
+                {...tapHandlers}
                 className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
               >
                 <Plus size={20} />
                 <span className="font-medium">写笔记</span>
-              </motion.button>
+              </button>
             </div>
           </div>
         </div>

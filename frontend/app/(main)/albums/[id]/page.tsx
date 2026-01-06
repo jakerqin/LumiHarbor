@@ -1,14 +1,15 @@
 'use client';
 
+import { useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
 import {
   ArrowLeft,
   Calendar,
   MapPin,
   Image as ImageIcon,
-  DotsThree,
+  MoreVertical,
 } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
 import { AssetCard } from '@/components/assets/AssetCard';
@@ -19,11 +20,32 @@ export default function AlbumDetailPage() {
   const router = useRouter();
   const params = useParams();
   const albumId = parseInt(params.id as string);
+  const assetRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
     queryFn: () => albumsApi.getAlbum(albumId),
   });
+
+  // 素材卡片淡入动画
+  useEffect(() => {
+    if (!album) return;
+
+    assetRefs.current.forEach((assetEl, index) => {
+      if (!assetEl) return;
+      gsap.fromTo(
+        assetEl,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.4,
+          delay: index * 0.05,
+          ease: 'power2.out',
+        }
+      );
+    });
+  }, [album]);
 
   if (isLoading) {
     return (
@@ -70,7 +92,7 @@ export default function AlbumDetailPage() {
 
         {/* 更多操作 */}
         <button className="absolute top-8 right-8 p-3 bg-black/40 hover:bg-black/60 backdrop-blur-sm rounded-xl transition-colors">
-          <DotsThree size={24} className="text-white" />
+          <MoreVertical size={24} className="text-white" />
         </button>
 
         {/* 相册信息 */}
@@ -116,17 +138,18 @@ export default function AlbumDetailPage() {
           {album.assets.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
               {album.assets.map((asset, index) => (
-                <motion.div
+                <div
                   key={asset.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
+                  ref={(el) => {
+                    assetRefs.current[index] = el;
+                  }}
+                  style={{ opacity: 0 }}
                 >
                   <AssetCard
                     asset={asset}
                     onClick={() => console.log('Open asset:', asset.id)}
                   />
-                </motion.div>
+                </div>
               ))}
             </div>
           ) : (

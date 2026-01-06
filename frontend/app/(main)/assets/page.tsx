@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion } from 'framer-motion';
+import { gsap } from 'gsap';
 import { AssetGrid } from '@/components/assets/AssetGrid';
 import { AssetFilter } from '@/components/assets/AssetFilter';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
@@ -10,6 +10,7 @@ import { Image } from 'lucide-react';
 
 export default function AssetsPage() {
   const [filter, setFilter] = useState<AssetsFilter>({});
+  const filterTagsRef = useRef<HTMLDivElement>(null);
 
   // 获取标签和地点列表
   const { data: tags = [] } = useQuery({
@@ -26,6 +27,34 @@ export default function AssetsPage() {
     // TODO: 打开素材详情模态框
     console.log('Open asset:', id);
   };
+
+  // 活动筛选标签显示动画
+  const hasActiveFilter = filter.type || filter.location || (filter.tags && filter.tags.length > 0);
+
+  useEffect(() => {
+    if (!filterTagsRef.current) return;
+
+    if (hasActiveFilter) {
+      filterTagsRef.current.style.display = 'flex';
+      gsap.fromTo(
+        filterTagsRef.current,
+        { opacity: 0, y: -10 },
+        { opacity: 1, y: 0, duration: 0.3, ease: 'power2.out' }
+      );
+    } else {
+      gsap.to(filterTagsRef.current, {
+        opacity: 0,
+        y: -10,
+        duration: 0.2,
+        ease: 'power2.in',
+        onComplete: () => {
+          if (filterTagsRef.current) {
+            filterTagsRef.current.style.display = 'none';
+          }
+        },
+      });
+    }
+  }, [hasActiveFilter, filter.type, filter.location, filter.tags]);
 
   return (
     <div className="min-h-screen py-12 px-8">
@@ -46,11 +75,11 @@ export default function AssetsPage() {
           </div>
 
           {/* 活动筛选标签 */}
-          {(filter.type || filter.location || (filter.tags && filter.tags.length > 0)) && (
-            <motion.div
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
+          {hasActiveFilter && (
+            <div
+              ref={filterTagsRef}
               className="flex items-center gap-2 flex-wrap"
+              style={{ opacity: 0, display: 'none' }}
             >
               <span className="text-sm text-foreground-secondary">当前筛选：</span>
 
@@ -78,7 +107,7 @@ export default function AssetsPage() {
               >
                 清除全部
               </button>
-            </motion.div>
+            </div>
           )}
         </div>
 

@@ -1,14 +1,20 @@
 'use client';
 
+import { useRef } from 'react';
 import { AlbumGrid } from '@/components/albums/AlbumGrid';
 import { FolderOpen, Plus } from 'lucide-react';
-import { motion } from 'framer-motion';
+import { createHoverHandlers, createTapHandlers } from '@/lib/utils/gsap';
 
 export default function AlbumsPage() {
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+
   const handleCreateAlbum = () => {
     // TODO: 打开创建相册对话框
     console.log('Create album');
   };
+
+  const hoverHandlers = createHoverHandlers(createButtonRef.current);
+  const tapHandlers = createTapHandlers(createButtonRef.current);
 
   return (
     <div className="min-h-screen py-12 px-8">
@@ -25,15 +31,16 @@ export default function AlbumsPage() {
             </div>
 
             {/* 创建按钮 */}
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
+            <button
+              ref={createButtonRef}
               onClick={handleCreateAlbum}
+              {...hoverHandlers}
+              {...tapHandlers}
               className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
             >
               <Plus size={20} />
               <span className="font-medium">创建相册</span>
-            </motion.button>
+            </button>
           </div>
         </div>
 

@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
-import { motion, AnimatePresence } from 'framer-motion';
+import { gsap } from 'gsap';
 import { MapPin, Image as ImageIcon, Video } from 'lucide-react';
 import { Event } from '@/lib/api/types';
 
@@ -13,14 +13,76 @@ interface TimelineEventProps {
 
 export function TimelineEvent({ event, index }: TimelineEventProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [inView, setInView] = useState(false);
+  const eventRef = useRef<HTMLDivElement>(null);
+  const expandableRef = useRef<HTMLDivElement>(null);
+
+  // 滚动触发动画 (IntersectionObserver)
+  useEffect(() => {
+    if (!eventRef.current) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.unobserve(entry.target);
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    observer.observe(eventRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  // 进入动画
+  useEffect(() => {
+    if (!inView || !eventRef.current) return;
+
+    gsap.fromTo(
+      eventRef.current,
+      { opacity: 0, x: -50 },
+      {
+        opacity: 1,
+        x: 0,
+        duration: 0.5,
+        delay: index * 0.1,
+        ease: 'power2.out',
+      }
+    );
+  }, [inView, index]);
+
+  // 展开/收起动画
+  useEffect(() => {
+    if (!expandableRef.current) return;
+
+    if (isExpanded) {
+      expandableRef.current.style.display = 'block';
+      gsap.fromTo(
+        expandableRef.current,
+        { height: 0, opacity: 0 },
+        { height: 'auto', opacity: 1, duration: 0.3, ease: 'power2.out' }
+      );
+    } else {
+      gsap.to(expandableRef.current, {
+        height: 0,
+        opacity: 0,
+        duration: 0.2,
+        ease: 'power2.in',
+        onComplete: () => {
+          if (expandableRef.current) {
+            expandableRef.current.style.display = 'none';
+          }
+        },
+      });
+    }
+  }, [isExpanded]);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: -50 }}
-      whileInView={{ opacity: 1, x: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.1 }}
+    <div
+      ref={eventRef}
       className="relative ml-44 mb-16"
+      style={{ opacity: 0 }}
     >
       <div className="absolute -left-32 top-2 text-right">
         <span className="font-heading text-lg font-semibold text-white/60">
@@ -31,8 +93,7 @@ export function TimelineEvent({ event, index }: TimelineEventProps) {
         </span>
       </div>
 
-      <motion.div
-        layout
+      <div
         onClick={() => setIsExpanded(!isExpanded)}
         className="glass rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
       >
@@ -76,23 +137,18 @@ export function TimelineEvent({ event, index }: TimelineEventProps) {
           )}
         </div>
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="border-t border-white/10"
-            >
-              <div className="p-4">
-                <p className="text-sm text-foreground-secondary">
-                  点击查看完整内容...（待实现）
-                </p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
+        <div
+          ref={expandableRef}
+          className="border-t border-white/10 overflow-hidden"
+          style={{ display: 'none', height: 0 }}
+        >
+          <div className="p-4">
+            <p className="text-sm text-foreground-secondary">
+              点击查看完整内容...（待实现）
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -1,10 +1,11 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
 import { Video, MapPin, Calendar, Tag } from 'lucide-react';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { createHoverLiftHandlers } from '@/lib/utils/gsap';
 
 interface AssetCardProps {
   asset: Asset;
@@ -12,10 +13,15 @@ interface AssetCardProps {
 }
 
 export function AssetCard({ asset, onClick }: AssetCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const hoverHandlers = createHoverLiftHandlers(cardRef.current);
+
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
+    <div
+      ref={cardRef}
       onClick={onClick}
+      {...hoverHandlers}
       className="group cursor-pointer"
     >
       <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-background-secondary">
@@ -76,6 +82,6 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
           </div>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

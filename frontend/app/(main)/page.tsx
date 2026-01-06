@@ -2,6 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import { BentoGrid } from '@/components/home/BentoGrid';
+import BlurText from '@/components/animations/BlurText';
+import TextType from '@/components/animations/TextType';
 
 // 动态导入重量级组件，提升首屏加载速度
 const MapView3D = dynamic(
@@ -40,12 +42,24 @@ export default function HomePage() {
       <section className="min-h-screen w-full py-20 px-8">
         <div className="max-w-7xl mx-auto">
           <div className="mb-12">
-            <h1 className="text-5xl font-heading font-bold mb-4 bg-gradient-to-r from-primary via-purple-500 to-pink-500 bg-clip-text text-transparent">
-              拾光坞
-            </h1>
-            <p className="text-xl text-foreground-secondary">
-              记录生活，珍藏回忆
+            <BlurText
+              text="拾光坞"
+              className="text-5xl font-heading font-bold mb-4 text-primary"
+              delay={80}
+              animateBy="letters"
+              direction="top"
+              stepDuration={0.5}
+            />
+            <p >
+              
             </p>
+            <TextType
+                text={["记录生活,珍藏回忆", "弯弓射大雕"]}
+                className="text-xl text-foreground-secondary"
+                typingSpeed={75}
+                showCursor={true}
+                cursorCharacter="_"
+              />
           </div>
           <BentoGrid />
         </div>

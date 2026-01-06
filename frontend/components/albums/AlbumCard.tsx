@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
+import { gsap } from 'gsap';
 import { Image as ImageIcon, Calendar } from 'lucide-react';
 import type { Album } from '@/lib/api/albums';
 import { format } from 'date-fns';
@@ -12,10 +13,32 @@ interface AlbumCardProps {
 }
 
 export function AlbumCard({ album, onClick }: AlbumCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: -8,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: 0,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
   return (
-    <motion.div
-      whileHover={{ y: -8 }}
+    <div
+      ref={cardRef}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="group cursor-pointer"
     >
       {/* 封面图 */}
@@ -59,6 +82,6 @@ export function AlbumCard({ album, onClick }: AlbumCardProps) {
           </span>
         </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

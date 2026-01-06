@@ -36,9 +36,9 @@ export const albumsApi = {
     await new Promise((resolve) => setTimeout(resolve, 500));
 
     const total = 48;
-    const mockAlbums: Album[] = Array.from({ length: Math.min(pageSize, total) }, (_, i) => {
+    const actualLength = Math.min(pageSize, Math.max(0, total - (page - 1) * pageSize));
+    const mockAlbums: Album[] = Array.from({ length: actualLength }, (_, i) => {
       const index = (page - 1) * pageSize + i;
-      if (index >= total) return null;
 
       const albumNames = [
         '日本之旅',
@@ -63,7 +63,7 @@ export const albumsApi = {
         startTime: new Date(2024, 0, (index % 28) + 1).toISOString(),
         endTime: new Date(2024, 0, (index % 28) + 7).toISOString(),
       };
-    }).filter((a): a is Album => a !== null);
+    });
 
     return {
       albums: mockAlbums,

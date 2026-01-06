@@ -37,7 +37,7 @@ export function MapView3D() {
             <div className="flex items-center justify-between">
               <span>🌍 访问国家</span>
               <span className="font-semibold text-foreground">
-                {[...new Set(locations.map((l) => l.country))].length}
+                {Array.from(new Set(locations.map((l) => l.country))).length}
               </span>
             </div>
             <div className="flex items-center justify-between">

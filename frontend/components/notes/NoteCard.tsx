@@ -1,6 +1,7 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { useRef } from 'react';
+import { gsap } from 'gsap';
 import { Calendar, Tag } from 'lucide-react';
 import type { Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
@@ -12,10 +13,32 @@ interface NoteCardProps {
 }
 
 export function NoteCard({ note, onClick }: NoteCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const handleMouseEnter = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: -4,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
+  const handleMouseLeave = () => {
+    if (!cardRef.current) return;
+    gsap.to(cardRef.current, {
+      y: 0,
+      duration: 0.3,
+      ease: 'power2.out',
+    });
+  };
+
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
+    <div
+      ref={cardRef}
       onClick={onClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="group cursor-pointer p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all"
     >
       {/* 封面图（如果有） */}
@@ -65,6 +88,6 @@ export function NoteCard({ note, onClick }: NoteCardProps) {
           </div>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
