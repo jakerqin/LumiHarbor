@@ -4,8 +4,12 @@
 """
 from PIL import Image, ImageOps
 from typing import Tuple
+from pillow_heif import register_heif_opener
 from .generator import ThumbnailGenerator
 from ...tools.utils import get_logger
+
+# 注册 HEIF/HEIC 解码器（支持苹果 HEIC 格式）
+register_heif_opener()
 
 logger = get_logger(__name__)
 

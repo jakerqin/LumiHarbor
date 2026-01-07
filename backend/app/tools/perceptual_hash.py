@@ -10,7 +10,11 @@
 from typing import Optional
 from PIL import Image
 import imagehash
+from pillow_heif import register_heif_opener
 from ..tools.utils import get_logger
+
+# 注册 HEIF/HEIC 解码器（支持苹果 HEIC 格式）
+register_heif_opener()
 
 logger = get_logger(__name__)
 

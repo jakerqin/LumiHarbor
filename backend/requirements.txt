@@ -9,6 +9,7 @@ python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
 pillow>=10.0.0,<13.0.0
+pillow-heif>=0.13.0
 imagehash
 python-magic
 exifread
