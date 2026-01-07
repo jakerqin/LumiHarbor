@@ -22,6 +22,7 @@ class Settings(BaseSettings):
         AUTO_START_WORKER: 是否自动启动 Worker（开发环境建议 true，生产环境建议 false）
         WORKER_COUNT: Worker 进程数量
         LOG_LEVEL: 日志级别
+        AMAP_API_KEY: 高德地图 API Key（可选，不配置则使用 Nominatim）
     """
     PROJECT_NAME: str = "拾光坞 (LumiHarbor)"
     DATABASE_URL: str = "mysql+pymysql://root:root@localhost:3306/lumiharbor?charset=utf8mb4"
@@ -40,6 +41,9 @@ class Settings(BaseSettings):
     AUTO_START_WORKER: bool = True
     WORKER_COUNT: int = 2
     LOG_LEVEL: str = "info"
+
+    # 地理编码服务配置
+    AMAP_API_KEY: str = ""  # 高德地图 API Key（可选，不配置则使用 Nominatim）
 
     class Config:
         """Pydantic 配置"""

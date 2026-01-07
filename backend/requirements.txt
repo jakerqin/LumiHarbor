@@ -14,6 +14,7 @@ imagehash
 python-magic
 exifread
 ffmpeg-python
+requests
 taskiq
 taskiq-redis
 redis

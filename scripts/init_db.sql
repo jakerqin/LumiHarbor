@@ -206,6 +206,15 @@ INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, descript
 ('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 116.4074° E'), '拍摄位置经度'),
 ('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 100m'), '拍摄位置海拔');
 
+-- 地点信息类 (6个，基于逆地理编码)
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
+('location_country', '国家', 1, JSON_OBJECT('placeholder', '如: 中国'), '拍摄地点所属国家'),
+('location_province', '省份', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属省份/州'),
+('location_city', '城市', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属城市'),
+('location_district', '区县', 1, JSON_OBJECT('placeholder', '如: 东城区'), '拍摄地点所属区县'),
+('location_poi', '兴趣点', 1, JSON_OBJECT('placeholder', '如: 故宫博物院'), '拍摄地点的地标或兴趣点'),
+('location_formatted', '完整地址', 1, JSON_OBJECT('placeholder', '如: 北京市东城区故宫'), '格式化的完整地址');
+
 -- 媒体属性类 (3个)
 INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
 ('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 4000px'), '媒体宽度（像素）'),
@@ -232,10 +241,18 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 -- GPS
 ('image', 'gps_latitude', 10, FALSE),
 ('image', 'gps_longitude', 11, FALSE),
-('image', 'gps_altitude', 12, FALSE);
+('image', 'gps_altitude', 12, FALSE),
+
+-- 地点信息（基于 GPS 逆地理编码）
+('image', 'location_country', 13, FALSE),
+('image', 'location_province', 14, FALSE),
+('image', 'location_city', 15, FALSE),
+('image', 'location_district', 16, FALSE),
+('image', 'location_poi', 17, FALSE),
+('image', 'location_formatted', 18, FALSE);
 
 -- ==========================================
--- Video 模板标签配置（8个）
+-- Video 模板标签配置（14个）
 -- ==========================================
 INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required) VALUES
 -- 设备信息
@@ -247,7 +264,15 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('video', 'gps_longitude', 4, FALSE),
 ('video', 'gps_altitude', 5, FALSE),
 
+-- 地点信息（基于 GPS 逆地理编码）
+('video', 'location_country', 6, FALSE),
+('video', 'location_province', 7, FALSE),
+('video', 'location_city', 8, FALSE),
+('video', 'location_district', 9, FALSE),
+('video', 'location_poi', 10, FALSE),
+('video', 'location_formatted', 11, FALSE),
+
 -- 媒体属性
-('video', 'width', 6, FALSE),
-('video', 'height', 7, FALSE),
-('video', 'duration', 8, FALSE);
+('video', 'width', 12, FALSE),
+('video', 'height', 13, FALSE),
+('video', 'duration', 14, FALSE);

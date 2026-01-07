@@ -6,6 +6,7 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from ...model import Asset
 from ...tools.utils import get_logger
+from ...config import settings
 from ..scanning import FilesystemScanner
 from .config import ImportConfig
 from .statistics import ImportStatistics
@@ -33,7 +34,13 @@ class AssetImportService:
         """
         self.config = config
         self.validator = AssetValidator(config.db)
-        self.processor = AssetProcessor(config.db, config.scan_path)
+
+        # 从配置读取高德地图 API Key（可选）
+        amap_api_key = settings.AMAP_API_KEY or None
+        if amap_api_key:
+            logger.info("已启用高德地图逆地理编码服务")
+
+        self.processor = AssetProcessor(config.db, config.scan_path, amap_api_key)
         self.statistics = ImportStatistics()
 
     def import_assets(self) -> ImportStatistics:
