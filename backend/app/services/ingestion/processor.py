@@ -3,15 +3,16 @@
 负责单个素材的元数据提取、标签保存、缩略图生成等处理逻辑。
 """
 from sqlalchemy.orm import Session
-from ...model import Asset
+from ...model import Asset, TaskLog
 from ...services.metadata import MetadataExtractorFactory
 from ...services.thumbnail import ThumbnailGeneratorFactory
 from ...services.tags import TagService, MetadataTagMapper
-from ...services.location import LocationService
 from ...tasks.phash_tasks import calculate_phash_task
+from ...tasks.geocoding_tasks import calculate_location_task
 from ...tools.utils import get_logger
 import os
 import asyncio
+from datetime import datetime
 
 logger = get_logger(__name__)
 
@@ -21,22 +22,20 @@ class AssetProcessor:
 
     职责：
     - 提取元数据
-    - 保存标签（包括地理位置信息）
+    - 保存标签（不含地理位置）
     - 生成缩略图
-    - 发送异步任务
+    - 发送异步任务（phash、地理编码）
     """
 
-    def __init__(self, db: Session, scan_path: str, amap_api_key: str = None):
+    def __init__(self, db: Session, scan_path: str):
         """初始化处理器
 
         Args:
             db: 数据库会话
             scan_path: 扫描根路径
-            amap_api_key: 高德地图 API Key（可选）
         """
         self.db = db
         self.scan_path = scan_path
-        self.location_service = LocationService(amap_api_key) if amap_api_key else None
 
     def extract_metadata(self, asset_type: str, file_path: str) -> tuple[dict, any]:
         """提取元数据
@@ -50,28 +49,22 @@ class AssetProcessor:
         """
         return MetadataExtractorFactory.extract(asset_type, file_path)
 
-    def save_tags(self, asset: Asset, metadata: dict):
-        """保存标签（包括地理位置信息）
+    def save_tags(self, asset: Asset, metadata: dict) -> dict:
+        """保存标签
 
         Args:
             asset: 素材对象
             metadata: 元数据
+
+        Returns:
+            映射后的标签字典
         """
         if not metadata:
-            return
+            return {}
 
         try:
             # 映射为统一格式
             mapped_tags = MetadataTagMapper.map_metadata_to_tags(metadata)
-
-            # 如果有 GPS 坐标，提取地理位置信息
-            if self.location_service:
-                location_tags = self._extract_location_tags(mapped_tags)
-                if location_tags:
-                    mapped_tags.update(location_tags)
-                    logger.debug(
-                        f"Asset {asset.id} 添加了 {len(location_tags)} 个地理位置标签"
-                    )
 
             # 批量保存标签
             saved_count = TagService.batch_save_asset_tags(
@@ -84,79 +77,71 @@ class AssetProcessor:
             if saved_count > 0:
                 logger.debug(f"Asset {asset.id} ({asset.asset_type}) 保存了 {saved_count} 个标签")
 
+            return mapped_tags
+
         except Exception as e:
             # 标签保存失败不影响素材导入
             logger.warning(f"Asset {asset.id} 标签保存失败: {e}")
-
-    def _extract_location_tags(self, tags: dict) -> dict:
-        """从 GPS 标签提取地理位置信息
-
-        Args:
-            tags: 标签字典
-
-        Returns:
-            地理位置标签字典
-        """
-        # 检查是否有 GPS 坐标
-        latitude_str = tags.get('gps_latitude', '')
-        longitude_str = tags.get('gps_longitude', '')
-
-        if not latitude_str or not longitude_str:
             return {}
 
-        try:
-            # 转换为浮点数
-            latitude = self._parse_coordinate(latitude_str)
-            longitude = self._parse_coordinate(longitude_str)
 
-            if latitude is None or longitude is None:
-                return {}
-
-            # 调用地理编码服务
-            location_tags = self.location_service.extract_location_tags(latitude, longitude)
-
-            return location_tags
-
-        except Exception as e:
-            logger.warning(f"提取地理位置信息失败: {e}")
-            return {}
 
     @staticmethod
-    def _parse_coordinate(coord_str: str) -> float:
-        """解析坐标字符串为浮点数
-
-        支持格式：
-        - "39.9042° N" → 39.9042
-        - "116.4074° E" → 116.4074
-        - "-116.4074° W" → -116.4074
-        - "39.9042" → 39.9042
+    def _parse_coordinate(coord_str: str, ref: str = None) -> float:
+        """解析坐标字符串 (支持 [deg, min, sec] 格式)
 
         Args:
-            coord_str: 坐标字符串
+            coord_str: 坐标字符串, 例如 "[32, 6, 1167/100]"
+            ref: 方向引用, 例如 "N", "S", "E", "W"
 
         Returns:
-            浮点数坐标，解析失败返回 None
+            float: 十进制坐标值
         """
         if not coord_str:
             return None
 
         try:
-            # 移除度数符号和方向
-            coord_str = coord_str.replace('°', '').strip()
+            # 1. 尝试解析 [deg, min, sec] 格式
+            if '[' in coord_str and ']' in coord_str:
+                clean_str = coord_str.strip("[]")
+                parts = [p.strip() for p in clean_str.split(',')]
 
-            # 提取数字部分
+                if len(parts) == 3:
+                    def parse_val(v_str):
+                        if '/' in v_str:
+                            n, d = v_str.split('/')
+                            return float(n) / float(d)
+                        return float(v_str)
+
+                    deg = parse_val(parts[0])
+                    min_val = parse_val(parts[1])
+                    sec = parse_val(parts[2])
+
+                    val = deg + (min_val / 60.0) + (sec / 3600.0)
+
+                    # 根据引用处理正负 (S, W 为负)
+                    if ref and ref.upper() in ['S', 'W']:
+                        val = -val
+
+                    return val
+
+            # 2. 兼容旧格式 (e.g., "39.9042° N")
+            coord_str = coord_str.replace('°', '').strip()
             parts = coord_str.split()
             value = float(parts[0])
 
-            # 处理方向（南纬和西经为负数）
+            # 如果字符串中自带方向 (e.g. "39.9 N")
             if len(parts) > 1:
                 direction = parts[1].upper()
                 if direction in ['S', 'W']:
                     value = -value
+            # 如果传入了 ref 参数
+            elif ref and ref.upper() in ['S', 'W']:
+                value = -value
 
             return value
 
-        except (ValueError, IndexError):
+        except (ValueError, IndexError, ZeroDivisionError):
             return None
 
     def generate_thumbnail(self, asset: Asset, original_path: str) -> bool:
@@ -194,28 +179,76 @@ class AssetProcessor:
             logger.warning(f"缩略图生成失败: {original_path}")
             return False
 
-    def send_phash_task(self, asset: Asset, file_path: str):
-        """发送感知哈希异步任务
+    def send_async_tasks(self, asset: Asset, file_path: str, tags: dict = None):
+        """发送相关异步任务 (Phash, Geocoding)
 
         Args:
             asset: 素材对象
             file_path: 文件完整路径
+            tags: 标签字典（可选，用于地理编码）
         """
         try:
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
-            loop.run_until_complete(
-                calculate_phash_task.kiq(
-                    asset_id=asset.id,
-                    file_path=file_path,
-                    asset_type=asset.asset_type
+
+            # 1. Phash 任务
+            try:
+                loop.run_until_complete(
+                    calculate_phash_task.kiq(
+                        asset_id=asset.id,
+                        file_path=file_path,
+                        asset_type=asset.asset_type
+                    )
                 )
-            )
+                logger.debug(f"✅ Phash 异步任务已发送 - Asset ID: {asset.id}")
+            except Exception as e:
+                logger.warning(f"⚠️ Phash 异步任务发送失败 - Asset ID: {asset.id}: {e}")
+
+            # 2. Geocoding 任务
+            if tags and 'gps_latitude' in tags and 'gps_longitude' in tags:
+                try:
+                    # 获取坐标引用 (Ref)
+                    lat_ref = tags.get('gps_latitude_ref')
+                    lon_ref = tags.get('gps_longitude_ref')
+
+                    # 解析坐标 (传入 ref)
+                    latitude = self._parse_coordinate(tags.get('gps_latitude', ''), lat_ref)
+                    longitude = self._parse_coordinate(tags.get('gps_longitude', ''), lon_ref)
+
+                    if latitude is not None and longitude is not None:
+                        # 创建任务日志
+                        task_log = TaskLog(
+                            task_type='geocoding',
+                            task_status='pending',
+                            asset_id=asset.id,
+                            task_params={
+                                'latitude': latitude,
+                                'longitude': longitude
+                            },
+                            retry_count=0,
+                            max_retries=3,
+                            created_at=datetime.now()
+                        )
+                        self.db.add(task_log)
+                        self.db.commit()
+
+                        # 发送任务
+                        loop.run_until_complete(
+                            calculate_location_task.kiq(
+                                asset_id=asset.id,
+                                latitude=latitude,
+                                longitude=longitude,
+                                task_log_id=task_log.id
+                            )
+                        )
+                        logger.debug(f"✅ 地理编码异步任务已发送 - Asset ID: {asset.id}, Task Log ID: {task_log.id}")
+                except Exception as e:
+                    logger.warning(f"⚠️ 地理编码异步任务发送失败 - Asset ID: {asset.id}: {e}")
+
             loop.close()
-            logger.debug(f"✅ Phash 异步任务已发送 - Asset ID: {asset.id}")
+
         except Exception as e:
-            # 异步任务发送失败不影响导入流程
-            logger.warning(f"⚠️ Phash 异步任务发送失败 - Asset ID: {asset.id}: {e}")
+            logger.error(f"❌ 异步任务处理异常 - Asset ID: {asset.id}: {e}")
 
     def process_asset(self, asset: Asset, original_path: str) -> bool:
         """处理单个素材（一站式方法）
@@ -233,13 +266,14 @@ class AssetProcessor:
         metadata, shot_at = self.extract_metadata(asset.asset_type, file_full_path)
 
         # 2. 保存标签（包括地理位置信息）
+        mapped_tags = {}
         if metadata:
-            self.save_tags(asset, metadata)
+            mapped_tags = self.save_tags(asset, metadata)
 
         # 3. 生成缩略图
         self.generate_thumbnail(asset, original_path)
 
         # 4. 发送异步任务
-        self.send_phash_task(asset, file_full_path)
+        self.send_async_tasks(asset, file_full_path, mapped_tags)
 
         return True

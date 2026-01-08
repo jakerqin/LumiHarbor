@@ -10,7 +10,7 @@ from typing import Optional, Dict, Tuple
 from abc import ABC, abstractmethod
 import requests
 from functools import lru_cache
-from ...tools.utils import get_logger
+from ..tools.utils import get_logger
 
 logger = get_logger(__name__)
 

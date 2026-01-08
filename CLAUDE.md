@@ -236,6 +236,12 @@ FastAPI → Redis 队列 (lumiharbor_tasks) → Taskiq Worker → 更新数据�
 **已实现任务**:
 1. **calculate_phash**: 单个素材感知哈希计算
 2. **batch_calculate_phash**: 批量计算 (用于数据迁移)
+3. **calculate_location**: 异步地理编码（将 GPS 坐标转换为地理位置信息）
+
+**任务日志表** (`task_logs`):
+- 记录所有异步任务的执行状态 (pending/running/success/failed)
+- 支持失败重试机制 (默认 3 次)
+- 记录任务参数、错误信息、重试次数
 
 **配置** (`.env`):
 ```env
@@ -243,6 +249,7 @@ AUTO_START_WORKER=true    # 是否自动启动 Worker
 WORKER_COUNT=2            # Worker 进程数量
 REDIS_HOST=localhost
 REDIS_PORT=6379
+AMAP_API_KEY=             # 高德地图 API Key（地理编码可选）
 ```
 
 **启动方式**:
@@ -257,7 +264,10 @@ taskiq worker app.tasks.broker:broker --workers 4
 **重要文件**:
 - [broker.py](backend/app/tasks/broker.py) - Redis Broker 配置
 - [phash_tasks.py](backend/app/tasks/phash_tasks.py) - 感知哈希异步任务
+- [geocoding_tasks.py](backend/app/tasks/geocoding_tasks.py) - 地理编码异步任务
+- [task_log.py](backend/app/model/task_log.py) - 任务日志模型
 - [README.md](backend/app/tasks/README.md) - 完整使用文档
+- [GEOCODING_README.md](backend/app/tasks/GEOCODING_README.md) - 地理编码功能说明
 
 ### 6. 标签系统 (Tag System)
 
@@ -281,15 +291,16 @@ taskiq worker app.tasks.broker:broker --workers 4
 4. 过滤有效标签 → 5. 去重检查 → 6. 批量保存
 ```
 
-**预定义标签** (15 个全局标签):
+**预定义标签** (21 个全局标签):
 - **设备信息**: device_make, device_model, lens_model
 - **拍摄参数**: exposure_time, aperture, iso, focal_length, white_balance, flash
 - **GPS 信息**: gps_latitude, gps_longitude, gps_altitude
+- **地点信息** (异步计算): location_country, location_province, location_city, location_district, location_poi, location_formatted
 - **媒体属性**: width, height, duration
 
 **模板配置**:
-- **image 模板**: 12 个标签 (设备信息 + 拍摄参数 + GPS + 尺寸)
-- **video 模板**: 8 个标签 (设备信息 + GPS + 尺寸 + 时长)
+- **image 模板**: 18 个标签 (设备信息 + 拍摄参数 + GPS + 地点信息 + 尺寸)
+- **video 模板**: 14 个标签 (设备信息 + GPS + 地点信息 + 尺寸 + 时长)
 
 **重要文件**:
 - [service.py](backend/app/services/tags/service.py) - 标签业务逻辑 (基于模板)
@@ -715,6 +726,9 @@ REDIS_PASSWORD=
 AUTO_START_WORKER=true      # 自动启动 Worker
 WORKER_COUNT=2              # Worker 数量
 LOG_LEVEL=INFO              # 日志级别
+
+# 地理编码服务
+AMAP_API_KEY=                # 高德地图 API Key（可选，不配置则使用 Nominatim）
 ```
 
 ### 前端环境变量 (.env.local)
@@ -811,7 +825,41 @@ else:
 - ✅ **灵活配置**: 通过模板系统控制每种资源类型的标签集
 - ✅ **易于扩展**: 新增资源类型只需添加模板配置,无需修改标签定义
 
-### 5. 为何前端使用 Next.js 14 App Router?
+### 5. 为何地理编码使用异步方案?
+
+**决策**: 地理位置计算采用异步任务 (Taskiq)，而非同步执行
+
+**同步方案的问题**:
+- ❌ **导入速度慢**: 每次地理编码请求 100-500ms,100 张照片 ≈ 20 秒额外耗时
+- ❌ **阻塞主流程**: 网络抖动或 API 限流会影响素材导入
+- ❌ **用户体验差**: 用户需要等待地理编码完成才能看到导入进度
+
+**异步方案的优势**:
+- ✅ **导入速度快**: 不阻塞主流程,素材快速导入完成 (节省 20+ 秒)
+- ✅ **容错性好**: 地理编码失败不影响素材导入成功
+- ✅ **更好的 UX**: 用户立即看到素材,地点信息后台补全
+- ✅ **架构一致**: 与现有 phash 异步任务模式一致 (都是耗时 I/O 操作)
+
+**实现细节**:
+```
+1. 素材导入 (同步):
+   - 保存 GPS 坐标 (gps_latitude, gps_longitude)
+   - 创建任务日志 (task_logs, status=pending)
+   - 发送异步任务到 Redis 队列
+
+2. Taskiq Worker (异步):
+   - 调用地理编码服务 (高德地图/Nominatim)
+   - 保存 6 个地点标签到 asset_tags
+   - 更新任务状态 (success/failed)
+   - 失败自动重试 3 次
+```
+
+**失败处理策略**:
+- 重试 3 次后失败任务记录在 `task_logs` 表中
+- 可通过管理接口手动重试失败任务
+- 前端显示空地点信息 (不影响其他功能)
+
+### 6. 为何前端使用 Next.js 14 App Router?
 
 **决策**: Next.js 14 + App Router + TypeScript
 
@@ -849,6 +897,7 @@ else:
 
 **后端：**
 - **Taskiq 文档**: [app/tasks/README.md](backend/app/tasks/README.md)
+- **地理编码文档**: [app/tasks/GEOCODING_README.md](backend/app/tasks/GEOCODING_README.md)
 - **启动指南**: [STARTUP_GUIDE.md](backend/STARTUP_GUIDE.md)
 - **Redis 安装**: [REDIS_SETUP.md](backend/REDIS_SETUP.md)
 - **测试指南**: [tests/README.md](backend/tests/README.md)
@@ -862,8 +911,17 @@ else:
 
 ---
 
-**最后更新**: 2026-01-05
-**版本**: v0.2.0
+**最后更新**: 2026-01-08
+**版本**: v0.3.0
+
+**v0.3.0 更新内容** (2026-01-08):
+- ✅ 新增异步地理编码功能（将 GPS 坐标转换为地理位置）
+- ✅ 创建通用任务日志表（task_logs）支持多种异步任务
+- ✅ 实现地理编码异步任务（支持高德地图和 Nominatim）
+- ✅ 新增 6 个地点标签（国家、省份、城市、区县、兴趣点、完整地址）
+- ✅ 优化素材导入速度（异步地理编码节省 20+ 秒）
+- ✅ 完善失败重试机制（自动重试 3 次）
+- ✅ 更新项目文档和技术决策记录
 
 **v0.2.0 更新内容** (2026-01-05):
 - ✅ 新增前端完整实现（Next.js 14 + TypeScript）

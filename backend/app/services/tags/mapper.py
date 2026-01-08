@@ -32,6 +32,8 @@ class MetadataTagMapper:
         # GPS（通用）
         'GPS GPSLatitude': 'gps_latitude',
         'GPS GPSLongitude': 'gps_longitude',
+        'GPS GPSLatitudeRef': 'gps_latitude_ref',
+        'GPS GPSLongitudeRef': 'gps_longitude_ref',
         'GPS GPSAltitude': 'gps_altitude',
 
         # 媒体属性（通用）

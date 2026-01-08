@@ -276,3 +276,35 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('video', 'width', 12, FALSE),
 ('video', 'height', 13, FALSE),
 ('video', 'duration', 14, FALSE);
+
+-- ==========================================
+-- 异步任务日志表（通用）
+-- ==========================================
+CREATE TABLE IF NOT EXISTS task_logs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '任务日志ID',
+
+    -- 任务标识
+    task_type VARCHAR(50) NOT NULL COMMENT '任务类型: phash, geocoding, face_detection 等',
+    task_status VARCHAR(20) NOT NULL DEFAULT 'pending' COMMENT '任务状态: pending, running, success, failed',
+
+    -- 关联资源
+    asset_id BIGINT NOT NULL COMMENT '关联的资源ID',
+
+    -- 任务参数（JSON 格式，适配不同任务类型）
+    task_params JSON COMMENT '任务参数，如: {"latitude": 39.9042, "longitude": 116.4074}',
+
+    -- 重试机制
+    retry_count INT DEFAULT 0 COMMENT '当前重试次数',
+    max_retries INT DEFAULT 3 COMMENT '最大重试次数',
+
+    -- 执行结果
+    error_message TEXT COMMENT '错误信息（仅失败时记录）',
+    executed_at DATETIME COMMENT '最后执行时间',
+
+    -- 时间戳
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+
+    -- 索引
+    INDEX idx_asset_id (asset_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='异步任务日志表';
