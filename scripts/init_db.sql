@@ -249,7 +249,10 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('image', 'location_city', 15, FALSE),
 ('image', 'location_district', 16, FALSE),
 ('image', 'location_poi', 17, FALSE),
-('image', 'location_formatted', 18, FALSE);
+('image', 'location_formatted', 18, FALSE),
+('image', 'width', 19, FALSE),
+('image', 'height', 20, FALSE);
+
 
 -- ==========================================
 -- Video 模板标签配置（14个）
@@ -308,3 +311,24 @@ CREATE TABLE IF NOT EXISTS task_logs (
     -- 索引
     INDEX idx_asset_id (asset_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='异步任务日志表';
+
+-- ==========================================
+-- 用户收藏表（多对多关系）
+-- ==========================================
+CREATE TABLE IF NOT EXISTS user_favorites (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '收藏记录ID',
+    user_id BIGINT NOT NULL COMMENT '用户ID（关联 users 表）',
+    asset_id BIGINT NOT NULL COMMENT '素材ID（关联 assets 表）',
+    favorited_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '收藏时间',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    is_deleted BOOLEAN NOT NULL DEFAULT FALSE COMMENT '软删除标记',
+
+    -- 唯一约束：同一用户不能重复收藏同一素材
+    UNIQUE KEY uk_user_asset (user_id, asset_id),
+
+    -- 性能索引：查询某用户的收藏列表（按时间排序）
+    INDEX idx_user_favorited (user_id, favorited_at DESC),
+
+    -- 性能索引：查询某素材被多少人收藏
+    INDEX idx_asset_id (asset_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户收藏表';

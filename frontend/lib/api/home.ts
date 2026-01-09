@@ -1,33 +1,17 @@
 import { apiClient } from './client';
-import { Asset, Location, Event, ApiResponse } from './types';
+import { Asset, Location, Event, ApiResponse, FeaturedResponse } from './types';
+
+// 当前用户ID（v1.0 硬编码，v2.0 从登录态获取）
+const CURRENT_USER_ID = 1;
 
 export const homeApi = {
-  // 获取精选内容（使用 Mock 数据）
-  getFeatured: async (limit: number = 9): Promise<Asset[]> => {
-    // TODO: 替换为真实 API
-    // const response = await apiClient.get<ApiResponse<{ assets: Asset[] }>>('/api/v1/home/featured', { params: { limit } });
-    // return response.data.assets;
-
-    // Mock 数据
-    return Array.from({ length: limit }, (_, i) => ({
-      id: i + 1,
-      type: 'image' as const,
-      thumbnailUrl: `https://picsum.photos/800/600?random=${i}`,
-      originalUrl: `https://picsum.photos/1920/1080?random=${i}`,
-      fileName: `photo_${i}.jpg`,
-      fileSize: 2048576,
-      width: 1920,
-      height: 1080,
-      shotAt: new Date(2024, 7, 15 + i).toISOString(),
-      createdAt: new Date().toISOString(),
-      location: {
-        latitude: 39.9 + Math.random(),
-        longitude: 116.4 + Math.random(),
-        name: '北京·天安门',
-      },
-      tags: ['旅行', '建筑', '蓝天'],
-      aiScore: 0.95,
-    }));
+  // 获取精选内容（使用真实 API）
+  getFeatured: async (limit: number = 9): Promise<FeaturedResponse> => {
+    const response = await apiClient.get<ApiResponse<FeaturedResponse>>(
+      '/home/featured',
+      { params: { user_id: CURRENT_USER_ID, limit } }
+    );
+    return response.data.data;
   },
 
   // 获取足迹地点（使用 Mock 数据）

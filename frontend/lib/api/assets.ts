@@ -1,6 +1,9 @@
 import { apiClient } from './client';
 import type { Asset, ApiResponse } from './types';
 
+// 当前用户ID（v1.0 硬编码，v2.0 从登录态获取）
+const CURRENT_USER_ID = 1;
+
 export interface AssetsFilter {
   type?: 'image' | 'video' | 'audio';
   startDate?: string;
@@ -113,5 +116,26 @@ export const assetsApi = {
     await new Promise((resolve) => setTimeout(resolve, 200));
 
     return ['上海', '北京', '杭州', '成都', '深圳', '广州', '南京', '苏州'];
+  },
+
+  /**
+   * 收藏素材
+   */
+  favorite: async (assetId: number): Promise<void> => {
+    await apiClient.post(
+      `/assets/${assetId}/favorite`,
+      null,
+      { params: { user_id: CURRENT_USER_ID } }
+    );
+  },
+
+  /**
+   * 取消收藏
+   */
+  unfavorite: async (assetId: number): Promise<void> => {
+    await apiClient.delete(
+      `/assets/${assetId}/favorite`,
+      { params: { user_id: CURRENT_USER_ID } }
+    );
   },
 };

@@ -3,7 +3,14 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from .config import settings
-from .routers import assets_router, albums_router, ingestion_router, management_router
+from .routers import (
+    assets_router,
+    albums_router,
+    ingestion_router,
+    management_router,
+    home_router,
+    favorite_router
+)
 from . import schema
 
 
@@ -47,3 +54,5 @@ app.include_router(assets_router)
 app.include_router(albums_router)
 app.include_router(ingestion_router)
 app.include_router(management_router)
+app.include_router(home_router)
+app.include_router(favorite_router)

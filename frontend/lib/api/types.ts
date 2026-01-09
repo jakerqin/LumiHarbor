@@ -5,17 +5,12 @@ export interface Asset {
   originalUrl: string;
   fileName: string;
   fileSize: number;
-  width: number;
-  height: number;
+  aspectRatio?: 'horizontal' | 'vertical' | 'square';
   shotAt: string;
   createdAt: string;
-  location?: {
-    latitude: number;
-    longitude: number;
-    name: string;
-  };
-  tags: string[];
-  aiScore?: number;
+  favoritedAt?: string;
+  isFavorited?: boolean;
+  tags: Record<string, any>;  // 标签 JSON 对象
   blurHash?: string;
 }
 
@@ -62,4 +57,10 @@ export interface ApiResponse<T> {
   code: number;
   message: string;
   data: T;
+}
+
+export interface FeaturedResponse {
+  assets: Asset[];
+  total: number;
+  userId: number;
 }

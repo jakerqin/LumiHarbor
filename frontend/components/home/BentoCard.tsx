@@ -6,6 +6,7 @@ import { gsap } from 'gsap';
 import { Play, MapPin, Calendar } from 'lucide-react';
 import { Asset } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
+import { FavoriteButton } from '@/components/assets/FavoriteButton';
 
 interface BentoCardProps {
   asset: Asset;
@@ -17,6 +18,14 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+
+  // 从 tags 对象中提取地点信息
+  const locationName = asset.tags?.location_formatted || asset.tags?.location_city || asset.tags?.location_poi;
+
+  // 从 tags 对象中提取设备信息作为标签
+  const displayTags = [
+    asset.tags?.device_model,
+  ].filter(Boolean) as string[];
 
   const sizeClasses = {
     small: 'col-span-1 row-span-1 h-64',
@@ -72,11 +81,21 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
           unoptimized
         />
 
-        {asset.type === 'video' && (
-          <div className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
-            <Play size={20} fill="currentColor" className="text-white" />
-          </div>
-        )}
+        {/* 右上角操作按钮区域 */}
+        <div className="absolute top-4 right-4 flex flex-col gap-2">
+          {/* 收藏按钮 */}
+          <FavoriteButton
+            assetId={asset.id}
+            initialFavorited={asset.isFavorited}
+          />
+
+          {/* 视频播放图标 */}
+          {asset.type === 'video' && (
+            <div className="w-10 h-10 flex items-center justify-center rounded-full bg-black/60 backdrop-blur-sm">
+              <Play size={20} fill="currentColor" className="text-white" />
+            </div>
+          )}
+        </div>
 
         <div
           ref={overlayRef}
@@ -84,10 +103,10 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
           style={{ opacity: 0 }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-6 space-y-2">
-            {asset.location && (
+            {locationName && (
               <div className="flex items-center gap-2 text-white/90">
                 <MapPin size={16} fill="currentColor" />
-                <span className="text-sm font-medium">{asset.location.name}</span>
+                <span className="text-sm font-medium">{locationName}</span>
               </div>
             )}
 
@@ -102,9 +121,9 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
               </span>
             </div>
 
-            {asset.tags && asset.tags.length > 0 && (
+            {displayTags.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-3">
-                {asset.tags.slice(0, 3).map((tag) => (
+                {displayTags.slice(0, 3).map((tag) => (
                   <span
                     key={tag}
                     className="px-2 py-1 text-xs bg-white/20 backdrop-blur-sm rounded-full text-white"

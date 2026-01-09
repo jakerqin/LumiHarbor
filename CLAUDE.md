@@ -500,6 +500,8 @@ PersonalLifeFlow/
 - 表间关联通过索引优化查询性能
 - **数据表结构变更时必须同步更新 [init_db.sql](scripts/init_db.sql)**
 - **软删除字段统一使用 `is_deleted: BOOLEAN`**（不使用 `status: tinyint`）
+- **所有业务表必须包含 `is_deleted` 字段**（系统级表如 tag_definitions 除外）
+- **所有查询都必须添加 `is_deleted = False` 过滤条件**
 
 **前端规范**:
 - **组件命名**: PascalCase，如 `AssetCard.tsx`

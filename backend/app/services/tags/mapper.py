@@ -58,4 +58,17 @@ class MetadataTagMapper:
         for meta_key, tag_key in cls.METADATA_TO_TAG_KEY.items():
             if meta_key in metadata:
                 tags[tag_key] = metadata[meta_key]
+
+        # 计算宽高比（一次计算多次使用）
+        if 'width' in tags and 'height' in tags:
+            try:
+                from ...tools.aspect_ratio import calculate_aspect_ratio
+                width = int(tags['width']) if tags['width'] else 0
+                height = int(tags['height']) if tags['height'] else 0
+                aspect_ratio = calculate_aspect_ratio(width, height)
+                tags['aspect_ratio'] = aspect_ratio
+            except (ValueError, TypeError):
+                # 宽高解析失败，使用默认值
+                tags['aspect_ratio'] = 'square'
+
         return tags

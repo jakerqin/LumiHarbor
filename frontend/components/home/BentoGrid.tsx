@@ -3,21 +3,10 @@
 import { useQuery } from '@tanstack/react-query';
 import { homeApi } from '@/lib/api/home';
 import { BentoCard } from './BentoCard';
-
-const bentoSizes = [
-  'large',
-  'medium',
-  'small',
-  'small',
-  'medium',
-  'small',
-  'small',
-  'small',
-  'small',
-] as const;
+import { calculateBentoSize, getGridColumns } from '@/lib/utils/bento';
 
 export function BentoGrid() {
-  const { data: assets, isLoading } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ['featured-assets'],
     queryFn: () => homeApi.getFeatured(9),
   });
@@ -33,15 +22,21 @@ export function BentoGrid() {
     );
   }
 
-  if (!assets || assets.length === 0) {
+  if (!data || data.assets.length === 0) {
     return (
       <div className="h-full flex items-center justify-center">
         <div className="text-center">
           <p className="text-xl text-foreground-secondary">暂无精选内容</p>
+          <p className="text-sm text-foreground-tertiary mt-2">
+            去素材库收藏你喜欢的照片吧 ❤️
+          </p>
         </div>
       </div>
     );
   }
+
+  const { assets, total } = data;
+  const gridCols = getGridColumns(assets.length);
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -50,16 +45,16 @@ export function BentoGrid() {
           精选时光
         </h2>
         <p className="text-foreground-secondary">
-          AI 为你挑选的高光时刻
+          你收藏的 {total} 个美好瞬间
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-4 auto-rows-min">
+      <div className={`grid ${gridCols} gap-4 auto-rows-min`}>
         {assets.map((asset, index) => (
           <BentoCard
             key={asset.id}
             asset={asset}
-            size={bentoSizes[index]}
+            size={calculateBentoSize(asset.aspectRatio || 'square', index, assets.length)}
             index={index}
           />
         ))}
