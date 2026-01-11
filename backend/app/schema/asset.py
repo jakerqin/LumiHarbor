@@ -1,7 +1,7 @@
 """资源相关 Schema"""
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 
 class AssetBase(BaseModel):
@@ -34,6 +34,10 @@ class AssetOut(AssetBase):
         created_at: 创建时间
         updated_at: 更新时间
         is_deleted: 是否已删除
+        is_favorited: 是否被当前用户收藏
+        aspect_ratio: 宽高比（从 asset_tags 获取）
+        location_city: 城市名称（从 asset_tags 获取）
+        location_poi: 兴趣点名称（从 asset_tags 获取）
     """
     id: int
     created_by: int
@@ -43,5 +47,28 @@ class AssetOut(AssetBase):
     updated_at: datetime
     is_deleted: bool
 
+    # 扩展字段
+    is_favorited: bool = False
+    aspect_ratio: Optional[float] = None
+    location_city: Optional[str] = None
+    location_poi: Optional[str] = None
+
     class Config:
         from_attributes = True
+
+
+class AssetsPageResponse(BaseModel):
+    """素材列表分页响应
+
+    Attributes:
+        assets: 素材列表
+        total: 总数量
+        page: 当前页码
+        page_size: 每页数量
+        has_more: 是否还有下一页
+    """
+    assets: List[AssetOut]
+    total: int
+    page: int
+    page_size: int
+    has_more: bool

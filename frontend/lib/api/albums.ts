@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Asset, ApiResponse } from './types';
+import type { Asset } from './types';
 
 export interface Album {
   id: number;

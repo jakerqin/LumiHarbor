@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { Asset, Location, Event, ApiResponse, FeaturedResponse } from './types';
+import { Location, Event, FeaturedResponse } from './types';
 
 // 当前用户ID（v1.0 硬编码，v2.0 从登录态获取）
 const CURRENT_USER_ID = 1;
@@ -7,11 +7,11 @@ const CURRENT_USER_ID = 1;
 export const homeApi = {
   // 获取精选内容（使用真实 API）
   getFeatured: async (limit: number = 9): Promise<FeaturedResponse> => {
-    const response = await apiClient.get<ApiResponse<FeaturedResponse>>(
+    const response = await apiClient.get<FeaturedResponse>(
       '/home/featured',
       { params: { user_id: CURRENT_USER_ID, limit } }
     );
-    return response.data.data;
+    return response.data;
   },
 
   // 获取足迹地点（使用 Mock 数据）

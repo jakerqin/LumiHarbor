@@ -1,5 +1,4 @@
 import { apiClient } from './client';
-import type { ApiResponse } from './types';
 
 export interface Note {
   id: number;

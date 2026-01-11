@@ -1,17 +1,17 @@
 export interface Asset {
   id: number;
-  type: 'image' | 'video' | 'audio';
-  thumbnailUrl: string;
-  originalUrl: string;
-  fileName: string;
-  fileSize: number;
-  aspectRatio?: 'horizontal' | 'vertical' | 'square';
-  shotAt: string;
-  createdAt: string;
-  favoritedAt?: string;
-  isFavorited?: boolean;
-  tags: Record<string, any>;  // 标签 JSON 对象
-  blurHash?: string;
+  asset_type: 'image' | 'video' | 'audio';
+  thumbnail_path: string | null;
+  original_path: string;
+  mime_type: string | null;
+  file_size: number;
+  shot_at: string | null;
+  created_at: string;
+  updated_at: string;
+  is_favorited: boolean;
+  aspect_ratio: number | null;
+  location_city: string | null;
+  location_poi: string | null;
 }
 
 export interface Location {
@@ -54,9 +54,9 @@ export interface Event {
 }
 
 export interface ApiResponse<T> {
-  code: number;
+  code: string;
   message: string;
-  data: T;
+  result: T | null;
 }
 
 export interface FeaturedResponse {

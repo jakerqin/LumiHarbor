@@ -1,25 +1,71 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import Masonry from 'react-masonry-css';
 import { AssetCard } from './AssetCard';
-import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
-import { useState } from 'react';
+import { assetsApi, type AssetsFilter, type AssetsResponse } from '@/lib/api/assets';
+import { useInfiniteScroll } from '@/lib/hooks/useInfiniteScroll';
+import type { Asset } from '@/lib/api/types';
+import './masonry.css';
 
 interface AssetGridProps {
   filter?: AssetsFilter;
   onAssetClick?: (id: number) => void;
 }
 
+// 瀑布流断点配置
+const breakpointColumns = {
+  default: 5,  // 默认 5 列
+  1536: 4,     // 2xl 屏幕 4 列
+  1280: 3,     // xl 屏幕 3 列
+  1024: 3,     // lg 屏幕 3 列
+  768: 2,      // md 屏幕 2 列
+  640: 1,      // sm 屏幕 1 列
+};
+
 export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   const [page, setPage] = useState(1);
+  const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const pageSize = 30;
 
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, isFetching } = useQuery<AssetsResponse>({
     queryKey: ['assets', page, pageSize, filter],
     queryFn: () => assetsApi.getAssets(page, pageSize, filter),
   });
 
-  if (isLoading) {
+  // 当数据更新时，更新 allAssets
+  useEffect(() => {
+    if (data) {
+      if (page === 1) {
+        // 第一页，重置列表
+        setAllAssets(data.assets);
+      } else {
+        // 后续页，追加到列表
+        setAllAssets((prev) => [...prev, ...data.assets]);
+      }
+    }
+  }, [data, page]);
+
+  // 当筛选条件变化时，重置页码和列表
+  useEffect(() => {
+    setPage(1);
+    setAllAssets([]);
+  }, [filter]);
+
+  // 无限滚动：距离底部 500px 时加载下一页
+  useInfiniteScroll(
+    () => {
+      if (data?.has_more) {
+        setPage((p) => p + 1);
+      }
+    },
+    data?.has_more ?? false,
+    isFetching,
+    500
+  );
+
+  if (isLoading && page === 1) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -31,6 +77,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   }
 
   if (error) {
+    console.log(">>>>>>, ", error)
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -41,7 +88,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
     );
   }
 
-  if (!data || data.assets.length === 0) {
+  if (allAssets.length === 0 && !isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -51,68 +98,35 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
     );
   }
 
-  const totalPages = Math.ceil(data.total / pageSize);
-
   return (
     <div>
-      {/* 素材网格 */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-        {data.assets.map((asset) => (
+      {/* 瀑布流网格 */}
+      <Masonry
+        breakpointCols={breakpointColumns}
+        className="masonry-grid"
+        columnClassName="masonry-grid-column"
+      >
+        {allAssets.map((asset) => (
           <AssetCard key={asset.id} asset={asset} onClick={() => onAssetClick?.(asset.id)} />
         ))}
-      </div>
+      </Masonry>
 
-      {/* 分页 */}
-      {totalPages > 1 && (
-        <div className="mt-12 flex items-center justify-center gap-2">
-          <button
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-            className="px-4 py-2 bg-background-secondary hover:bg-background-tertiary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            上一页
-          </button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              let pageNum;
-              if (totalPages <= 5) {
-                pageNum = i + 1;
-              } else if (page <= 3) {
-                pageNum = i + 1;
-              } else if (page >= totalPages - 2) {
-                pageNum = totalPages - 4 + i;
-              } else {
-                pageNum = page - 2 + i;
-              }
-
-              return (
-                <button
-                  key={pageNum}
-                  onClick={() => setPage(pageNum)}
-                  className={`w-10 h-10 rounded-lg transition-colors ${
-                    page === pageNum
-                      ? 'bg-primary text-white'
-                      : 'bg-background-secondary hover:bg-background-tertiary'
-                  }`}
-                >
-                  {pageNum}
-                </button>
-              );
-            })}
+      {/* 加载更多提示 */}
+      {isFetching && page > 1 && (
+        <div className="flex items-center justify-center py-8">
+          <div className="text-center">
+            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2 mx-auto" />
+            <p className="text-sm text-foreground-secondary">加载更多...</p>
           </div>
+        </div>
+      )}
 
-          <button
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-            className="px-4 py-2 bg-background-secondary hover:bg-background-tertiary rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            下一页
-          </button>
-
-          <span className="ml-4 text-sm text-foreground-secondary">
-            共 {data.total} 个素材
-          </span>
+      {/* 已加载全部提示 */}
+      {!data?.has_more && allAssets.length > 0 && (
+        <div className="flex items-center justify-center py-8">
+          <p className="text-sm text-foreground-secondary">
+            已加载全部 {data?.total} 个素材
+          </p>
         </div>
       )}
     </div>

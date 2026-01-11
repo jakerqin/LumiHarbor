@@ -8,7 +8,6 @@ import {
   Image as ImageIcon,
   Video,
   MapPin,
-  Tag,
   ArrowUpDown,
 } from 'lucide-react';
 import type { AssetsFilter } from '@/lib/api/assets';
@@ -16,41 +15,31 @@ import type { AssetsFilter } from '@/lib/api/assets';
 interface AssetFilterProps {
   filter: AssetsFilter;
   onChange: (filter: AssetsFilter) => void;
-  tags: string[];
   locations: string[];
 }
 
-export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterProps) {
+export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
   const [isOpen, setIsOpen] = useState(false);
   const filterButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const handleTypeChange = (type: 'image' | 'video' | undefined) => {
-    onChange({ ...filter, type });
-  };
-
-  const handleTagToggle = (tag: string) => {
-    const currentTags = filter.tags || [];
-    const newTags = currentTags.includes(tag)
-      ? currentTags.filter((t) => t !== tag)
-      : [...currentTags, tag];
-    onChange({ ...filter, tags: newTags.length > 0 ? newTags : undefined });
+  const handleTypeChange = (asset_type: 'image' | 'video' | undefined) => {
+    onChange({ ...filter, asset_type });
   };
 
   const handleLocationChange = (location: string | undefined) => {
     onChange({ ...filter, location });
   };
 
-  const handleSortChange = (sortBy: 'shotAt' | 'createdAt' | 'aiScore') => {
-    onChange({ ...filter, sortBy });
+  const handleSortChange = (sort_by: 'shot_at' | 'created_at') => {
+    onChange({ ...filter, sort_by });
   };
 
   const handleClearFilter = () => {
     onChange({});
   };
 
-  const hasActiveFilter =
-    filter.type || (filter.tags && filter.tags.length > 0) || filter.location || filter.sortBy;
+  const hasActiveFilter = filter.asset_type || filter.location || filter.sort_by;
 
   // 按钮 Hover 效果
   const handleButtonMouseEnter = () => {
@@ -138,8 +127,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
         <span>筛选</span>
         {hasActiveFilter && (
           <span className="w-5 h-5 bg-white/20 rounded-full text-xs flex items-center justify-center">
-            {[filter.type, filter.location, filter.sortBy].filter(Boolean).length +
-              (filter.tags?.length || 0)}
+            {[filter.asset_type, filter.location, filter.sort_by].filter(Boolean).length}
           </span>
         )}
       </button>
@@ -171,7 +159,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             <button
               onClick={() => handleTypeChange(undefined)}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                !filter.type
+                !filter.asset_type
                   ? 'bg-primary text-white'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
@@ -181,7 +169,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             <button
               onClick={() => handleTypeChange('image')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${
-                filter.type === 'image'
+                filter.asset_type === 'image'
                   ? 'bg-primary text-white'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
@@ -192,7 +180,7 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
             <button
               onClick={() => handleTypeChange('video')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${
-                filter.type === 'video'
+                filter.asset_type === 'video'
                   ? 'bg-primary text-white'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
@@ -236,29 +224,6 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
           </div>
         </div>
 
-        {/* 标签筛选 */}
-        <div>
-          <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
-            <Tag size={16} />
-            <span>标签</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {tags.map((tag) => (
-              <button
-                key={tag}
-                onClick={() => handleTagToggle(tag)}
-                className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
-                  filter.tags?.includes(tag)
-                    ? 'bg-primary text-white'
-                    : 'bg-background-tertiary hover:bg-white/5'
-                }`}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-
         {/* 排序方式 */}
         <div>
           <div className="flex items-center gap-2 mb-3 text-sm text-foreground-secondary">
@@ -267,9 +232,9 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
           </div>
           <div className="flex gap-2">
             <button
-              onClick={() => handleSortChange('shotAt')}
+              onClick={() => handleSortChange('shot_at')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                filter.sortBy === 'shotAt' || !filter.sortBy
+                filter.sort_by === 'shot_at' || !filter.sort_by
                   ? 'bg-primary text-white'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
@@ -277,24 +242,14 @@ export function AssetFilter({ filter, onChange, tags, locations }: AssetFilterPr
               拍摄时间
             </button>
             <button
-              onClick={() => handleSortChange('createdAt')}
+              onClick={() => handleSortChange('created_at')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                filter.sortBy === 'createdAt'
+                filter.sort_by === 'created_at'
                   ? 'bg-primary text-white'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
               添加时间
-            </button>
-            <button
-              onClick={() => handleSortChange('aiScore')}
-              className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
-                filter.sortBy === 'aiScore'
-                  ? 'bg-primary text-white'
-                  : 'bg-background-tertiary hover:bg-white/5'
-              }`}
-            >
-              AI 评分
             </button>
           </div>
         </div>

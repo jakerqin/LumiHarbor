@@ -27,6 +27,19 @@
 
 ---
 
+## 前端 API 响应约定（Axios 拦截器规则）
+
+后端接口统一响应格式为：
+```json
+{ "code": "0", "message": "", "result": "T" }
+```
+
+前端 `frontend/lib/api/client.ts` 必须遵循以下规则：
+- **自动解包**：当响应命中上述结构且 `code === "0"` 时，将 `AxiosResponse.data` 解包为 `result`（业务代码只需读取 `response.data`）。
+- **错误统一**：当命中上述结构但 `code !== "0"` 时，拦截器抛出 `ApiError`（包含 `message`、`code`、`status`、`raw`）。
+- **兼容非标准接口**：若响应不是该结构（例如直接返回业务对象/第三方接口），拦截器不做解包，保持 Axios 原始返回。
+- **调用侧写法**：不要写 `response.data.data`/`response.data.result`；统一写 `const res = await apiClient.get<T>(...)` 然后使用 `res.data`。
+
 ## 前端功能模块
 
 ### 1. 首页 (Homepage)
