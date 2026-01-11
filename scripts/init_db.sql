@@ -187,7 +187,6 @@ CREATE TABLE IF NOT EXISTS album_assets (
 
 -- 相机/设备信息类 (3个)
 INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('device_make', '设备制造商', 1, JSON_OBJECT('placeholder', '如: Canon, Apple'), '拍摄设备品牌'),
 ('device_model', '设备型号', 1, JSON_OBJECT('placeholder', '如: iPhone 15 Pro, Canon EOS R5'), '拍摄设备型号'),
 ('lens_model', '镜头型号', 1, JSON_OBJECT('placeholder', '如: EF 24-70mm f/2.8L'), '使用的镜头型号');
 
@@ -196,15 +195,13 @@ INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, descript
 ('exposure_time', '快门速度', 1, JSON_OBJECT('placeholder', '如: 1/125, 1/500'), '曝光时间'),
 ('aperture', '光圈值', 1, JSON_OBJECT('placeholder', '如: f/2.8, f/5.6'), '光圈大小'),
 ('iso', 'ISO感光度', 1, JSON_OBJECT('placeholder', '如: 100, 400'), 'ISO设置'),
-('focal_length', '焦距', 1, JSON_OBJECT('placeholder', '如: 50mm, 24mm'), '镜头焦距'),
-('white_balance', '白平衡', 1, JSON_OBJECT('placeholder', '如: Auto, Daylight'), '白平衡模式'),
-('flash', '闪光灯', 1, JSON_OBJECT('placeholder', '如: Flash fired'), '闪光灯状态');
+('focal_length', '焦距', 1, JSON_OBJECT('placeholder', '如: 50mm, 24mm'), '镜头焦距');
 
 -- GPS位置类 (3个)
 INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('gps_latitude', 'GPS纬度', 1, JSON_OBJECT('placeholder', '如: 39.9042° N'), '拍摄位置纬度'),
-('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 116.4074° E'), '拍摄位置经度'),
-('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 100m'), '拍摄位置海拔');
+('gps_latitude', 'GPS纬度', 1, JSON_OBJECT('placeholder', '如: 121.472644'), '拍摄位置纬度'),
+('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 31.231706'), '拍摄位置经度'),
+('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 134189/22602'), '拍摄位置海拔');
 
 -- 地点信息类 (6个，基于逆地理编码)
 INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
@@ -227,7 +224,6 @@ INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, descript
 -- ==========================================
 INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required) VALUES
 -- 设备信息
-('image', 'device_make', 1, FALSE),
 ('image', 'device_model', 2, FALSE),
 ('image', 'lens_model', 3, FALSE),
 
@@ -236,8 +232,6 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('image', 'aperture', 5, FALSE),
 ('image', 'iso', 6, FALSE),
 ('image', 'focal_length', 7, FALSE),
-('image', 'white_balance', 8, FALSE),
-('image', 'flash', 9, FALSE),
 
 -- GPS
 ('image', 'gps_latitude', 10, FALSE),
@@ -261,7 +255,6 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 -- ==========================================
 INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required) VALUES
 -- 设备信息
-('video', 'device_make', 1, FALSE),
 ('video', 'device_model', 2, FALSE),
 
 -- GPS（视频也可能有GPS）
