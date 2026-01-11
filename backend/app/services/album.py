@@ -40,6 +40,55 @@ class AlbumService:
         return album
 
     @staticmethod
+    def get_or_create_album(
+        db: Session,
+        album_id: Optional[int] = None,
+        album_name: Optional[str] = None,
+        created_by: int = 1,
+        visibility: str = "general",
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None
+    ) -> Tuple[Optional[model.Album], str]:
+        """获取或创建相册（用于素材导入）
+
+        Args:
+            db: 数据库会话
+            album_id: 现有相册ID（优先使用）
+            album_name: 新建相册名称
+            created_by: 创建者用户ID
+            visibility: 可见性
+            start_time: 相册开始时间（仅创建新相册时使用）
+            end_time: 相册结束时间（仅创建新相册时使用）
+
+        Returns:
+            (相册对象, 操作类型: "found"/"created"/"failed")
+        """
+        # 模式 A: 使用现有相册
+        if album_id is not None:
+            album = AlbumService.get_album_by_id(db, album_id)
+            if album:
+                return album, "found"
+            else:
+                return None, "failed"
+
+        # 模式 B: 创建新相册
+        if album_name:
+            album = model.Album(
+                name=album_name,
+                description="",
+                visibility=visibility,
+                created_by=created_by,
+                start_time=start_time,
+                end_time=end_time
+            )
+            db.add(album)
+            db.commit()
+            db.refresh(album)
+            return album, "created"
+
+        return None, "failed"
+
+    @staticmethod
     def get_album_by_id(
         db: Session,
         album_id: int,
@@ -267,6 +316,8 @@ class AlbumService:
 
         # 更新相册时间范围和封面
         if success_count > 0:
+            # 先 flush 确保关联记录可查询（解决封面无法设置的问题）
+            db.flush()
             AlbumService._update_album_time_range(db, album_id)
             AlbumService._update_album_cover_if_needed(db, album_id)
 

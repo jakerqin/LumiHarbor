@@ -27,15 +27,17 @@ class AssetProcessor:
     - 发送异步任务（phash、地理编码）
     """
 
-    def __init__(self, db: Session, scan_path: str):
+    def __init__(self, db: Session, scan_path: str, default_gps: tuple[float, float] = None):
         """初始化处理器
 
         Args:
             db: 数据库会话
             scan_path: 扫描根路径
+            default_gps: 默认经纬度 (longitude, latitude)
         """
         self.db = db
         self.scan_path = scan_path
+        self.default_gps = default_gps
 
     def extract_metadata(self, asset_type: str, file_path: str) -> tuple[dict, any]:
         """提取元数据
@@ -50,7 +52,7 @@ class AssetProcessor:
         return MetadataExtractorFactory.extract(asset_type, file_path)
 
     def save_tags(self, asset: Asset, metadata: dict) -> dict:
-        """保存标签
+        """保存标签（支持默认 GPS 覆盖）
 
         Args:
             asset: 素材对象
@@ -60,11 +62,33 @@ class AssetProcessor:
             映射后的标签字典
         """
         if not metadata:
-            return {}
+            metadata = {}
 
         try:
             # 映射为统一格式
             mapped_tags = MetadataTagMapper.map_metadata_to_tags(metadata)
+
+            # GPS 覆盖逻辑：如果元数据中没有 GPS 且配置了默认 GPS，则使用默认值
+            if self.default_gps:
+                has_gps = 'gps_latitude' in mapped_tags and 'gps_longitude' in mapped_tags
+
+                if not has_gps:
+                    lng, lat = self.default_gps
+
+                    # 根据数值正负确定方向
+                    lat_ref = 'N' if lat >= 0 else 'S'
+                    lon_ref = 'E' if lng >= 0 else 'W'
+
+                    # 添加 GPS 标签（使用绝对值）
+                    mapped_tags['gps_latitude'] = str(abs(lat))
+                    mapped_tags['gps_longitude'] = str(abs(lng))
+                    mapped_tags['gps_latitude_ref'] = lat_ref
+                    mapped_tags['gps_longitude_ref'] = lon_ref
+
+                    logger.debug(
+                        f"Asset {asset.id} 使用默认 GPS: "
+                        f"{lat}°{lat_ref}, {lng}°{lon_ref}"
+                    )
 
             # 批量保存标签
             saved_count = TagService.batch_save_asset_tags(

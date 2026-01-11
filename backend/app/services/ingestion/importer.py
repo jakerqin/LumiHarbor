@@ -6,6 +6,7 @@ from typing import List, Dict
 from sqlalchemy.orm import Session
 from ...model import Asset
 from ...tools.utils import get_logger
+from ...services.album import AlbumService
 from ..scanning import FilesystemScanner
 from .config import ImportConfig
 from .statistics import ImportStatistics
@@ -33,8 +34,9 @@ class AssetImportService:
         """
         self.config = config
         self.validator = AssetValidator(config.db)
-        self.processor = AssetProcessor(config.db, config.scan_path)
+        self.processor = AssetProcessor(config.db, config.scan_path, config.default_gps)
         self.statistics = ImportStatistics()
+        self.imported_asset_ids = []  # 记录成功导入的素材ID列表
 
     def import_assets(self) -> ImportStatistics:
         """执行导入流程
@@ -56,7 +58,11 @@ class AssetImportService:
         for idx, data in enumerate(assets_data, 1):
             self._process_single_asset(idx, data)
 
-        # 3. 记录结果
+        # 3. 相册关联（如果需要）
+        if self.config.import_to_album and self.imported_asset_ids:
+            self._associate_assets_to_album()
+
+        # 4. 记录结果
         logger.info(self.statistics.get_summary())
 
         return self.statistics
@@ -97,6 +103,9 @@ class AssetImportService:
 
             # 3. 处理素材（标签、缩略图、异步任务）
             self.processor.process_asset(asset, data['original_path'])
+
+            # 4. 记录成功导入的素材ID
+            self.imported_asset_ids.append(asset.id)
 
             logger.info(
                 f"[{index}/{self.statistics.total}] "
@@ -165,3 +174,53 @@ class AssetImportService:
         self.config.db.refresh(new_asset)
 
         return new_asset
+
+    def _associate_assets_to_album(self) -> None:
+        """将导入的素材关联到相册
+
+        根据配置获取或创建相册，然后批量关联素材
+        """
+        try:
+            logger.info(f"开始关联素材到相册 - 共 {len(self.imported_asset_ids)} 个素材")
+
+            # 1. 获取或创建相册
+            album, action = AlbumService.get_or_create_album(
+                db=self.config.db,
+                album_id=self.config.album_id,
+                album_name=self.config.album_name,
+                created_by=self.config.created_by,
+                visibility=self.config.visibility,
+                start_time=self.config.album_start_time,
+                end_time=self.config.album_end_time
+            )
+
+            if not album:
+                logger.error("相册获取或创建失败，跳过素材关联")
+                return
+
+            if action == "found":
+                logger.info(f"使用现有相册: {album.name} (ID={album.id})")
+            elif action == "created":
+                logger.info(f"创建新相册: {album.name} (ID={album.id})")
+
+            # 2. 批量关联素材到相册
+            success_count, failed_ids = AlbumService.add_assets_to_album_batch(
+                db=self.config.db,
+                album_id=album.id,
+                asset_ids=self.imported_asset_ids
+            )
+
+            logger.info(
+                f"相册关联完成 - "
+                f"成功: {success_count}, "
+                f"失败: {len(failed_ids)}, "
+                f"相册ID: {album.id}"
+            )
+
+            if failed_ids:
+                logger.warning(f"以下素材关联失败: {failed_ids}")
+
+        except Exception as e:
+            logger.error(f"相册关联过程发生异常: {e}")
+            # 相册关联失败不影响素材导入成功
+            self.config.db.rollback()
