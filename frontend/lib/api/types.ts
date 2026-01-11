@@ -2,7 +2,9 @@ export interface Asset {
   id: number;
   asset_type: 'image' | 'video' | 'audio';
   thumbnail_path: string | null;
+  thumbnail_url?: string | null;
   original_path: string;
+  original_url?: string | null;
   mime_type: string | null;
   file_size: number;
   shot_at: string | null;

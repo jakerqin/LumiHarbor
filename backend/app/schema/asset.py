@@ -47,6 +47,10 @@ class AssetOut(AssetBase):
     updated_at: datetime
     is_deleted: bool
 
+    # 对外可访问 URL（由后端根据存储策略生成）
+    original_url: Optional[str] = None
+    thumbnail_url: Optional[str] = None
+
     # 扩展字段
     is_favorited: bool = False
     aspect_ratio: Optional[float] = None

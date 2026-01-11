@@ -1,9 +1,12 @@
 """FastAPI 应用入口
 """
+import os
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from .config import settings
+from .tools.utils import get_logger
 from .routers import (
     assets_router,
     albums_router,
@@ -14,6 +17,7 @@ from .routers import (
 )
 from . import schema
 
+logger = get_logger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
@@ -28,6 +32,22 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 本地媒体文件静态挂载（不鉴权场景）
+media_base_path = settings.MEDIA_BASE_PATH or "/media"
+if not media_base_path.startswith("/"):
+    media_base_path = f"/{media_base_path}"
+media_base_path = media_base_path.rstrip("/") or "/media"
+
+if os.path.isdir(settings.NAS_DATA_PATH):
+    app.mount(
+        media_base_path,
+        StaticFiles(directory=settings.NAS_DATA_PATH),
+        name="media",
+    )
+    logger.info(f"✅ 媒体静态目录已挂载: {media_base_path} -> {settings.NAS_DATA_PATH}")
+else:
+    logger.warning(f"⚠️ NAS_DATA_PATH 目录不存在，跳过静态挂载: {settings.NAS_DATA_PATH}")
 
 
 # 全局异常处理器

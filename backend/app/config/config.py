@@ -46,6 +46,12 @@ class Settings(BaseSettings):
     # 地理编码服务配置
     AMAP_API_KEY: str = ""  # 高德地图 API Key（可选，不配置则使用 Nominatim）
 
+    # 对外访问配置（用于生成可访问的资源 URL）
+    PUBLIC_BASE_URL: str = "http://localhost:8000"  # 生产环境建议配置为固定域名，如 https://api.example.com
+    MEDIA_BASE_PATH: str = "/media"  # 本地文件对外访问的 URL 前缀（StaticFiles mount path）
+    ASSET_URL_PROVIDER: str = "local"  # 'local' | 'oss'（未来可扩展）
+    OSS_PUBLIC_BASE_URL: str = ""  # 当 ASSET_URL_PROVIDER=oss 时必填，如 https://cdn.example.com
+
     class Config:
         """Pydantic 配置"""
         env_file = ".env"

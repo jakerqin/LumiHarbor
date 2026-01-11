@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import { Video, MapPin, Calendar, Heart } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
@@ -17,7 +17,6 @@ interface AssetCardProps {
 export function AssetCard({ asset, onClick }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
-  const [isHovered, setIsHovered] = useState(false);
 
   const hoverHandlers = createHoverLiftHandlers(cardRef.current);
 
@@ -83,8 +82,16 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
 
   // 获取缩略图 URL
   const getThumbnailUrl = () => {
+    if (asset.thumbnail_url) {
+      return asset.thumbnail_url;
+    }
     if (asset.thumbnail_path) {
-      return `${process.env.NEXT_PUBLIC_API_URL}${asset.thumbnail_path}`;
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
+      const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
+      const normalizedPath = asset.thumbnail_path.startsWith('/')
+        ? asset.thumbnail_path
+        : `/${asset.thumbnail_path}`;
+      return `${normalizedBaseUrl}${normalizedPath}`;
     }
     return '/placeholder-image.jpg'; // 占位图
   };
@@ -104,8 +111,6 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
     <div
       ref={cardRef}
       onClick={onClick}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
       {...hoverHandlers}
       className="group cursor-pointer"
     >

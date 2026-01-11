@@ -6,6 +6,7 @@ from typing import List, Optional
 from datetime import datetime
 from ..db import get_db
 from .. import model, schema
+from ..services.asset_url import AssetUrlProviderFactory
 
 router = APIRouter(
     prefix="/assets",
@@ -100,13 +101,16 @@ def list_assets(
         tags_map[tag.asset_id][tag.tag_key] = tag.tag_value
 
     # 8. 构建响应数据
+    url_provider = AssetUrlProviderFactory.create()
     assets_out = []
     for asset, is_favorited_count in results:
         asset_dict = {
             'id': asset.id,
             'created_by': asset.created_by,
             'original_path': asset.original_path,
+            'original_url': url_provider.maybe_to_public_url(asset.original_path),
             'thumbnail_path': asset.thumbnail_path,
+            'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
             'asset_type': asset.asset_type,
             'mime_type': asset.mime_type,
             'file_size': asset.file_size,
