@@ -1,6 +1,5 @@
 """任务日志模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Integer, Text, Index, JSON
-from datetime import datetime
+from sqlalchemy import Column, String, DateTime, BIGINT, Integer, Text, Index, JSON, func
 from ..db import Base
 
 
@@ -50,8 +49,8 @@ class TaskLog(Base):
     executed_at = Column(DateTime, comment='最后执行时间')
 
     # 时间戳
-    created_at = Column(DateTime, default=datetime.now, comment='创建时间')
-    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now, comment='更新时间')
+    created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now(), comment='更新时间')
 
     # 复合索引
     __table_args__ = (

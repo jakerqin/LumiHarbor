@@ -13,7 +13,8 @@ engine = create_engine(
     settings.DATABASE_URL,
     pool_pre_ping=True,  # 自动检测失效连接
     pool_recycle=3600,   # 每小时回收连接
-    echo=False           # 生产环境设为 False
+    echo=False,          # 生产环境设为 False
+    connect_args={"init_command": f"SET time_zone = '{settings.DB_TIMEZONE}'"}
 )
 
 # Session 工厂

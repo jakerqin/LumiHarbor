@@ -1,6 +1,5 @@
 """用户收藏模型"""
-from sqlalchemy import Column, BIGINT, DateTime, Boolean, Index, UniqueConstraint
-from datetime import datetime
+from sqlalchemy import Column, BIGINT, DateTime, Boolean, Index, UniqueConstraint, func
 from ..db import Base
 
 
@@ -45,12 +44,12 @@ class UserFavorite(Base):
     favorited_at = Column(
         DateTime,
         nullable=False,
-        default=datetime.utcnow,
+        server_default=func.now(),
         comment='收藏时间（用于排序）'
     )
     created_at = Column(
         DateTime,
-        default=datetime.utcnow,
+        server_default=func.now(),
         comment='创建时间'
     )
     is_deleted = Column(

@@ -1,6 +1,5 @@
 """标签元数据定义模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Integer, Text, JSON
-from datetime import datetime
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Integer, Text, JSON, func
 from ..db import Base
 
 
@@ -56,11 +55,11 @@ class TagDefinition(Base):
     description = Column(Text, nullable=True, comment='标签描述')
 
     # 时间戳
-    created_at = Column(DateTime, default=datetime.utcnow, comment='创建时间')
+    created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=func.now(),
         comment='更新时间'
     )
     is_deleted = Column(Boolean, nullable=False, default=False, comment='是否删除')

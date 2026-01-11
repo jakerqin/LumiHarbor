@@ -3,6 +3,7 @@
 支持从图片文件中提取 EXIF 元数据和拍摄时间。
 """
 import exifread
+import re
 from datetime import datetime
 from typing import Dict, Tuple, Optional
 from .extractor import MetadataExtractor
@@ -82,10 +83,50 @@ class ImageMetadataExtractor(MetadataExtractor):
             if tag_name in tags:
                 try:
                     datetime_str = str(tags[tag_name])
-                    return datetime.strptime(datetime_str, '%Y:%m:%d %H:%M:%S')
-                except ValueError as e:
+                    parsed = self._parse_datetime_str(datetime_str)
+                    if parsed:
+                        return parsed
+                    logger.warning(f"无法解析时间标签 {tag_name}: {datetime_str}")
+                except Exception as e:
                     logger.warning(f"无法解析时间标签 {tag_name}: {datetime_str}, 错误: {e}")
                     continue
 
         logger.debug(f"未找到有效的拍摄时间标签")
         return None
+
+    @staticmethod
+    def _parse_datetime_str(raw: str) -> Optional[datetime]:
+        """兼容带中文 AM/PM 的 EXIF 时间格式"""
+        if not raw:
+            return None
+
+        original = raw.strip()
+        lower = original.lower()
+
+        is_pm = any(token in lower for token in ['下午', 'pm', 'p.m.'])
+        is_am = any(token in lower for token in ['上午', 'am', 'a.m.'])
+
+        # 移除 AM/PM 标记后再解析
+        tokens = ['上午', '下午', 'AM', 'PM', 'am', 'pm', 'A.M.', 'P.M.', 'a.m.', 'p.m.']
+        cleaned = original
+        for token in tokens:
+            cleaned = cleaned.replace(token, '')
+
+        # 仅保留数字、冒号和空格
+        cleaned = re.sub(r'[^\d: ]+', '', cleaned)
+        cleaned = ' '.join(cleaned.split())
+
+        # 如果没有空格且长度足够，尝试在时间部分前插入空格
+        if ' ' not in cleaned and len(cleaned) >= 15:
+            cleaned = f"{cleaned[:-8]} {cleaned[-8:]}"
+            cleaned = ' '.join(cleaned.split())
+
+        try:
+            dt = datetime.strptime(cleaned, '%Y:%m:%d %H:%M:%S')
+            if is_pm and dt.hour < 12:
+                dt = dt.replace(hour=dt.hour + 12)
+            elif is_am and dt.hour == 12:
+                dt = dt.replace(hour=0)
+            return dt
+        except ValueError:
+            return None

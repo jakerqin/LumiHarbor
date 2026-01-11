@@ -1,6 +1,5 @@
 """叙事笔记模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, JSON, Text
-from datetime import datetime
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, JSON, Text, func
 from ..db import Base
 
 
@@ -32,10 +31,10 @@ class Note(Base):
 
     # 时间戳
     shot_at = Column(DateTime, nullable=True, index=True, comment='叙事发生时间')
-    created_at = Column(DateTime, default=datetime.utcnow, comment='创建时间')
+    created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
     updated_at = Column(
         DateTime,
-        default=datetime.utcnow,
-        onupdate=datetime.utcnow,
+        server_default=func.now(),
+        onupdate=func.now(),
         comment='更新时间'
     )

@@ -212,14 +212,15 @@ INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, descript
 ('location_province', '省份', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属省份/州'),
 ('location_city', '城市', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属城市'),
 ('location_district', '区县', 1, JSON_OBJECT('placeholder', '如: 东城区'), '拍摄地点所属区县'),
-('location_poi', '兴趣点', 1, JSON_OBJECT('placeholder', '如: 故宫博物院'), '拍摄地点的地标或兴趣点'),
+('location_poi', '地标', 1, JSON_OBJECT('placeholder', '如: 故宫博物院'), '拍摄地点的地标'),
 ('location_formatted', '完整地址', 1, JSON_OBJECT('placeholder', '如: 北京市东城区故宫'), '格式化的完整地址');
 
--- 媒体属性类 (3个)
+-- 媒体属性类 (4个)
 INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 4000px'), '媒体宽度（像素）'),
-('height', '高度', 1, JSON_OBJECT('placeholder', '如: 3000px'), '媒体高度（像素）'),
-('duration', '时长', 1, JSON_OBJECT('placeholder', '如: 00:02:30'), '视频/音频时长');
+('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 1280'), '媒体宽度（像素）'),
+('height', '高度', 1, JSON_OBJECT('placeholder', '如: 720'), '媒体高度（像素）'),
+('duration', '时长', 1, JSON_OBJECT('placeholder', '如: 00:02:30'), '视频/音频时长'),
+('aspect_ratio', '宽高比', 1, JSON_OBJECT('placeholder', '如: 1.78'), '宽度/高度的比值');
 
 -- ==========================================
 -- Image 模板标签配置（12个）
@@ -251,7 +252,8 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('image', 'location_poi', 17, FALSE),
 ('image', 'location_formatted', 18, FALSE),
 ('image', 'width', 19, FALSE),
-('image', 'height', 20, FALSE);
+('image', 'height', 20, FALSE),
+('image', 'aspect_ratio', 21, FALSE);
 
 
 -- ==========================================
@@ -278,7 +280,8 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 -- 媒体属性
 ('video', 'width', 12, FALSE),
 ('video', 'height', 13, FALSE),
-('video', 'duration', 14, FALSE);
+('video', 'duration', 14, FALSE),
+('video', 'aspect_ratio', 15, FALSE);
 
 -- ==========================================
 -- 异步任务日志表（通用）

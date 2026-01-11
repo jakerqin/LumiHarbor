@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     """
     PROJECT_NAME: str = "拾光坞 (LumiHarbor)"
     DATABASE_URL: str = "mysql+pymysql://root:root@localhost:3306/lumiharbor?charset=utf8mb4"
+    DB_TIMEZONE: str = "+08:00"  # 数据库会话时区，默认东八区
     NAS_DATA_PATH: str = "YOUR_NAS_PATH"
     SECRET_KEY: str = "your-secret-key-change-me"
     ALGORITHM: str = "HS256"
@@ -40,7 +41,7 @@ class Settings(BaseSettings):
     # Taskiq Worker 配置
     AUTO_START_WORKER: bool = True
     WORKER_COUNT: int = 2
-    LOG_LEVEL: str = "info"
+    LOG_LEVEL: str = "INFO"
 
     # 地理编码服务配置
     AMAP_API_KEY: str = ""  # 高德地图 API Key（可选，不配置则使用 Nominatim）

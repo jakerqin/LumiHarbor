@@ -1,6 +1,5 @@
 """用户模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT
-from datetime import datetime
+from sqlalchemy import Column, String, DateTime, BIGINT, func
 from ..db import Base
 
 
@@ -22,4 +21,4 @@ class User(Base):
     password_hash = Column(String(255), nullable=False, comment='密码哈希')
     role = Column(String(50), default="member", comment='用户角色')
     avatar_url = Column(String(500), nullable=True, comment='头像URL')
-    created_at = Column(DateTime, default=datetime.utcnow, comment='创建时间')
+    created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
