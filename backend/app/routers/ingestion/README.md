@@ -94,13 +94,13 @@ curl -X POST "http://localhost:8000/ingestion/scan" \
 ## 导入流程
 
 ```
-1. 扫描文件系统
+1. 扫描文件系统（过滤支持格式）
    ↓
-2. 识别支持的格式
+2. 复制源文件到 NAS_DATA_PATH（入库）
    ↓
 3. 提取元数据 (EXIF)
    ↓
-4. 检查是否已存在（去重）
+4. 计算文件哈希 + 去重
    ↓
 5. 创建数据库记录
    ↓
@@ -120,7 +120,7 @@ curl -X POST "http://localhost:8000/ingestion/scan" \
 
 ### 去重策略
 
-基于 `original_path` 字段进行去重，排除已软删除的资源。
+基于 `file_hash` 字段进行去重，排除已软删除的资源。
 
 ### 错误处理
 

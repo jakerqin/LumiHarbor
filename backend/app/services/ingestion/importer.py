@@ -5,6 +5,7 @@
 from typing import List, Dict
 from sqlalchemy.orm import Session
 from ...model import Asset
+from ...config import settings
 from ...tools.utils import get_logger
 from ...services.album import AlbumService
 from ..scanning import FilesystemScanner
@@ -12,6 +13,7 @@ from .config import ImportConfig
 from .statistics import ImportStatistics
 from .validator import AssetValidator
 from .processor import AssetProcessor
+from .storage import IngestionStorageFactory, AssetStorageBackend, StagedAssetFile
 import os
 
 logger = get_logger(__name__)
@@ -34,7 +36,12 @@ class AssetImportService:
         """
         self.config = config
         self.validator = AssetValidator(config.db)
-        self.processor = AssetProcessor(config.db, config.scan_path, config.default_gps)
+        self.storage: AssetStorageBackend = IngestionStorageFactory.create(
+            settings.ASSET_STORAGE_PROVIDER,
+            settings.NAS_DATA_PATH
+        )
+        self.storage.ensure_ready()
+        self.processor = AssetProcessor(config.db, str(self.storage.processing_root), config.default_gps)
         self.statistics = ImportStatistics()
         self.imported_asset_ids = []  # 记录成功导入的素材ID列表
 
@@ -87,9 +94,11 @@ class AssetImportService:
             index: 序号（用于日志）
             data: 素材数据字典
         """
+        source_rel_path = data.get('original_path', 'unknown')
+
         try:
-            # 1. 计算文件哈希 + 去重检查
-            is_valid, file_hash, reason = self._validate_asset(index, data)
+            # 1. 计算文件哈希 + 去重检查 + 入库复制（如需要）
+            is_valid, file_hash, staged, reason = self._validate_and_stage_asset(index, data)
             if not is_valid:
                 logger.debug(
                     f"[{index}/{self.statistics.total}] "
@@ -98,18 +107,19 @@ class AssetImportService:
                 self.statistics.record_skip()
                 return
 
-            # 2. 提取元数据 + 创建数据库记录
-            asset = self._create_asset_record(data, file_hash)
+            # 2. 提取元数据 + 创建数据库记录（original_path 必须是相对 NAS 根目录）
+            data['original_path'] = staged.stored_path
+            asset = self._create_asset_record(data, file_hash, staged.local_path)
 
             # 3. 处理素材（标签、缩略图、异步任务）
-            self.processor.process_asset(asset, data['original_path'])
+            self.processor.process_asset(asset, asset.original_path)
 
             # 4. 记录成功导入的素材ID
             self.imported_asset_ids.append(asset.id)
 
             logger.info(
                 f"[{index}/{self.statistics.total}] "
-                f"已导入素材 ID={asset.id}: {data['original_path']}"
+                f"已导入素材 ID={asset.id}: {source_rel_path} -> {asset.original_path}"
             )
 
             self.statistics.record_success()
@@ -120,31 +130,43 @@ class AssetImportService:
                 f"[{index}/{self.statistics.total}] "
                 f"导入失败: {data.get('original_path', 'unknown')} - {error_msg}"
             )
-            self.statistics.record_failure(data.get('original_path', 'unknown'), error_msg)
+            self.statistics.record_failure(source_rel_path, error_msg)
             self.config.db.rollback()
 
-    def _validate_asset(self, index: int, data: Dict) -> tuple[bool, str, str]:
-        """验证素材
+    def _validate_and_stage_asset(self, index: int, data: Dict) -> tuple[bool, str, StagedAssetFile, str]:
+        """验证素材并确保文件已入库（复制到 NAS_DATA_PATH）
 
         Args:
             index: 序号
             data: 素材数据
 
         Returns:
-            (是否通过, 文件哈希, 拒绝原因)
+            (是否通过, 文件哈希, 入库信息, 拒绝原因)
         """
-        original_full_path = os.path.join(self.config.scan_path, data['original_path'])
+        source_rel_path = data['original_path']
+        source_full_path = os.path.join(self.config.scan_path, source_rel_path)
 
-        logger.debug(f"[{index}/{self.statistics.total}] 计算文件哈希: {data['original_path']}")
+        logger.debug(f"[{index}/{self.statistics.total}] 计算文件哈希: {source_rel_path}")
+        file_hash = self.validator.calculate_hash(source_full_path)
+        staged = self.storage.plan_stage(source_full_path, file_hash, source_rel_path)
 
-        return self.validator.validate_asset(original_full_path, data['original_path'])
+        is_duplicate, dup_type = self.validator.check_duplicate(file_hash, staged.stored_path)
+        if is_duplicate:
+            if dup_type == 'same':
+                return False, file_hash, staged, "已存在相同文件"
+            return False, file_hash, staged, "发现重复备份"
 
-    def _create_asset_record(self, data: Dict, file_hash: str) -> Asset:
+        self.storage.ensure_staged(staged, source_full_path)
+
+        return True, file_hash, staged, ""
+
+    def _create_asset_record(self, data: Dict, file_hash: str, file_full_path: str) -> Asset:
         """创建素材数据库记录
 
         Args:
             data: 素材数据
             file_hash: 文件哈希
+            file_full_path: 文件完整路径（用于元数据提取）
 
         Returns:
             创建的素材对象
@@ -154,9 +176,7 @@ class AssetImportService:
 
         # 提取元数据获取拍摄时间
         asset_type = data['asset_type']
-        original_full_path = os.path.join(self.config.scan_path, data['original_path'])
-
-        metadata, shot_at = self.processor.extract_metadata(asset_type, original_full_path)
+        metadata, shot_at = self.processor.extract_metadata(asset_type, file_full_path)
 
         # 使用元数据中的拍摄时间，如果没有则使用文件创建时间
         if shot_at:

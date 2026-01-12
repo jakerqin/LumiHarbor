@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from ...db import get_db
 from ... import schema
+from ...config import settings
 from ...schema.ingestion import ScanRequest, ScanResponseData
 from ...services.ingestion import AssetImportService, ImportConfig
 from ...services.album import AlbumService
@@ -42,12 +43,19 @@ def scan_and_import(
     返回:
         任务状态信息
     """
-    scan_path = request.source_path
+    scan_path = request.source_path or settings.NAS_DATA_PATH
+
+    # 验证 NAS_DATA_PATH（入库目标目录）
+    if not settings.NAS_DATA_PATH or not os.path.isdir(settings.NAS_DATA_PATH):
+        raise HTTPException(
+            status_code=500,
+            detail=f"NAS_DATA_PATH 未配置或目录不存在: {settings.NAS_DATA_PATH}"
+        )
 
     # 验证路径存在性
-    if not os.path.exists(scan_path):
-        logger.error(f"扫描路径不存在: {scan_path}")
-        raise HTTPException(status_code=404, detail=f"扫描路径不存在: {scan_path}")
+    if not scan_path or not os.path.isdir(scan_path):
+        logger.error(f"扫描路径不存在或不是目录: {scan_path}")
+        raise HTTPException(status_code=404, detail=f"扫描路径不存在或不是目录: {scan_path}")
 
     # 验证相册参数
     if request.import_to_album:
@@ -71,15 +79,6 @@ def scan_and_import(
             default_gps = (float(lng_str), float(lat_str))
         except ValueError:
             raise HTTPException(status_code=400, detail="经纬度格式错误")
-
-    logger.info(
-        f"触发素材扫描任务 - "
-        f"路径: {scan_path}, "
-        f"用户: {request.created_by}, "
-        f"可见性: {request.visibility}, "
-        f"导入到相册: {request.import_to_album}, "
-        f"默认GPS: {default_gps}"
-    )
 
     # 添加后台任务
     background_tasks.add_task(_run_import_task, scan_path, request, db, default_gps)
