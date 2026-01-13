@@ -9,8 +9,10 @@ export function Providers({ children }: { children: ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000,
+            // 默认不缓存“新鲜期”：返回页面时优先拉取最新数据
+            staleTime: 0,
             gcTime: 10 * 60 * 1000,
+            refetchOnMount: true,
             refetchOnWindowFocus: false,
           },
         },

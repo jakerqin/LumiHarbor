@@ -22,6 +22,8 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
     queryFn: () => assetsApi.getAssets(page, pageSize, filter),
   });
 
+  const displayAssets = allAssets.length > 0 ? allAssets : data?.assets ?? [];
+
   // 当数据更新时，更新 allAssets
   useEffect(() => {
     if (data) {
@@ -53,7 +55,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
     500
   );
 
-  if (isLoading && page === 1) {
+  if ((isLoading || isFetching) && page === 1 && displayAssets.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -65,7 +67,6 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   }
 
   if (error) {
-    console.log(">>>>>>, ", error)
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -76,7 +77,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
     );
   }
 
-  if (allAssets.length === 0 && !isLoading) {
+  if (displayAssets.length === 0 && !isLoading && !isFetching) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -89,7 +90,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   return (
     <div>
       {/* 瀑布流网格 */}
-      <AssetMasonry assets={allAssets} onAssetClick={(id) => onAssetClick?.(id)} />
+      <AssetMasonry assets={displayAssets} onAssetClick={(id) => onAssetClick?.(id)} />
 
       {/* 加载更多提示 */}
       {isFetching && page > 1 && (
@@ -102,7 +103,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
       )}
 
       {/* 已加载全部提示 */}
-      {!data?.has_more && allAssets.length > 0 && (
+      {!data?.has_more && displayAssets.length > 0 && (
         <div className="flex items-center justify-center py-8">
           <p className="text-sm text-foreground-secondary">
             已加载全部 {data?.total} 个素材
