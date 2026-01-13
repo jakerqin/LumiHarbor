@@ -68,8 +68,6 @@ export default function AlbumDetailPage() {
     );
   }
 
-  const firstLocation = album.assets.find((a) => a.location)?.location;
-
   return (
     <div className="min-h-screen">
       {/* 封面区域 */}
@@ -114,13 +112,6 @@ export default function AlbumDetailPage() {
                 </div>
               )}
 
-              {/* 地点 */}
-              {firstLocation && (
-                <div className="flex items-center gap-2">
-                  <MapPin size={20} />
-                  <span>{firstLocation.name}</span>
-                </div>
-              )}
 
               {/* 数量 */}
               <div className="flex items-center gap-2">
@@ -147,7 +138,7 @@ export default function AlbumDetailPage() {
                 >
                   <AssetCard
                     asset={asset}
-                    onClick={() => console.log('Open asset:', asset.id)}
+                    onClick={() => router.push(`/assets/${asset.id}`)}
                   />
                 </div>
               ))}

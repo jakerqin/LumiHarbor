@@ -209,7 +209,9 @@ def find_similar_assets(
     db,
     phash: str,
     threshold: int = 10,
-    limit: int = 10
+    limit: int = 10,
+    exclude_asset_id: Optional[int] = None,
+    asset_type: Optional[str] = None,
 ):
     """在数据库中查找相似素材
 
@@ -230,15 +232,22 @@ def find_similar_assets(
     calculator = PerceptualHashCalculator()
 
     # 查询所有有 phash 的素材（需要优化）
-    assets = db.query(Asset).filter(
+    filters = [
         Asset.phash.isnot(None),
-        Asset.is_deleted == False
-    ).limit(1000).all()  # 限制查询数量
+        Asset.is_deleted == False,
+    ]
+    if asset_type:
+        filters.append(Asset.asset_type == asset_type)
+
+    assets = db.query(Asset).filter(*filters).limit(1000).all()  # 限制查询数量
 
     # 计算距离并过滤
     similar_assets = []
     for asset in assets:
-        if asset.phash == phash:
+        if exclude_asset_id is not None and asset.id == exclude_asset_id:
+            continue  # 跳过自身
+
+        if exclude_asset_id is None and asset.phash == phash:
             continue  # 跳过完全相同的
 
         distance = calculator.calculate_distance(phash, asset.phash)

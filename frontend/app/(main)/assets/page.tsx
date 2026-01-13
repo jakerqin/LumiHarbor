@@ -2,11 +2,13 @@
 
 import { AssetGrid } from '@/components/assets/AssetGrid';
 import { Image } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 export default function AssetsPage() {
+  const router = useRouter();
+
   const handleAssetClick = (id: number) => {
-    // TODO: 打开素材详情模态框
-    console.log('Open asset:', id);
+    router.push(`/assets/${id}`);
   };
 
   return (

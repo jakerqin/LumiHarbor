@@ -2,11 +2,12 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
-from typing import List, Optional
+from typing import Optional
 from datetime import datetime
 from ..db import get_db
 from .. import model, schema
 from ..services.asset_url import AssetUrlProviderFactory
+from ..tools.perceptual_hash import find_similar_assets
 
 router = APIRouter(
     prefix="/assets",
@@ -140,6 +141,169 @@ def list_assets(
         page_size=page_size,
         has_more=has_more
     ))
+
+
+@router.get("/{asset_id}", response_model=schema.ApiResponse[schema.AssetOut])
+def get_asset(
+    asset_id: int,
+    user_id: int = Query(1, description="当前用户ID"),
+    db: Session = Depends(get_db)
+):
+    """获取单个素材详情（包含收藏状态与常用标签）"""
+    row = db.query(
+        model.Asset,
+        func.count(model.UserFavorite.id).label('is_favorited')
+    ).outerjoin(
+        model.UserFavorite,
+        and_(
+            model.UserFavorite.asset_id == model.Asset.id,
+            model.UserFavorite.user_id == user_id,
+            model.UserFavorite.is_deleted == False
+        )
+    ).filter(
+        model.Asset.id == asset_id,
+        model.Asset.is_deleted == False
+    ).group_by(model.Asset.id).first()
+
+    if not row:
+        raise HTTPException(status_code=404, detail="素材不存在")
+
+    asset, is_favorited_count = row
+
+    tags_query = db.query(model.AssetTag).filter(
+        and_(
+            model.AssetTag.asset_id == asset_id,
+            model.AssetTag.tag_key.in_(['aspect_ratio', 'location_city', 'location_poi']),
+            model.AssetTag.is_deleted == False
+        )
+    ).all()
+
+    tags_map = {tag.tag_key: tag.tag_value for tag in tags_query}
+
+    url_provider = AssetUrlProviderFactory.create()
+    asset_dict = {
+        'id': asset.id,
+        'created_by': asset.created_by,
+        'original_path': asset.original_path,
+        'original_url': url_provider.maybe_to_public_url(asset.original_path),
+        'thumbnail_path': asset.thumbnail_path,
+        'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
+        'asset_type': asset.asset_type,
+        'mime_type': asset.mime_type,
+        'file_size': asset.file_size,
+        'shot_at': asset.shot_at,
+        'created_at': asset.created_at,
+        'updated_at': asset.updated_at,
+        'is_deleted': asset.is_deleted,
+        'visibility': asset.visibility,
+        'is_favorited': is_favorited_count > 0,
+        'aspect_ratio': float(tags_map.get('aspect_ratio')) if tags_map.get('aspect_ratio') else None,
+        'location_city': tags_map.get('location_city'),
+        'location_poi': tags_map.get('location_poi'),
+    }
+
+    return schema.ApiResponse.success(data=schema.AssetOut(**asset_dict))
+
+
+@router.get("/{asset_id}/tags", response_model=schema.ApiResponse[dict])
+def get_asset_tags(
+    asset_id: int,
+    db: Session = Depends(get_db)
+):
+    """获取素材的全部标签（key/value）"""
+    asset = db.query(model.Asset).filter(
+        and_(
+            model.Asset.id == asset_id,
+            model.Asset.is_deleted == False
+        )
+    ).first()
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="素材不存在")
+
+    tags = db.query(model.AssetTag).filter(
+        and_(
+            model.AssetTag.asset_id == asset_id,
+            model.AssetTag.is_deleted == False
+        )
+    ).all()
+
+    tags_map = {tag.tag_key: tag.tag_value for tag in tags}
+    return schema.ApiResponse.success(data=tags_map)
+
+
+@router.get("/{asset_id}/similar", response_model=schema.ApiResponse[dict])
+def get_similar_assets(
+    asset_id: int,
+    user_id: int = Query(1, description="当前用户ID"),
+    threshold: int = Query(10, ge=0, le=64, description="相似度阈值（汉明距离，越小越相似）"),
+    limit: int = Query(12, ge=1, le=50, description="返回数量限制"),
+    db: Session = Depends(get_db)
+):
+    """基于 phash 查找相似素材（用于相似推荐）"""
+    asset = db.query(model.Asset).filter(
+        and_(
+            model.Asset.id == asset_id,
+            model.Asset.is_deleted == False
+        )
+    ).first()
+
+    if not asset:
+        raise HTTPException(status_code=404, detail="素材不存在")
+
+    if not asset.phash:
+        return schema.ApiResponse.success(data={
+            "assets": [],
+            "total": 0,
+            "threshold": threshold,
+            "has_phash": False
+        })
+
+    similar_entries = find_similar_assets(
+        db=db,
+        phash=asset.phash,
+        threshold=threshold,
+        limit=limit,
+        exclude_asset_id=asset_id,
+        asset_type=asset.asset_type,
+    )
+
+    similar_assets = [entry['asset'] for entry in similar_entries]
+    similar_asset_ids = [a.id for a in similar_assets]
+
+    favorited_ids = set()
+    if similar_asset_ids:
+        favorited_rows = db.query(model.UserFavorite.asset_id).filter(
+            and_(
+                model.UserFavorite.user_id == user_id,
+                model.UserFavorite.asset_id.in_(similar_asset_ids),
+                model.UserFavorite.is_deleted == False
+            )
+        ).all()
+        favorited_ids = {row[0] for row in favorited_rows}
+
+    url_provider = AssetUrlProviderFactory.create()
+    assets_out = []
+    for entry in similar_entries:
+        similar_asset = entry['asset']
+        assets_out.append({
+            "id": similar_asset.id,
+            "asset_type": similar_asset.asset_type,
+            "thumbnail_path": similar_asset.thumbnail_path,
+            "thumbnail_url": url_provider.maybe_to_public_url(similar_asset.thumbnail_path),
+            "original_url": url_provider.maybe_to_public_url(similar_asset.original_path),
+            "shot_at": similar_asset.shot_at,
+            "is_favorited": similar_asset.id in favorited_ids,
+            "distance": entry['distance'],
+            "similarity": round(entry['similarity'], 1),
+        })
+
+    return schema.ApiResponse.success(data={
+        "assets": assets_out,
+        "total": len(assets_out),
+        "threshold": threshold,
+        "has_phash": True
+    })
 
 
 @router.post("/{asset_id}/favorite", response_model=schema.ApiResponse[dict])

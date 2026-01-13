@@ -1,7 +1,7 @@
 'use client';
 
-import { useRef } from 'react';
-import { Video, MapPin, Calendar, Heart } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Video, Image as ImageIcon, Music, MapPin, Calendar, Heart } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
@@ -17,68 +17,82 @@ interface AssetCardProps {
 export function AssetCard({ asset, onClick }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
+  const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
 
   const hoverHandlers = createHoverLiftHandlers(cardRef.current);
 
+  useEffect(() => {
+    setIsFavorited(asset.is_favorited);
+  }, [asset.id, asset.is_favorited]);
+
   // 收藏/取消收藏 mutation
   const favoriteMutation = useMutation({
-    mutationFn: async () => {
-      if (asset.is_favorited) {
-        await assetsApi.unfavorite(asset.id);
-      } else {
+    mutationFn: async (nextFavorited: boolean) => {
+      if (nextFavorited) {
         await assetsApi.favorite(asset.id);
+        return;
       }
+      await assetsApi.unfavorite(asset.id);
     },
-    onMutate: async () => {
+    onMutate: async (nextFavorited: boolean) => {
+      const previousFavorited = isFavorited;
+
       // 乐观更新：立即更新 UI
+      setIsFavorited(nextFavorited);
       await queryClient.cancelQueries({ queryKey: ['assets'] });
 
-      const previousData = queryClient.getQueryData(['assets']);
+      const previousQueriesData = queryClient.getQueriesData({ queryKey: ['assets'] });
 
       queryClient.setQueriesData(
         { queryKey: ['assets'] },
         (old: any) => {
-          if (!old) return old;
+          if (!old || !Array.isArray(old.assets)) return old;
           return {
             ...old,
             assets: old.assets.map((a: Asset) =>
-              a.id === asset.id ? { ...a, is_favorited: !a.is_favorited } : a
+              a.id === asset.id ? { ...a, is_favorited: nextFavorited } : a
             ),
           };
         }
       );
 
-      return { previousData };
+      return { previousFavorited, previousQueriesData };
     },
     onError: (_err, _variables, context) => {
       // 失败回滚
-      if (context?.previousData) {
-        queryClient.setQueryData(['assets'], context.previousData);
+      if (context?.previousQueriesData) {
+        context.previousQueriesData.forEach(([queryKey, queryData]) => {
+          queryClient.setQueryData(queryKey, queryData);
+        });
+      }
+      if (context?.previousFavorited !== undefined) {
+        setIsFavorited(context.previousFavorited);
       }
     },
     onSettled: () => {
       // 刷新数据
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['featured-assets'] });
     },
   });
 
   // 处理收藏点击（阻止冒泡）
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
-    favoriteMutation.mutate();
+    favoriteMutation.mutate(!isFavorited);
   };
 
-  // 获取文件格式标签
-  const getFormatLabel = () => {
-    if (!asset.mime_type) return null;
-    const mimeType = asset.mime_type.toLowerCase();
-    if (mimeType.includes('jpeg') || mimeType.includes('jpg')) return 'JPEG';
-    if (mimeType.includes('png')) return 'PNG';
-    if (mimeType.includes('heic')) return 'HEIC';
-    if (mimeType.includes('mp4')) return 'MP4';
-    if (mimeType.includes('mov')) return 'MOV';
-    return asset.mime_type.split('/')[1]?.toUpperCase();
-  };
+  const assetTypeMeta = (() => {
+    switch (asset.asset_type) {
+      case 'video':
+        return { Icon: Video, label: '视频', className: 'text-accent-purple' };
+      case 'audio':
+        return { Icon: Music, label: '音频', className: 'text-accent-green' };
+      case 'image':
+      default:
+        return { Icon: ImageIcon, label: '图片', className: 'text-accent-blue' };
+    }
+  })();
 
   // 获取缩略图 URL
   const getThumbnailUrl = () => {
@@ -104,7 +118,6 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
     return asset.location_city || asset.location_poi || null;
   };
 
-  const formatLabel = getFormatLabel();
   const locationText = getLocationText();
 
   return (
@@ -112,7 +125,7 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
       ref={cardRef}
       onClick={onClick}
       {...hoverHandlers}
-      className="group cursor-pointer"
+      className="group"
     >
       <div className="relative rounded-xl overflow-hidden bg-background-secondary">
         {/* 图片：自适应高度 */}
@@ -122,45 +135,39 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
           className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-110"
         />
 
-        {/* 右上角：文件格式标签 + 收藏按钮 */}
-        <div className="absolute top-3 right-3 flex items-center gap-2">
-          {/* 文件格式标签 */}
-          {formatLabel && (
-            <div className="px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg">
-              <span className="text-xs text-white font-medium">{formatLabel}</span>
-            </div>
-          )}
+        {/* 右上角：类型图标 + 收藏按钮（独立半透明） */}
+        <div className="absolute top-3 right-3 flex items-center gap-2 cursor-default">
+          <div
+            className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
+            aria-hidden="true"
+          >
+            <assetTypeMeta.Icon size={14} className={assetTypeMeta.className} />
+          </div>
 
-          {/* 收藏按钮 */}
           <button
+            type="button"
             onClick={handleFavoriteClick}
-            className={`p-2 rounded-lg backdrop-blur-sm transition-all ${
-              asset.is_favorited
-                ? 'bg-red-500/90 hover:bg-red-600/90'
-                : 'bg-black/40 hover:bg-black/60'
+            disabled={favoriteMutation.isPending}
+            className={`group/fav w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+              isFavorited
+                ? 'bg-red-500/10 hover:bg-red-500/20'
+                : 'bg-black/20 hover:bg-black/35'
             }`}
+            aria-label={isFavorited ? '取消收藏' : '收藏'}
           >
             <Heart
-              size={16}
-              className={`transition-all ${
-                asset.is_favorited
-                  ? 'fill-white text-white'
-                  : 'text-white'
-              }`}
+              size={14}
+              className={`transition-all duration-200 ${
+                isFavorited
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-white group-hover/fav:scale-110'
+              } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
             />
           </button>
         </div>
 
-        {/* 视频标识 */}
-        {asset.asset_type === 'video' && (
-          <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-sm rounded-lg flex items-center gap-1">
-            <Video size={16} className="text-accent-purple" />
-            <span className="text-xs text-white">视频</span>
-          </div>
-        )}
-
         {/* Hover 信息覆盖层 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
             {/* 地点 */}
             {locationText && (

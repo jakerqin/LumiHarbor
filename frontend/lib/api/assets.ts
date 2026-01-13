@@ -19,6 +19,25 @@ export interface AssetsResponse {
   has_more: boolean;
 }
 
+export interface SimilarAsset {
+  id: number;
+  asset_type: 'image' | 'video' | 'audio';
+  thumbnail_path: string | null;
+  thumbnail_url: string | null;
+  original_url: string | null;
+  shot_at: string | null;
+  is_favorited: boolean;
+  distance: number;
+  similarity: number;
+}
+
+export interface SimilarAssetsResponse {
+  assets: SimilarAsset[];
+  total: number;
+  threshold: number;
+  has_phash: boolean;
+}
+
 export const assetsApi = {
   // 获取素材列表
   getAssets: async (
@@ -41,6 +60,27 @@ export const assetsApi = {
   getAsset: async (id: number): Promise<Asset> => {
     const response = await apiClient.get<Asset>(`/assets/${id}`, {
       params: { user_id: CURRENT_USER_ID }
+    });
+    return response.data;
+  },
+
+  // 获取素材标签（key/value）
+  getAssetTags: async (id: number): Promise<Record<string, string | null>> => {
+    const response = await apiClient.get<Record<string, string | null>>(`/assets/${id}/tags`);
+    return response.data;
+  },
+
+  // 获取相似素材推荐（基于 phash）
+  getSimilarAssets: async (
+    id: number,
+    options?: { threshold?: number; limit?: number }
+  ): Promise<SimilarAssetsResponse> => {
+    const response = await apiClient.get<SimilarAssetsResponse>(`/assets/${id}/similar`, {
+      params: {
+        user_id: CURRENT_USER_ID,
+        threshold: options?.threshold,
+        limit: options?.limit,
+      },
     });
     return response.data;
   },
