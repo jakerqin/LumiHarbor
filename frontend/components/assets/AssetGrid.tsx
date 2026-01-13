@@ -2,27 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import Masonry from 'react-masonry-css';
-import { AssetCard } from './AssetCard';
+import { AssetMasonry } from './AssetMasonry';
 import { assetsApi, type AssetsFilter, type AssetsResponse } from '@/lib/api/assets';
 import { useInfiniteScroll } from '@/lib/hooks/useInfiniteScroll';
 import type { Asset } from '@/lib/api/types';
-import './masonry.css';
 
 interface AssetGridProps {
   filter?: AssetsFilter;
   onAssetClick?: (id: number) => void;
 }
-
-// 瀑布流断点配置
-const breakpointColumns = {
-  default: 5,  // 默认 5 列
-  1536: 4,     // 2xl 屏幕 4 列
-  1280: 3,     // xl 屏幕 3 列
-  1024: 3,     // lg 屏幕 3 列
-  768: 2,      // md 屏幕 2 列
-  640: 1,      // sm 屏幕 1 列
-};
 
 export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   const [page, setPage] = useState(1);
@@ -101,15 +89,7 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   return (
     <div>
       {/* 瀑布流网格 */}
-      <Masonry
-        breakpointCols={breakpointColumns}
-        className="masonry-grid"
-        columnClassName="masonry-grid-column"
-      >
-        {allAssets.map((asset) => (
-          <AssetCard key={asset.id} asset={asset} onClick={() => onAssetClick?.(asset.id)} />
-        ))}
-      </Masonry>
+      <AssetMasonry assets={allAssets} onAssetClick={(id) => onAssetClick?.(id)} />
 
       {/* 加载更多提示 */}
       {isFetching && page > 1 && (

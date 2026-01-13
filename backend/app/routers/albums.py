@@ -1,10 +1,12 @@
 """相册相关路由"""
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
+from sqlalchemy import and_, func
 from typing import List, Optional
 from ..db import get_db
 from .. import model, schema
 from ..services.album import AlbumService
+from ..services.asset_url import AssetUrlProviderFactory
 
 router = APIRouter(
     prefix="/albums",
@@ -32,7 +34,7 @@ def create_album(
     return schema.ApiResponse.success(data=album)
 
 
-@router.get("", response_model=schema.ApiResponse[List[schema.AlbumOut]])
+@router.get("", response_model=schema.ApiResponse[schema.AlbumsPageResponse])
 def list_albums(
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(100, ge=1, le=1000, description="返回的最大记录数"),
@@ -72,14 +74,60 @@ def list_albums(
         created_by=created_by
     )
 
-    # 为每个相册添加素材数量
-    albums_out = []
+    album_ids = [album.id for album in albums]
+
+    asset_count_map = {}
+    if album_ids:
+        counts = db.query(
+            model.AlbumAsset.album_id,
+            func.count(model.AlbumAsset.id).label("asset_count"),
+        ).filter(
+            and_(
+                model.AlbumAsset.album_id.in_(album_ids),
+                model.AlbumAsset.is_deleted == False,
+            )
+        ).group_by(model.AlbumAsset.album_id).all()
+        asset_count_map = {row.album_id: row.asset_count for row in counts}
+
+    cover_asset_ids = [
+        album.cover_asset_id for album in albums if album.cover_asset_id is not None
+    ]
+    cover_asset_map = {}
+    if cover_asset_ids:
+        cover_assets = db.query(model.Asset).filter(
+            and_(
+                model.Asset.id.in_(cover_asset_ids),
+                model.Asset.is_deleted == False,
+            )
+        ).all()
+        cover_asset_map = {asset.id: asset for asset in cover_assets}
+
+    url_provider = AssetUrlProviderFactory.create()
+    albums_out: List[schema.AlbumDetailOut] = []
     for album in albums:
         album_dict = schema.AlbumOut.model_validate(album).model_dump()
-        album_dict['asset_count'] = AlbumService.get_album_asset_count(db, album.id)
-        albums_out.append(schema.AlbumOut(**album_dict))
+        album_dict["asset_count"] = asset_count_map.get(album.id, 0)
 
-    return schema.ApiResponse.success(data=albums_out)
+        cover_thumbnail_path = None
+        cover_thumbnail_url = None
+        if album.cover_asset_id:
+            cover_asset = cover_asset_map.get(album.cover_asset_id)
+            if cover_asset:
+                cover_thumbnail_path = cover_asset.thumbnail_path
+                cover_thumbnail_url = url_provider.maybe_to_public_url(cover_asset.thumbnail_path)
+
+        album_dict["cover_thumbnail_path"] = cover_thumbnail_path
+        album_dict["cover_thumbnail_url"] = cover_thumbnail_url
+        albums_out.append(schema.AlbumDetailOut(**album_dict))
+
+    has_more = skip + limit < total
+    return schema.ApiResponse.success(data=schema.AlbumsPageResponse(
+        albums=albums_out,
+        total=total,
+        skip=skip,
+        limit=limit,
+        has_more=has_more,
+    ))
 
 
 @router.get("/{album_id}", response_model=schema.ApiResponse[schema.AlbumDetailOut])
@@ -104,16 +152,22 @@ def get_album(
     album_dict = schema.AlbumOut.model_validate(album).model_dump()
     album_dict['asset_count'] = AlbumService.get_album_asset_count(db, album.id)
 
-    # 获取封面缩略图路径
+    # 获取封面缩略图路径/URL
     cover_thumbnail_path = None
+    cover_thumbnail_url = None
     if album.cover_asset_id:
         cover_asset = db.query(model.Asset).filter(
-            model.Asset.id == album.cover_asset_id
+            model.Asset.id == album.cover_asset_id,
+            model.Asset.is_deleted == False
         ).first()
         if cover_asset:
             cover_thumbnail_path = cover_asset.thumbnail_path
+            cover_thumbnail_url = AssetUrlProviderFactory.create().maybe_to_public_url(
+                cover_asset.thumbnail_path
+            )
 
     album_dict['cover_thumbnail_path'] = cover_thumbnail_path
+    album_dict['cover_thumbnail_url'] = cover_thumbnail_url
 
     return schema.ApiResponse.success(data=schema.AlbumDetailOut(**album_dict))
 
@@ -165,6 +219,7 @@ def delete_album(
 @router.get("/{album_id}/assets", response_model=schema.ApiResponse[List[schema.AssetOut]])
 def get_album_assets(
     album_id: int,
+    user_id: int = Query(1, description="当前用户ID"),
     skip: int = Query(0, ge=0, description="跳过的记录数"),
     limit: int = Query(100, ge=1, le=1000, description="返回的最大记录数"),
     db: Session = Depends(get_db)
@@ -186,7 +241,64 @@ def get_album_assets(
         raise HTTPException(status_code=404, detail="相册不存在")
 
     assets = AlbumService.get_album_assets(db, album_id, skip, limit)
-    return schema.ApiResponse.success(data=assets)
+
+    asset_ids = [asset.id for asset in assets]
+
+    favorited_asset_ids = set()
+    if asset_ids:
+        favorites = db.query(model.UserFavorite.asset_id).filter(
+            and_(
+                model.UserFavorite.asset_id.in_(asset_ids),
+                model.UserFavorite.user_id == user_id,
+                model.UserFavorite.is_deleted == False,
+            )
+        ).all()
+        favorited_asset_ids = {row.asset_id for row in favorites}
+
+    tags_map = {}
+    if asset_ids:
+        tags_query = db.query(model.AssetTag).filter(
+            and_(
+                model.AssetTag.asset_id.in_(asset_ids),
+                model.AssetTag.tag_key.in_(['aspect_ratio', 'location_city', 'location_poi']),
+                model.AssetTag.is_deleted == False
+            )
+        ).all()
+
+        for tag in tags_query:
+            if tag.asset_id not in tags_map:
+                tags_map[tag.asset_id] = {}
+            tags_map[tag.asset_id][tag.tag_key] = tag.tag_value
+
+    url_provider = AssetUrlProviderFactory.create()
+    assets_out: List[schema.AssetOut] = []
+    for asset in assets:
+        asset_dict = {
+            'id': asset.id,
+            'created_by': asset.created_by,
+            'original_path': asset.original_path,
+            'original_url': url_provider.maybe_to_public_url(asset.original_path),
+            'thumbnail_path': asset.thumbnail_path,
+            'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
+            'asset_type': asset.asset_type,
+            'mime_type': asset.mime_type,
+            'file_size': asset.file_size,
+            'shot_at': asset.shot_at,
+            'created_at': asset.created_at,
+            'updated_at': asset.updated_at,
+            'is_deleted': asset.is_deleted,
+            'visibility': asset.visibility,
+            'is_favorited': asset.id in favorited_asset_ids,
+        }
+
+        asset_tags = tags_map.get(asset.id, {})
+        asset_dict['aspect_ratio'] = float(asset_tags.get('aspect_ratio')) if asset_tags.get('aspect_ratio') else None
+        asset_dict['location_city'] = asset_tags.get('location_city')
+        asset_dict['location_poi'] = asset_tags.get('location_poi')
+
+        assets_out.append(schema.AssetOut(**asset_dict))
+
+    return schema.ApiResponse.success(data=assets_out)
 
 
 @router.post("/{album_id}/assets", response_model=schema.ApiResponse[schema.AlbumAssetOut])

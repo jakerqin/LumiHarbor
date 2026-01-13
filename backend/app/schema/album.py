@@ -77,6 +77,24 @@ class AlbumDetailOut(AlbumOut):
     继承 AlbumOut 并添加封面缩略图路径
     """
     cover_thumbnail_path: Optional[str] = Field(None, description="封面素材的缩略图路径")
+    cover_thumbnail_url: Optional[str] = Field(None, description="封面素材的缩略图 URL")
+
+
+class AlbumsPageResponse(BaseModel):
+    """相册列表分页响应
+
+    Attributes:
+        albums: 相册列表（包含封面缩略图信息）
+        total: 总数量
+        skip: 跳过记录数（offset）
+        limit: 返回数量（limit）
+        has_more: 是否还有下一页
+    """
+    albums: List[AlbumDetailOut]
+    total: int
+    skip: int
+    limit: int
+    has_more: bool
 
 
 class AddAssetRequest(BaseModel):

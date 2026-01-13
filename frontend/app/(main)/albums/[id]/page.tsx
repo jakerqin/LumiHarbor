@@ -1,18 +1,15 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useParams } from 'next/navigation';
-import { gsap } from 'gsap';
 import {
   ArrowLeft,
   Calendar,
-  MapPin,
   Image as ImageIcon,
   MoreVertical,
 } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
-import { AssetCard } from '@/components/assets/AssetCard';
+import { AssetMasonry } from '@/components/assets/AssetMasonry';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -20,32 +17,11 @@ export default function AlbumDetailPage() {
   const router = useRouter();
   const params = useParams();
   const albumId = parseInt(params.id as string);
-  const assetRefs = useRef<(HTMLDivElement | null)[]>([]);
 
   const { data: album, isLoading } = useQuery({
     queryKey: ['album', albumId],
     queryFn: () => albumsApi.getAlbum(albumId),
   });
-
-  // 素材卡片淡入动画
-  useEffect(() => {
-    if (!album) return;
-
-    assetRefs.current.forEach((assetEl, index) => {
-      if (!assetEl) return;
-      gsap.fromTo(
-        assetEl,
-        { opacity: 0, y: 20 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.4,
-          delay: index * 0.05,
-          ease: 'power2.out',
-        }
-      );
-    });
-  }, [album]);
 
   if (isLoading) {
     return (
@@ -127,22 +103,10 @@ export default function AlbumDetailPage() {
       <div className="py-12 px-8 bg-background">
         <div className="max-w-[1920px] mx-auto">
           {album.assets.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
-              {album.assets.map((asset, index) => (
-                <div
-                  key={asset.id}
-                  ref={(el) => {
-                    assetRefs.current[index] = el;
-                  }}
-                  style={{ opacity: 0 }}
-                >
-                  <AssetCard
-                    asset={asset}
-                    onClick={() => router.push(`/assets/${asset.id}`)}
-                  />
-                </div>
-              ))}
-            </div>
+            <AssetMasonry
+              assets={album.assets}
+              onAssetClick={(id) => router.push(`/assets/${id}`)}
+            />
           ) : (
             <div className="flex items-center justify-center py-20">
               <div className="text-center">

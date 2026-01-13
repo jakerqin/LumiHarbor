@@ -6,6 +6,8 @@
 }
 
 .masonry-grid-column {
+  flex: 1;
+  min-width: 0;
   padding-left: 24px; /* gutter size */
   background-clip: padding-box;
 }
