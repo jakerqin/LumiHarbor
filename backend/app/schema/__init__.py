@@ -17,6 +17,7 @@ Schema 说明：
 """
 from .asset import AssetBase, AssetOut, AssetsPageResponse
 from .common import ApiResponse
+from .tag_definition import TagDefinitionOut
 from .album import (
     AlbumCreate,
     AlbumUpdate,
@@ -36,6 +37,7 @@ __all__ = [
     'AssetOut',
     'AssetsPageResponse',
     'ApiResponse',
+    'TagDefinitionOut',
     'AlbumCreate',
     'AlbumUpdate',
     'AlbumOut',

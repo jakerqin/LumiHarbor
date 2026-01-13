@@ -13,7 +13,8 @@ from .routers import (
     ingestion_router,
     management_router,
     home_router,
-    favorite_router
+    favorite_router,
+    tags_router
 )
 from . import schema
 
@@ -89,3 +90,4 @@ app.include_router(ingestion_router)
 app.include_router(management_router)
 app.include_router(home_router)
 app.include_router(favorite_router)
+app.include_router(tags_router)

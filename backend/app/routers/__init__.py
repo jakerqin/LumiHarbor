@@ -18,6 +18,7 @@ from .ingestion.scan import router as ingestion_router
 from .management import router as management_router
 from .home import router as home_router
 from .favorite import router as favorite_router
+from .tags import router as tags_router
 
 __all__ = [
     'assets_router',
@@ -26,4 +27,5 @@ __all__ = [
     'management_router',
     'home_router',
     'favorite_router',
+    'tags_router',
 ]
