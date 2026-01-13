@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Video, Image as ImageIcon, Music, MapPin, Calendar, Heart } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { createHoverLiftHandlers } from '@/lib/utils/gsap';
+import { gsap } from 'gsap';
+import { fadeIn, fadeOut } from '@/lib/utils/gsap';
 import { assetsApi } from '@/lib/api/assets';
 
 interface AssetCardProps {
@@ -19,11 +20,26 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
   const queryClient = useQueryClient();
   const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
 
-  const hoverHandlers = createHoverLiftHandlers(cardRef.current);
+  const isAnimatingOutRef = useRef(false);
 
   useEffect(() => {
     setIsFavorited(asset.is_favorited);
   }, [asset.id, asset.is_favorited]);
+
+  useLayoutEffect(() => {
+    const element = cardRef.current;
+    if (!element) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        element,
+        { ...fadeIn.from },
+        { ...fadeIn.to, overwrite: 'auto' }
+      );
+    }, element);
+
+    return () => ctx.revert();
+  }, []);
 
   // 收藏/取消收藏 mutation
   const favoriteMutation = useMutation({
@@ -82,6 +98,38 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
     favoriteMutation.mutate(!isFavorited);
   };
 
+  const handleCardClick = () => {
+    if (!onClick) return;
+    if (isAnimatingOutRef.current) return;
+
+    const element = cardRef.current;
+    if (!element) {
+      onClick();
+      return;
+    }
+
+    isAnimatingOutRef.current = true;
+    gsap.to(element, {
+      ...fadeOut,
+      overwrite: 'auto',
+      onComplete: onClick,
+    });
+  };
+
+  const handleMouseEnter = () => {
+    if (isAnimatingOutRef.current) return;
+    const element = cardRef.current;
+    if (!element) return;
+    gsap.to(element, { y: -4, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
+  };
+
+  const handleMouseLeave = () => {
+    if (isAnimatingOutRef.current) return;
+    const element = cardRef.current;
+    if (!element) return;
+    gsap.to(element, { y: 0, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
+  };
+
   const assetTypeMeta = (() => {
     switch (asset.asset_type) {
       case 'video':
@@ -123,8 +171,9 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
   return (
     <div
       ref={cardRef}
-      onClick={onClick}
-      {...hoverHandlers}
+      onClick={handleCardClick}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       className="group"
     >
       <div className="relative rounded-xl overflow-hidden bg-background-secondary">
