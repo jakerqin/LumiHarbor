@@ -2,14 +2,35 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
+from typing import Optional
 from ...db import get_db
 from ...model.asset import Asset
 from ...model.user_favorite import UserFavorite
 from ...model.asset_tag import AssetTag
 from ...model.asset_template_tag import AssetTemplateTag
+from ...services.asset_url import AssetUrlProviderFactory
 from ...schema.home.featured import FeaturedResponse, FeaturedAsset
 
 router = APIRouter(prefix="/home", tags=["home"])
+
+def _classify_aspect_ratio(value: Optional[str]) -> str:
+    if not value:
+        return 'square'
+
+    normalized = str(value).strip().lower()
+    if normalized in {'horizontal', 'vertical', 'square'}:
+        return normalized
+
+    try:
+        ratio = float(normalized)
+    except ValueError:
+        return 'square'
+
+    if ratio > 1.2:
+        return 'horizontal'
+    if ratio < 0.8:
+        return 'vertical'
+    return 'square'
 
 
 @router.get("/featured", response_model=FeaturedResponse)
@@ -87,18 +108,25 @@ def get_featured_assets(
         tags_by_asset[tag.asset_id][tag.tag_key] = tag.tag_value
 
     # 6. 构建响应
+    url_provider = AssetUrlProviderFactory.create()
     featured_assets = []
     for asset, favorited_at in rows:
         tags_dict = tags_by_asset.get(asset.id, {})
 
-        # 直接从 tags 中读取宽高比（已在导入时计算并保存）
-        aspect_ratio = tags_dict.get('aspect_ratio', 'square')
+        # 兼容 aspect_ratio 标签为数值或枚举值的情况
+        aspect_ratio = _classify_aspect_ratio(tags_dict.get('aspect_ratio'))
+
+        original_url = url_provider.to_public_url(asset.original_path)
+        thumbnail_url = (
+            url_provider.maybe_to_public_url(asset.thumbnail_path)
+            or original_url
+        )
 
         featured_assets.append(FeaturedAsset(
             id=asset.id,
             type=asset.asset_type,
-            thumbnail_url=f"/api/v1/assets/{asset.id}/thumbnail",
-            original_url=f"/api/v1/assets/{asset.id}/original",
+            thumbnail_url=thumbnail_url,
+            original_url=original_url,
             file_name=asset.original_path.split('/')[-1] if asset.original_path else '',
             file_size=asset.file_size or 0,
             aspect_ratio=aspect_ratio,

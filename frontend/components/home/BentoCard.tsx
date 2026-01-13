@@ -4,12 +4,12 @@ import { useState, useRef, useEffect } from 'react';
 import Image from 'next/image';
 import { gsap } from 'gsap';
 import { Play, MapPin, Calendar } from 'lucide-react';
-import { Asset } from '@/lib/api/types';
+import type { FeaturedAsset } from '@/lib/api/types';
 import { cn } from '@/lib/utils/cn';
 import { FavoriteButton } from '@/components/assets/FavoriteButton';
 
 interface BentoCardProps {
-  asset: Asset;
+  asset: FeaturedAsset;
   size: 'small' | 'medium' | 'large';
   index: number;
 }
@@ -20,11 +20,11 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
 
   // 从 tags 对象中提取地点信息
-  const locationName = asset.tags?.location_formatted || asset.tags?.location_city || asset.tags?.location_poi;
+  const locationName = asset.tags.location_formatted || asset.tags.location_city || asset.tags.location_poi;
 
   // 从 tags 对象中提取设备信息作为标签
   const displayTags = [
-    asset.tags?.device_model,
+    asset.tags.device_model,
   ].filter(Boolean) as string[];
 
   const sizeClasses = {
@@ -113,11 +113,13 @@ export function BentoCard({ asset, size, index }: BentoCardProps) {
             <div className="flex items-center gap-2 text-white/70">
               <Calendar size={16} />
               <span className="text-sm">
-                {new Date(asset.shotAt).toLocaleDateString('zh-CN', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric',
-                })}
+                {asset.shotAt
+                  ? new Date(asset.shotAt).toLocaleDateString('zh-CN', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                    })
+                  : '未知时间'}
               </span>
             </div>
 

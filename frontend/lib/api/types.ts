@@ -62,7 +62,22 @@ export interface ApiResponse<T> {
 }
 
 export interface FeaturedResponse {
-  assets: Asset[];
+  assets: FeaturedAsset[];
   total: number;
   userId: number;
+}
+
+export interface FeaturedAsset {
+  id: number;
+  type: 'image' | 'video' | 'audio';
+  thumbnailUrl: string;
+  originalUrl: string;
+  fileName: string;
+  fileSize: number;
+  aspectRatio: 'horizontal' | 'vertical' | 'square';
+  shotAt: string | null;
+  createdAt: string;
+  favoritedAt: string | null;
+  isFavorited: boolean;
+  tags: Record<string, string | null>;
 }
