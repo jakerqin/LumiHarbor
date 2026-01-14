@@ -7,6 +7,8 @@ export interface MarkdownRendererProps {
   className?: string;
   mode?: StreamdownProps['mode'];
   controls?: StreamdownProps['controls'];
+  components?: StreamdownProps['components'];
+  remarkPlugins?: StreamdownProps['remarkPlugins'];
 }
 
 export function MarkdownRenderer({
@@ -14,9 +16,18 @@ export function MarkdownRenderer({
   className,
   mode = 'static',
   controls = false,
+  components,
+  remarkPlugins,
 }: MarkdownRendererProps) {
   return (
-    <Streamdown mode={mode} controls={controls} className={className} cdnUrl={null}>
+    <Streamdown
+      mode={mode}
+      controls={controls}
+      className={className}
+      cdnUrl={null}
+      components={components}
+      remarkPlugins={remarkPlugins}
+    >
       {markdown}
     </Streamdown>
   );

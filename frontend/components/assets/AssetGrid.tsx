@@ -10,9 +10,10 @@ import type { Asset } from '@/lib/api/types';
 interface AssetGridProps {
   filter?: AssetsFilter;
   onAssetClick?: (id: number) => void;
+  onAssetSelect?: (asset: Asset) => void;
 }
 
-export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
+export function AssetGrid({ filter, onAssetClick, onAssetSelect }: AssetGridProps) {
   const [page, setPage] = useState(1);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const pageSize = 30;
@@ -90,7 +91,11 @@ export function AssetGrid({ filter, onAssetClick }: AssetGridProps) {
   return (
     <div>
       {/* 瀑布流网格 */}
-      <AssetMasonry assets={displayAssets} onAssetClick={(id) => onAssetClick?.(id)} />
+      <AssetMasonry
+        assets={displayAssets}
+        onAssetClick={(id) => onAssetClick?.(id)}
+        onAssetSelect={onAssetSelect}
+      />
 
       {/* 加载更多提示 */}
       {isFetching && page > 1 && (

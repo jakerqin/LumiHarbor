@@ -31,6 +31,14 @@ from .album import (
     SetCoverRequest,
     AlbumAssetOut,
 )
+from .note import (
+    NoteCreate,
+    NoteUpdate,
+    NoteSummaryOut,
+    NoteDetailOut,
+    NotesPageResponse,
+    NoteSortBy,
+)
 
 # 导出所有 Schema，方便其他模块导入
 __all__ = [
@@ -50,4 +58,10 @@ __all__ = [
     'UpdateAssetSortRequest',
     'SetCoverRequest',
     'AlbumAssetOut',
+    'NoteCreate',
+    'NoteUpdate',
+    'NoteSummaryOut',
+    'NoteDetailOut',
+    'NotesPageResponse',
+    'NoteSortBy',
 ]

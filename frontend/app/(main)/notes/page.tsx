@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   FileText,
   Plus,
@@ -15,17 +16,16 @@ type ViewMode = 'grid' | 'timeline';
 
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const router = useRouter();
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const createButtonHandlers = useGsapPressableScale(createButtonRef);
 
   const handleCreateNote = () => {
-    // TODO: 打开创建笔记对话框
-    console.log('Create note');
+    router.push('/notes/new');
   };
 
   const handleNoteClick = (id: number) => {
-    // TODO: 打开笔记详情模态框
-    console.log('Open note:', id);
+    router.push(`/notes/${id}`);
   };
 
   return (

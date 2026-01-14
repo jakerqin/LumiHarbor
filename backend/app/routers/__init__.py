@@ -19,6 +19,7 @@ from .management import router as management_router
 from .home import router as home_router
 from .favorite import router as favorite_router
 from .tags import router as tags_router
+from .notes import router as notes_router
 
 __all__ = [
     'assets_router',
@@ -28,4 +29,5 @@ __all__ = [
     'home_router',
     'favorite_router',
     'tags_router',
+    'notes_router',
 ]

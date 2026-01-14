@@ -14,7 +14,8 @@ from .routers import (
     management_router,
     home_router,
     favorite_router,
-    tags_router
+    tags_router,
+    notes_router,
 )
 from . import schema
 
@@ -91,3 +92,4 @@ app.include_router(management_router)
 app.include_router(home_router)
 app.include_router(favorite_router)
 app.include_router(tags_router)
+app.include_router(notes_router)

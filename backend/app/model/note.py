@@ -11,11 +11,13 @@ class Note(Base):
         created_by: 创建者用户ID
         title: 笔记标题
         content: 笔记内容
+        cover_asset_id: 封面素材ID（从素材库选择）
         is_encrypted: 是否加密
         related_assets: 关联的资源列表（JSON数组）
         shot_at: 叙事发生时间
         created_at: 创建时间
         updated_at: 更新时间
+        is_deleted: 是否删除（软删除标记）
     """
     __tablename__ = "notes"
 
@@ -24,8 +26,9 @@ class Note(Base):
     created_by = Column(BIGINT, nullable=False, index=True, comment='创建者用户ID')
 
     # 笔记内容
-    title = Column(String(500), nullable=True, comment='笔记标题')
+    title = Column(String(255), nullable=True, comment='笔记标题')
     content = Column(Text, nullable=False, comment='笔记内容')
+    cover_asset_id = Column(BIGINT, nullable=True, index=True, comment='封面素材ID')
     is_encrypted = Column(Boolean, default=False, comment='是否加密')
     related_assets = Column(JSON, nullable=True, comment='关联资源列表 (JSON 数组)')
 
@@ -38,3 +41,4 @@ class Note(Base):
         onupdate=func.now(),
         comment='更新时间'
     )
+    is_deleted = Column(Boolean, nullable=False, default=False, comment='是否删除（软删除标记）')

@@ -109,6 +109,7 @@ CREATE TABLE IF NOT EXISTS notes (
     created_by BIGINT NOT NULL COMMENT '创建者用户ID',
     title VARCHAR(255),
     content TEXT NOT NULL,
+    cover_asset_id BIGINT COMMENT '封面素材ID',
     is_encrypted BOOLEAN DEFAULT '0',
     related_assets JSON COMMENT '关联资源列表 (JSON 数组)',
     shot_at DATETIME COMMENT '叙事发生时间',
@@ -117,6 +118,7 @@ CREATE TABLE IF NOT EXISTS notes (
     is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     INDEX idx_created_by (created_by),
+    INDEX idx_cover_asset_id (cover_asset_id),
     INDEX idx_shot_at (shot_at)
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='叙事笔记表';

@@ -3,10 +3,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gsap } from 'gsap';
-import { Calendar, Tag } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 import { notesApi, type Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 
 interface NoteTimelineProps {
   onNoteClick?: (id: number) => void;
@@ -15,18 +16,29 @@ interface NoteTimelineProps {
 export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
-  const noteRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [allNotes, setAllNotes] = useState<Note[]>([]);
+  const noteRefs = useRef(new Map<number, HTMLDivElement>());
 
   const { data, isLoading } = useQuery({
     queryKey: ['notes-timeline', page, pageSize],
     queryFn: () => notesApi.getNotes(page, pageSize),
   });
 
+  // 累积分页数据（用于时间轴“加载更多”）
+  useEffect(() => {
+    if (!data) return;
+    if (page === 1) {
+      setAllNotes(data.notes);
+      return;
+    }
+    setAllNotes((prev) => [...prev, ...data.notes]);
+  }, [data, page]);
+
   // 笔记卡片淡入动画
   useEffect(() => {
     if (!data) return;
-
-    noteRefs.current.forEach((noteEl, index) => {
+    allNotes.forEach((note, index) => {
+      const noteEl = noteRefs.current.get(note.id);
       if (!noteEl) return;
       gsap.fromTo(
         noteEl,
@@ -40,7 +52,7 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
         }
       );
     });
-  }, [data]);
+  }, [allNotes, data]);
 
   if (isLoading) {
     return (
@@ -53,7 +65,7 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
     );
   }
 
-  if (!data || data.notes.length === 0) {
+  if (!data || allNotes.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -64,8 +76,8 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
   }
 
   // 按月份分组
-  const notesByMonth = data.notes.reduce((acc, note) => {
-    const month = format(new Date(note.createdAt), 'yyyy年MM月', { locale: zhCN });
+  const notesByMonth = allNotes.reduce((acc, note) => {
+    const month = format(new Date(note.created_at), 'yyyy年MM月', { locale: zhCN });
     if (!acc[month]) {
       acc[month] = [];
     }
@@ -92,70 +104,65 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
 
             {/* 笔记列表 */}
             <div className="space-y-6">
-              {notesByMonth[month].map((note, index) => (
-                <div
-                  key={note.id}
-                  ref={(el) => {
-                    noteRefs.current[index] = el;
-                  }}
-                  onClick={() => onNoteClick?.(note.id)}
-                  className="relative ml-20 group cursor-pointer"
-                  style={{ opacity: 0 }}
-                >
-                  {/* 连接线 */}
-                  <div className="absolute left-[-48px] top-6 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
+              {notesByMonth[month].map((note) => {
+                const coverUrl = resolveMediaUrl(note.cover_thumbnail_url, note.cover_thumbnail_path);
 
-                  {/* 笔记卡片 */}
-                  <div className="p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
-                    {/* 封面图（如果有） */}
-                    {note.coverUrl && (
-                      <div className="relative aspect-video rounded-lg overflow-hidden mb-4 bg-background-tertiary">
-                        <img
-                          src={note.coverUrl}
-                          alt={note.title}
-                          className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
-                        />
+                return (
+                  <div
+                    key={note.id}
+                    ref={(el) => {
+                      if (el) {
+                        noteRefs.current.set(note.id, el);
+                        return;
+                      }
+                      noteRefs.current.delete(note.id);
+                    }}
+                    onClick={() => onNoteClick?.(note.id)}
+                    className="relative ml-20 group cursor-pointer"
+                    style={{ opacity: 0 }}
+                  >
+                    {/* 连接线 */}
+                    <div className="absolute left-[-48px] top-6 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
+
+                    {/* 笔记卡片 */}
+                    <div className="p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
+                      {/* 封面图（如果有） */}
+                      {coverUrl && (
+                        <div className="relative aspect-video rounded-lg overflow-hidden mb-4 bg-background-tertiary">
+                          <img
+                            src={coverUrl}
+                            alt={note.title ?? ''}
+                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                          />
+                        </div>
+                      )}
+
+                      {/* 日期 */}
+                      <div className="flex items-center gap-2 text-xs text-foreground-tertiary mb-3">
+                        <Calendar size={14} />
+                        <span>{format(new Date(note.created_at), 'PPP', { locale: zhCN })}</span>
                       </div>
-                    )}
 
-                    {/* 日期 */}
-                    <div className="flex items-center gap-2 text-xs text-foreground-tertiary mb-3">
-                      <Calendar size={14} />
-                      <span>{format(new Date(note.createdAt), 'PPP', { locale: zhCN })}</span>
+                      {/* 标题 */}
+                      <h4 className="text-xl font-heading font-semibold mb-3 group-hover:text-primary transition-colors">
+                        {note.title || '无标题'}
+                      </h4>
+
+                      {/* 内容预览 */}
+                      <p className="text-foreground-secondary line-clamp-3 mb-4">
+                        {note.excerpt || ' '}
+                      </p>
                     </div>
-
-                    {/* 标题 */}
-                    <h4 className="text-xl font-heading font-semibold mb-3 group-hover:text-primary transition-colors">
-                      {note.title}
-                    </h4>
-
-                    {/* 内容预览 */}
-                    <p className="text-foreground-secondary line-clamp-3 mb-4">{note.content}</p>
-
-                    {/* 标签 */}
-                    {note.tags && note.tags.length > 0 && (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        {note.tags.map((tag) => (
-                          <span
-                            key={tag}
-                            className="px-3 py-1 bg-primary/10 text-primary text-sm rounded-lg flex items-center gap-1"
-                          >
-                            <Tag size={14} />
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ))}
       </div>
 
       {/* 加载更多 */}
-      {data.total > data.notes.length * page && (
+      {data.hasMore && (
         <div className="mt-12 flex justify-center">
           <button
             onClick={() => setPage((p) => p + 1)}

@@ -62,12 +62,14 @@ function distributeShortestColumnFirst(assets: Asset[], columnCount: number): As
 export interface AssetMasonryProps {
   assets: Asset[];
   onAssetClick?: (id: number) => void;
+  onAssetSelect?: (asset: Asset) => void;
   breakpointColumns?: BreakpointColumns;
 }
 
 export function AssetMasonry({
   assets,
   onAssetClick,
+  onAssetSelect,
   breakpointColumns = defaultBreakpointColumns,
 }: AssetMasonryProps) {
   const [columnCount, setColumnCount] = useState(breakpointColumns.default);
@@ -94,7 +96,13 @@ export function AssetMasonry({
             <AssetCard
               key={asset.id}
               asset={asset}
-              onClick={() => onAssetClick?.(asset.id)}
+              onClick={() => {
+                if (onAssetSelect) {
+                  onAssetSelect(asset);
+                  return;
+                }
+                onAssetClick?.(asset.id);
+              }}
             />
           ))}
         </div>

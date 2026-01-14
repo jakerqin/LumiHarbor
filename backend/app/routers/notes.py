@@ -1,0 +1,248 @@
+"""笔记相关路由"""
+
+from __future__ import annotations
+
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from sqlalchemy import and_
+from typing import List, Optional
+
+from ..db import get_db
+from .. import model, schema
+from ..services.note import NoteService
+from ..services.asset_url import AssetUrlProviderFactory
+
+
+router = APIRouter(
+    prefix="/notes",
+    tags=["Notes"],
+)
+
+
+def _cover_meta_for_notes(db: Session, notes: List[model.Note]) -> dict:
+    """批量获取封面素材缩略图路径/URL映射 {cover_asset_id: (path, url)}"""
+    cover_asset_ids = [n.cover_asset_id for n in notes if n.cover_asset_id is not None]
+    if not cover_asset_ids:
+        return {}
+
+    cover_assets = (
+        db.query(model.Asset)
+        .filter(
+            and_(
+                model.Asset.id.in_(cover_asset_ids),
+                model.Asset.is_deleted == False,
+            )
+        )
+        .all()
+    )
+
+    url_provider = AssetUrlProviderFactory.create()
+    mapping = {}
+    for asset in cover_assets:
+        mapping[asset.id] = (
+            asset.thumbnail_path,
+            url_provider.maybe_to_public_url(asset.thumbnail_path),
+        )
+    return mapping
+
+
+@router.post("", response_model=schema.ApiResponse[schema.NoteDetailOut])
+def create_note(
+    note_data: schema.NoteCreate,
+    db: Session = Depends(get_db),
+    current_user_id: int = 1,  # TODO: 从认证中间件获取
+):
+    """创建笔记"""
+    try:
+        note = NoteService.create_note(db, note_data, created_by=current_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    cover_meta = _cover_meta_for_notes(db, [note])
+    cover_thumbnail_path, cover_thumbnail_url = (None, None)
+    if note.cover_asset_id:
+        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+
+    related_assets = note.related_assets or []
+    excerpt = NoteService.build_excerpt(note.content)
+
+    return schema.ApiResponse.success(
+        data=schema.NoteDetailOut(
+            id=note.id,
+            created_by=note.created_by,
+            title=note.title,
+            excerpt=excerpt,
+            cover_asset_id=note.cover_asset_id,
+            cover_thumbnail_path=cover_thumbnail_path,
+            cover_thumbnail_url=cover_thumbnail_url,
+            shot_at=note.shot_at,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            content=note.content,
+            related_assets=related_assets,
+            assets=None,
+        )
+    )
+
+
+@router.get("", response_model=schema.ApiResponse[schema.NotesPageResponse])
+def list_notes(
+    skip: int = Query(0, ge=0, description="跳过的记录数"),
+    limit: int = Query(50, ge=1, le=200, description="返回的最大记录数"),
+    sort_by: schema.NoteSortBy = Query(schema.NoteSortBy.UPDATED_AT, description="排序字段"),
+    order: str = Query("desc", pattern="^(asc|desc)$", description="排序顺序"),
+    created_by: Optional[int] = Query(None, description="按创建者筛选"),
+    search: Optional[str] = Query(None, description="按标题模糊搜索"),
+    db: Session = Depends(get_db),
+):
+    """获取笔记列表（分页）"""
+    notes, total = NoteService.list_notes(
+        db,
+        skip=skip,
+        limit=limit,
+        sort_by=sort_by.value,
+        order=order,
+        created_by=created_by,
+        search=search,
+    )
+
+    cover_meta = _cover_meta_for_notes(db, notes)
+    notes_out: List[schema.NoteSummaryOut] = []
+    for note in notes:
+        cover_thumbnail_path, cover_thumbnail_url = (None, None)
+        if note.cover_asset_id:
+            cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+
+        notes_out.append(
+            schema.NoteSummaryOut(
+                id=note.id,
+                created_by=note.created_by,
+                title=note.title,
+                excerpt=NoteService.build_excerpt(note.content),
+                cover_asset_id=note.cover_asset_id,
+                cover_thumbnail_path=cover_thumbnail_path,
+                cover_thumbnail_url=cover_thumbnail_url,
+                shot_at=note.shot_at,
+                created_at=note.created_at,
+                updated_at=note.updated_at,
+            )
+        )
+
+    has_more = skip + limit < total
+    return schema.ApiResponse.success(
+        data=schema.NotesPageResponse(
+            notes=notes_out,
+            total=total,
+            skip=skip,
+            limit=limit,
+            has_more=has_more,
+        )
+    )
+
+
+@router.get("/{note_id}", response_model=schema.ApiResponse[schema.NoteDetailOut])
+def get_note(
+    note_id: int,
+    include_assets: bool = Query(False, description="是否返回引用素材的元数据"),
+    db: Session = Depends(get_db),
+):
+    """获取笔记详情"""
+    note = NoteService.get_note_by_id(db, note_id)
+    if not note:
+        raise HTTPException(status_code=404, detail="笔记不存在")
+
+    cover_meta = _cover_meta_for_notes(db, [note])
+    cover_thumbnail_path, cover_thumbnail_url = (None, None)
+    if note.cover_asset_id:
+        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+
+    related_assets: List[int] = list(note.related_assets or [])
+    assets_out: Optional[List[schema.AssetOut]] = None
+
+    if include_assets and related_assets:
+        url_provider = AssetUrlProviderFactory.create()
+        assets = (
+            db.query(model.Asset)
+            .filter(
+                and_(
+                    model.Asset.id.in_(related_assets),
+                    model.Asset.is_deleted == False,
+                )
+            )
+            .all()
+        )
+
+        assets_out = []
+        for asset in assets:
+            asset_dict = schema.AssetOut.model_validate(asset).model_dump()
+            asset_dict["original_url"] = url_provider.maybe_to_public_url(asset.original_path)
+            asset_dict["thumbnail_url"] = url_provider.maybe_to_public_url(asset.thumbnail_path)
+            assets_out.append(schema.AssetOut(**asset_dict))
+
+    return schema.ApiResponse.success(
+        data=schema.NoteDetailOut(
+            id=note.id,
+            created_by=note.created_by,
+            title=note.title,
+            excerpt=NoteService.build_excerpt(note.content),
+            cover_asset_id=note.cover_asset_id,
+            cover_thumbnail_path=cover_thumbnail_path,
+            cover_thumbnail_url=cover_thumbnail_url,
+            shot_at=note.shot_at,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            content=note.content,
+            related_assets=related_assets,
+            assets=assets_out,
+        )
+    )
+
+
+@router.patch("/{note_id}", response_model=schema.ApiResponse[schema.NoteDetailOut])
+def update_note(
+    note_id: int,
+    note_data: schema.NoteUpdate,
+    db: Session = Depends(get_db),
+):
+    """更新笔记"""
+    try:
+        note = NoteService.update_note(db, note_id, note_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    if not note:
+        raise HTTPException(status_code=404, detail="笔记不存在")
+
+    cover_meta = _cover_meta_for_notes(db, [note])
+    cover_thumbnail_path, cover_thumbnail_url = (None, None)
+    if note.cover_asset_id:
+        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+
+    related_assets = note.related_assets or []
+    return schema.ApiResponse.success(
+        data=schema.NoteDetailOut(
+            id=note.id,
+            created_by=note.created_by,
+            title=note.title,
+            excerpt=NoteService.build_excerpt(note.content),
+            cover_asset_id=note.cover_asset_id,
+            cover_thumbnail_path=cover_thumbnail_path,
+            cover_thumbnail_url=cover_thumbnail_url,
+            shot_at=note.shot_at,
+            created_at=note.created_at,
+            updated_at=note.updated_at,
+            content=note.content,
+            related_assets=related_assets,
+            assets=None,
+        )
+    )
+
+
+@router.delete("/{note_id}", response_model=schema.ApiResponse[dict])
+def delete_note(note_id: int, db: Session = Depends(get_db)):
+    """删除笔记（软删除）"""
+    success = NoteService.delete_note(db, note_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="笔记不存在")
+    return schema.ApiResponse.success(data={"deleted": True})
+
