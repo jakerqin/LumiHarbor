@@ -22,6 +22,7 @@ import { assetsApi, type SimilarAsset } from '@/lib/api/assets';
 import type { Asset } from '@/lib/api/types';
 import { useTagDefinitions } from '@/lib/hooks/useTagDefinitions';
 import { cn } from '@/lib/utils/cn';
+import { ImageViewer } from '@/components/assets/ImageViewer';
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '-';
@@ -429,11 +430,9 @@ export default function AssetDetailPage() {
                   <audio key={originalUrl} src={originalUrl} controls className="w-full" />
                 </div>
               ) : (
-                <img
+                <ImageViewer
                   src={displayUrl}
                   alt={`素材 ${asset.id}`}
-                  className="w-full max-h-[72vh] object-contain bg-black"
-                  loading="lazy"
                 />
               )}
             </div>
