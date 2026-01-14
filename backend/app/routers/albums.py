@@ -108,16 +108,19 @@ def list_albums(
         album_dict = schema.AlbumOut.model_validate(album).model_dump()
         album_dict["asset_count"] = asset_count_map.get(album.id, 0)
 
-        cover_thumbnail_path = None
         cover_thumbnail_url = None
+        cover_preview_url = None
+        cover_original_url = None
         if album.cover_asset_id:
             cover_asset = cover_asset_map.get(album.cover_asset_id)
             if cover_asset:
-                cover_thumbnail_path = cover_asset.thumbnail_path
                 cover_thumbnail_url = url_provider.maybe_to_public_url(cover_asset.thumbnail_path)
+                cover_preview_url = url_provider.maybe_to_public_url(cover_asset.preview_path)
+                cover_original_url = url_provider.maybe_to_public_url(cover_asset.original_path)
 
-        album_dict["cover_thumbnail_path"] = cover_thumbnail_path
         album_dict["cover_thumbnail_url"] = cover_thumbnail_url
+        album_dict["cover_preview_url"] = cover_preview_url
+        album_dict["cover_original_url"] = cover_original_url
         albums_out.append(schema.AlbumDetailOut(**album_dict))
 
     has_more = skip + limit < total
@@ -152,22 +155,24 @@ def get_album(
     album_dict = schema.AlbumOut.model_validate(album).model_dump()
     album_dict['asset_count'] = AlbumService.get_album_asset_count(db, album.id)
 
-    # 获取封面缩略图路径/URL
-    cover_thumbnail_path = None
+    # 获取封面图片 URL（缩略图、预览图和原图）
     cover_thumbnail_url = None
+    cover_preview_url = None
+    cover_original_url = None
     if album.cover_asset_id:
         cover_asset = db.query(model.Asset).filter(
             model.Asset.id == album.cover_asset_id,
             model.Asset.is_deleted == False
         ).first()
         if cover_asset:
-            cover_thumbnail_path = cover_asset.thumbnail_path
-            cover_thumbnail_url = AssetUrlProviderFactory.create().maybe_to_public_url(
-                cover_asset.thumbnail_path
-            )
+            url_provider = AssetUrlProviderFactory.create()
+            cover_thumbnail_url = url_provider.maybe_to_public_url(cover_asset.thumbnail_path)
+            cover_preview_url = url_provider.maybe_to_public_url(cover_asset.preview_path)
+            cover_original_url = url_provider.maybe_to_public_url(cover_asset.original_path)
 
-    album_dict['cover_thumbnail_path'] = cover_thumbnail_path
     album_dict['cover_thumbnail_url'] = cover_thumbnail_url
+    album_dict['cover_preview_url'] = cover_preview_url
+    album_dict['cover_original_url'] = cover_original_url
 
     return schema.ApiResponse.success(data=schema.AlbumDetailOut(**album_dict))
 

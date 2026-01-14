@@ -16,13 +16,14 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- ==========================================
--- 核心资源表 (精简版)
+-- 核心资源表
 -- ==========================================
 CREATE TABLE IF NOT EXISTS assets (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源唯一ID',
     -- 核心物理属性（不可变）
     original_path VARCHAR(255) NOT NULL COMMENT 'NAS 物理相对路径',
     thumbnail_path VARCHAR(255) COMMENT '缩略图路径',
+    preview_path VARCHAR(255) COMMENT '预览图路径（用于浏览器不支持的格式如HEIC）',
     -- 文件基础信息
     asset_type VARCHAR(20) NOT NULL COMMENT '资源类型: image, video, audio',
     mime_type VARCHAR(100) COMMENT 'MIME类型: image/jpeg, video/mp4',

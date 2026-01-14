@@ -72,12 +72,13 @@ class AlbumOut(BaseModel):
 
 
 class AlbumDetailOut(AlbumOut):
-    """相册详情输出 Schema（包含封面缩略图路径）
+    """相册详情输出 Schema（包含封面图片 URL）
 
-    继承 AlbumOut 并添加封面缩略图路径
+    继承 AlbumOut 并添加封面图片 URL（缩略图、预览图和原图）
     """
-    cover_thumbnail_path: Optional[str] = Field(None, description="封面素材的缩略图路径")
     cover_thumbnail_url: Optional[str] = Field(None, description="封面素材的缩略图 URL")
+    cover_preview_url: Optional[str] = Field(None, description="封面素材的预览图 URL（用于 HEIC 等浏览器不支持的格式）")
+    cover_original_url: Optional[str] = Field(None, description="封面素材的原图 URL")
 
 
 class AlbumsPageResponse(BaseModel):

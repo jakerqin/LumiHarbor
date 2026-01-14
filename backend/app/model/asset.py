@@ -31,6 +31,7 @@ class Asset(Base):
     # 核心物理属性
     original_path = Column(String(255), nullable=False, index=True, comment='NAS 物理相对路径')
     thumbnail_path = Column(String(255), nullable=True, comment='缩略图路径')
+    preview_path = Column(String(255), nullable=True, comment='预览图路径（用于浏览器不支持的格式如HEIC）')
 
     # 文件基础信息
     asset_type = Column(String(20), nullable=False, comment='资源类型: image, video, audio')

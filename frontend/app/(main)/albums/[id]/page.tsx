@@ -49,7 +49,7 @@ export default function AlbumDetailPage() {
       {/* 封面区域 */}
       <div className="relative h-[50vh] overflow-hidden">
         <img
-          src={album.coverUrl}
+          src={album.coverPreviewUrl || album.coverOriginalUrl || album.coverUrl}
           alt={album.name}
           className="w-full h-full object-cover"
         />

@@ -1,11 +1,12 @@
 """素材处理器
 
-负责单个素材的元数据提取、标签保存、缩略图生成等处理逻辑。
+负责单个素材的元数据提取、标签保存、缩略图生成、预览图生成等处理逻辑。
 """
 from sqlalchemy.orm import Session
 from ...model import Asset, TaskLog
 from ...services.metadata import MetadataExtractorFactory
 from ...services.thumbnail import ThumbnailGeneratorFactory
+from ...services.preview import PreviewGeneratorFactory, needs_preview
 from ...services.tags import TagService, MetadataTagMapper
 from ...tasks.phash_tasks import calculate_phash_task
 from ...tasks.geocoding_tasks import calculate_location_task
@@ -24,6 +25,7 @@ class AssetProcessor:
     - 提取元数据
     - 保存标签（不含地理位置）
     - 生成缩略图
+    - 生成预览图（针对 HEIC 等浏览器不支持的格式）
     - 发送异步任务（phash、地理编码）
     """
 
@@ -210,6 +212,46 @@ class AssetProcessor:
             logger.warning(f"缩略图生成失败: {original_path}")
             return False
 
+    def generate_preview(self, asset: Asset, original_path: str) -> bool:
+        """生成预览图（针对 HEIC 等浏览器不支持的格式）
+
+        Args:
+            asset: 素材对象
+            original_path: 原始文件相对路径
+
+        Returns:
+            是否成功（如果不需要生成预览图也返回 True）
+        """
+        # 检查是否需要生成预览图
+        if not needs_preview(asset.mime_type):
+            logger.debug(f"跳过预览图生成（格式已支持）: {asset.mime_type}")
+            return True
+
+        # 提取原始文件名（不含扩展名）
+        original_filename = os.path.basename(original_path)
+        filename_without_ext = os.path.splitext(original_filename)[0]
+
+        # 生成预览图文件名
+        preview_filename = f"{filename_without_ext}_preview.webp"
+        preview_rel_path = f"processed/previews/{preview_filename}"
+
+        # 完整路径
+        file_full_path = os.path.join(self.scan_path, original_path)
+        preview_full_path = os.path.join(self.scan_path, preview_rel_path)
+
+        logger.debug(f"生成预览图 - 原始: {file_full_path}")
+        logger.debug(f"生成预览图 - 目标: {preview_full_path}")
+
+        # 生成预览图
+        if PreviewGeneratorFactory.generate(asset.asset_type, file_full_path, preview_full_path):
+            asset.preview_path = preview_rel_path
+            self.db.commit()
+            logger.info(f"预览图生成成功: {preview_rel_path}")
+            return True
+        else:
+            logger.warning(f"预览图生成失败: {original_path}")
+            return False
+
     def send_async_tasks(self, asset: Asset, file_path: str, tags: dict = None):
         """发送相关异步任务 (Phash, Geocoding)
 
@@ -302,7 +344,10 @@ class AssetProcessor:
         # 3. 生成缩略图
         self.generate_thumbnail(asset, original_path)
 
-        # 4. 发送异步任务
+        # 4. 生成预览图（针对 HEIC 等浏览器不支持的格式）
+        self.generate_preview(asset, original_path)
+
+        # 5. 发送异步任务
         self.send_async_tasks(asset, file_full_path, mapped_tags)
 
         return True

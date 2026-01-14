@@ -50,6 +50,7 @@ class AssetOut(AssetBase):
     # 对外可访问 URL（由后端根据存储策略生成）
     original_url: Optional[str] = None
     thumbnail_url: Optional[str] = None
+    preview_url: Optional[str] = None  # 预览图 URL（用于 HEIC 等浏览器不支持的格式）
 
     # 扩展字段
     is_favorited: bool = False

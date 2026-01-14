@@ -61,6 +61,23 @@ function resolveMediaUrl(url?: string | null, path?: string | null) {
   return `${baseUrl}${normalizedPath}`;
 }
 
+/**
+ * 获取用于显示的媒体 URL
+ * 优先使用预览图（用于 HEIC 等浏览器不支持的格式），否则使用原图
+ */
+function getDisplayUrl(asset: Asset): string {
+  // 优先使用预览图（如果存在，说明原图是 HEIC 等浏览器不支持的格式）
+  const previewUrl = resolveMediaUrl(asset.preview_url, null);
+  if (previewUrl) return previewUrl;
+
+  // 否则使用原图
+  const originalUrl = resolveMediaUrl(asset.original_url, asset.original_path);
+  if (originalUrl) return originalUrl;
+
+  // 最后回退到缩略图
+  return resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/placeholder-image.jpg';
+}
+
 function Pill({
   children,
   className,
@@ -280,6 +297,7 @@ export default function AssetDetailPage() {
   const shotAtDate = asset.shot_at ? new Date(asset.shot_at) : null;
   const shotAtText = shotAtDate ? format(shotAtDate, 'PPP p', { locale: zhCN }) : '-';
   const createdAtText = format(new Date(asset.created_at), 'PPP p', { locale: zhCN });
+  const displayUrl = getDisplayUrl(asset);
   const originalUrl =
     resolveMediaUrl(asset.original_url, asset.original_path) ||
     resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) ||
@@ -412,7 +430,7 @@ export default function AssetDetailPage() {
                 </div>
               ) : (
                 <img
-                  src={originalUrl}
+                  src={displayUrl}
                   alt={`素材 ${asset.id}`}
                   className="w-full max-h-[72vh] object-contain bg-black"
                   loading="lazy"

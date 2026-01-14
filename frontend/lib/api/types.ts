@@ -3,6 +3,7 @@ export interface Asset {
   asset_type: 'image' | 'video' | 'audio';
   thumbnail_path: string | null;
   thumbnail_url?: string | null;
+  preview_url?: string | null;  // 预览图 URL（用于 HEIC 等浏览器不支持的格式）
   original_path: string;
   original_url?: string | null;
   mime_type: string | null;

@@ -6,6 +6,8 @@ export interface Album {
   name: string;
   description: string;
   coverUrl: string;
+  coverPreviewUrl?: string;
+  coverOriginalUrl?: string;
   assetCount: number;
   createdAt: string;
   startTime?: string;
@@ -35,8 +37,9 @@ interface BackendAlbum {
   created_at: string;
   updated_at: string;
   asset_count: number | null;
-  cover_thumbnail_path?: string | null;
   cover_thumbnail_url?: string | null;
+  cover_preview_url?: string | null;
+  cover_original_url?: string | null;
 }
 
 interface BackendAlbumsPageResponse {
@@ -53,6 +56,8 @@ function toAlbum(dto: BackendAlbum): Album {
     name: dto.name,
     description: dto.description ?? '',
     coverUrl: dto.cover_thumbnail_url || '/icon.svg',
+    coverPreviewUrl: dto.cover_preview_url ?? undefined,
+    coverOriginalUrl: dto.cover_original_url ?? undefined,
     assetCount: dto.asset_count ?? 0,
     createdAt: dto.created_at,
     startTime: dto.start_time ?? undefined,
