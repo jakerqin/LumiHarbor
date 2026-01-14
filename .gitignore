@@ -162,6 +162,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# ESLint 报告
+.eslint-report.json
+
 # Next.js
 .next/
 out/

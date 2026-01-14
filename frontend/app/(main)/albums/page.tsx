@@ -3,18 +3,16 @@
 import { useRef } from 'react';
 import { AlbumGrid } from '@/components/albums/AlbumGrid';
 import { FolderOpen, Plus } from 'lucide-react';
-import { createHoverHandlers, createTapHandlers } from '@/lib/utils/gsap';
+import { useGsapPressableScale } from '@/lib/hooks/useGsapPressableScale';
 
 export default function AlbumsPage() {
   const createButtonRef = useRef<HTMLButtonElement>(null);
+  const createButtonHandlers = useGsapPressableScale(createButtonRef);
 
   const handleCreateAlbum = () => {
     // TODO: 打开创建相册对话框
     console.log('Create album');
   };
-
-  const hoverHandlers = createHoverHandlers(createButtonRef.current);
-  const tapHandlers = createTapHandlers(createButtonRef.current);
 
   return (
     <div className="min-h-screen py-12 px-8">
@@ -34,8 +32,7 @@ export default function AlbumsPage() {
             <button
               ref={createButtonRef}
               onClick={handleCreateAlbum}
-              {...hoverHandlers}
-              {...tapHandlers}
+              {...createButtonHandlers}
               className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
             >
               <Plus size={20} />

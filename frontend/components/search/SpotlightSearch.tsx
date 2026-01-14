@@ -226,7 +226,7 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                       <button
                         key={asset.id}
                         onClick={() => {
-                          router.push(`/assets?id=${asset.id}`);
+                          router.push(`/assets/${asset.id}`);
                           onClose();
                         }}
                         className={`w-full px-6 py-3 flex items-center gap-4 hover:bg-white/5 transition-colors ${
@@ -234,21 +234,26 @@ export function SpotlightSearch({ isOpen, onClose }: SpotlightSearchProps) {
                         }`}
                       >
                         <img
-                          src={asset.thumbnailUrl}
+                          src={
+                            asset.thumbnail_url ||
+                            asset.original_url ||
+                            asset.thumbnail_path ||
+                            asset.original_path
+                          }
                           alt=""
                           className="w-16 h-16 object-cover rounded-lg"
                         />
                         <div className="flex-1 text-left">
                           <div className="flex items-center gap-2 mb-1">
-                            {asset.type === 'video' && (
+                            {asset.asset_type === 'video' && (
                               <Video size={16} className="text-accent-purple" />
                             )}
                             <span className="text-foreground">
-                              {asset.location?.name || '未知位置'}
+                              {asset.location_poi || asset.location_city || '未知位置'}
                             </span>
                           </div>
                           <p className="text-sm text-foreground-secondary">
-                            {new Date(asset.shotAt).toLocaleDateString('zh-CN')}
+                            {new Date(asset.shot_at || asset.created_at).toLocaleDateString('zh-CN')}
                           </p>
                         </div>
                         <ArrowRight size={20} className="text-foreground-tertiary" />

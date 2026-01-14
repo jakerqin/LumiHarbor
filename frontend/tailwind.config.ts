@@ -1,4 +1,5 @@
 import type { Config } from 'tailwindcss';
+import tailwindcssAnimate from 'tailwindcss-animate';
 
 const config: Config = {
   darkMode: ['class'],
@@ -6,6 +7,7 @@ const config: Config = {
     './pages/**/*.{js,ts,jsx,tsx,mdx}',
     './components/**/*.{js,ts,jsx,tsx,mdx}',
     './app/**/*.{js,ts,jsx,tsx,mdx}',
+    './node_modules/streamdown/dist/**/*.{js,cjs,mjs}',
   ],
   theme: {
     extend: {
@@ -14,6 +16,7 @@ const config: Config = {
         heading: ['var(--font-space-grotesk)', 'sans-serif'],
       },
       colors: {
+        border: 'rgba(255, 255, 255, 0.12)',
         background: {
           DEFAULT: '#0a0a0a',
           secondary: '#1a1a1a',
@@ -23,6 +26,10 @@ const config: Config = {
           DEFAULT: '#ffffff',
           secondary: '#a0a0a0',
           tertiary: '#707070',
+        },
+        muted: {
+          DEFAULT: '#1a1a1a',
+          foreground: '#a0a0a0',
         },
         primary: {
           DEFAULT: '#3b82f6',
@@ -57,7 +64,7 @@ const config: Config = {
       },
     },
   },
-  plugins: [require('tailwindcss-animate')],
+  plugins: [tailwindcssAnimate],
 };
 
 export default config;

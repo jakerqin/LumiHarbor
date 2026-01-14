@@ -51,10 +51,11 @@ export const notesApi = {
       '今年的第一场雪来得特别早，整个城市都被白雪覆盖。推开窗户，看着纷纷扬扬的雪花，心情变得格外宁静。',
     ];
 
-    const mockNotes: Note[] = Array.from({ length: Math.min(pageSize, total) }, (_, i) => {
-      const index = (page - 1) * pageSize + i;
-      if (index >= total) return null;
+    const startIndex = (page - 1) * pageSize;
+    const count = Math.max(0, Math.min(pageSize, total - startIndex));
 
+    const mockNotes: Note[] = Array.from({ length: count }, (_, i) => {
+      const index = startIndex + i;
       return {
         id: index + 1,
         title: noteTitles[index % noteTitles.length] + (index > 9 ? ` ${Math.floor(index / 10)}` : ''),
@@ -64,7 +65,7 @@ export const notesApi = {
         tags: [['旅行', '家庭'], ['美食'], ['工作'], ['运动'], ['读书']][index % 5],
         coverUrl: index % 3 === 0 ? `https://picsum.photos/800/400?random=${index + 500}` : undefined,
       };
-    }).filter((n): n is Note => n !== null);
+    });
 
     return {
       notes: mockNotes,

@@ -41,17 +41,20 @@ export const searchApi = {
 
     const mockAssets: Asset[] = Array.from({ length: 3 }, (_, i) => ({
       id: i + 1,
-      type: i % 2 === 0 ? ('image' as const) : ('video' as const),
-      thumbnailUrl: `https://picsum.photos/400/300?random=${i + 100}`,
-      originalUrl: `https://picsum.photos/1920/1080?random=${i + 100}`,
-      shotAt: new Date(2024, 0, i + 1).toISOString(),
-      location: {
-        latitude: 31.2304 + i * 0.1,
-        longitude: 121.4737 + i * 0.1,
-        name: ['上海', '苏州', '杭州'][i],
-      },
-      tags: ['旅行', '风景'],
-      aiScore: 0.9 + i * 0.02,
+      asset_type: i % 2 === 0 ? 'image' : 'video',
+      thumbnail_path: null,
+      thumbnail_url: `https://picsum.photos/400/300?random=${i + 100}`,
+      original_path: `https://picsum.photos/1920/1080?random=${i + 100}`,
+      original_url: `https://picsum.photos/1920/1080?random=${i + 100}`,
+      mime_type: i % 2 === 0 ? 'image/jpeg' : 'video/mp4',
+      file_size: 2_345_678,
+      shot_at: new Date(2024, 0, i + 1).toISOString(),
+      created_at: new Date(2024, 0, i + 1).toISOString(),
+      updated_at: new Date(2024, 0, i + 2).toISOString(),
+      is_favorited: false,
+      aspect_ratio: 4 / 3,
+      location_city: ['上海', '苏州', '杭州'][i] ?? null,
+      location_poi: null,
     }));
 
     const mockAlbums: Album[] = Array.from({ length: 2 }, (_, i) => ({

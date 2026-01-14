@@ -8,7 +8,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { gsap } from 'gsap';
 import { fadeIn, fadeOut } from '@/lib/utils/gsap';
-import { assetsApi } from '@/lib/api/assets';
+import { assetsApi, type AssetsResponse } from '@/lib/api/assets';
 
 interface AssetCardProps {
   asset: Asset;
@@ -59,10 +59,10 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
 
       const previousQueriesData = queryClient.getQueriesData({ queryKey: ['assets'] });
 
-      queryClient.setQueriesData(
+      queryClient.setQueriesData<AssetsResponse>(
         { queryKey: ['assets'] },
-        (old: any) => {
-          if (!old || !Array.isArray(old.assets)) return old;
+        (old) => {
+          if (!old) return old;
           return {
             ...old,
             assets: old.assets.map((a: Asset) =>

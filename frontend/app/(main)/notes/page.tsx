@@ -9,13 +9,14 @@ import {
 } from 'lucide-react';
 import { NoteGrid } from '@/components/notes/NoteGrid';
 import { NoteTimeline } from '@/components/notes/NoteTimeline';
-import { createHoverHandlers, createTapHandlers } from '@/lib/utils/gsap';
+import { useGsapPressableScale } from '@/lib/hooks/useGsapPressableScale';
 
 type ViewMode = 'grid' | 'timeline';
 
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const createButtonRef = useRef<HTMLButtonElement>(null);
+  const createButtonHandlers = useGsapPressableScale(createButtonRef);
 
   const handleCreateNote = () => {
     // TODO: 打开创建笔记对话框
@@ -26,9 +27,6 @@ export default function NotesPage() {
     // TODO: 打开笔记详情模态框
     console.log('Open note:', id);
   };
-
-  const hoverHandlers = createHoverHandlers(createButtonRef.current);
-  const tapHandlers = createTapHandlers(createButtonRef.current);
 
   return (
     <div className="min-h-screen py-12 px-8">
@@ -75,8 +73,7 @@ export default function NotesPage() {
               <button
                 ref={createButtonRef}
                 onClick={handleCreateNote}
-                {...hoverHandlers}
-                {...tapHandlers}
+                {...createButtonHandlers}
                 className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
               >
                 <Plus size={20} />
