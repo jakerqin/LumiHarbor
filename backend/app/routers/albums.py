@@ -6,7 +6,7 @@ from typing import List, Optional
 from ..db import get_db
 from .. import model, schema
 from ..services.album import AlbumService
-from ..services.asset_url import AssetUrlProviderFactory
+from ..services.asset import AssetService
 
 router = APIRouter(
     prefix="/albums",
@@ -102,7 +102,7 @@ def list_albums(
         ).all()
         cover_asset_map = {asset.id: asset for asset in cover_assets}
 
-    url_provider = AssetUrlProviderFactory.create()
+    url_provider = AssetService.get_url_provider()
     albums_out: List[schema.AlbumDetailOut] = []
     for album in albums:
         album_dict = schema.AlbumOut.model_validate(album).model_dump()
@@ -165,7 +165,7 @@ def get_album(
             model.Asset.is_deleted == False
         ).first()
         if cover_asset:
-            url_provider = AssetUrlProviderFactory.create()
+            url_provider = AssetService.get_url_provider()
             cover_thumbnail_url = url_provider.maybe_to_public_url(cover_asset.thumbnail_path)
             cover_preview_url = url_provider.maybe_to_public_url(cover_asset.preview_path)
             cover_original_url = url_provider.maybe_to_public_url(cover_asset.original_path)
@@ -249,59 +249,21 @@ def get_album_assets(
 
     asset_ids = [asset.id for asset in assets]
 
-    favorited_asset_ids = set()
-    if asset_ids:
-        favorites = db.query(model.UserFavorite.asset_id).filter(
-            and_(
-                model.UserFavorite.asset_id.in_(asset_ids),
-                model.UserFavorite.user_id == user_id,
-                model.UserFavorite.is_deleted == False,
-            )
-        ).all()
-        favorited_asset_ids = {row.asset_id for row in favorites}
+    # 使用 AssetService 批量查询收藏状态和标签
+    favorited_asset_ids = AssetService.batch_query_favorited_ids(db, user_id, asset_ids)
+    tags_map = AssetService.batch_query_asset_tags(db, asset_ids)
 
-    tags_map = {}
-    if asset_ids:
-        tags_query = db.query(model.AssetTag).filter(
-            and_(
-                model.AssetTag.asset_id.in_(asset_ids),
-                model.AssetTag.tag_key.in_(['aspect_ratio', 'location_city', 'location_poi']),
-                model.AssetTag.is_deleted == False
-            )
-        ).all()
-
-        for tag in tags_query:
-            if tag.asset_id not in tags_map:
-                tags_map[tag.asset_id] = {}
-            tags_map[tag.asset_id][tag.tag_key] = tag.tag_value
-
-    url_provider = AssetUrlProviderFactory.create()
-    assets_out: List[schema.AssetOut] = []
-    for asset in assets:
-        asset_dict = {
-            'id': asset.id,
-            'created_by': asset.created_by,
-            'original_path': asset.original_path,
-            'original_url': url_provider.maybe_to_public_url(asset.original_path),
-            'thumbnail_path': asset.thumbnail_path,
-            'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
-            'asset_type': asset.asset_type,
-            'mime_type': asset.mime_type,
-            'file_size': asset.file_size,
-            'shot_at': asset.shot_at,
-            'created_at': asset.created_at,
-            'updated_at': asset.updated_at,
-            'is_deleted': asset.is_deleted,
-            'visibility': asset.visibility,
-            'is_favorited': asset.id in favorited_asset_ids,
-        }
-
-        asset_tags = tags_map.get(asset.id, {})
-        asset_dict['aspect_ratio'] = float(asset_tags.get('aspect_ratio')) if asset_tags.get('aspect_ratio') else None
-        asset_dict['location_city'] = asset_tags.get('location_city')
-        asset_dict['location_poi'] = asset_tags.get('location_poi')
-
-        assets_out.append(schema.AssetOut(**asset_dict))
+    # 构建响应数据
+    url_provider = AssetService.get_url_provider()
+    assets_out = [
+        schema.AssetOut(**AssetService.build_asset_dict(
+            asset,
+            url_provider,
+            is_favorited=asset.id in favorited_asset_ids,
+            tags_map=tags_map.get(asset.id, {})
+        ))
+        for asset in assets
+    ]
 
     return schema.ApiResponse.success(data=assets_out)
 

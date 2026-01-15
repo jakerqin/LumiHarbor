@@ -6,7 +6,7 @@ from typing import Optional
 from datetime import datetime
 from ..db import get_db
 from .. import model, schema
-from ..services.asset_url import AssetUrlProviderFactory
+from ..services.asset import AssetService
 from ..tools.perceptual_hash import find_similar_assets
 
 router = APIRouter(
@@ -84,53 +84,21 @@ def list_assets(
     offset = (page - 1) * page_size
     results = query.offset(offset).limit(page_size).all()
 
-    # 6. 提取 asset_ids 批量查询标签
+    # 6. 批量查询标签
     asset_ids = [asset.id for asset, _ in results]
-    tags_query = db.query(model.AssetTag).filter(
-        and_(
-            model.AssetTag.asset_id.in_(asset_ids),
-            model.AssetTag.tag_key.in_(['aspect_ratio', 'location_city', 'location_poi']),
-            model.AssetTag.is_deleted == False
-        )
-    ).all()
+    tags_map = AssetService.batch_query_asset_tags(db, asset_ids)
 
-    # 7. 组装标签映射 {asset_id: {tag_key: tag_value}}
-    tags_map = {}
-    for tag in tags_query:
-        if tag.asset_id not in tags_map:
-            tags_map[tag.asset_id] = {}
-        tags_map[tag.asset_id][tag.tag_key] = tag.tag_value
-
-    # 8. 构建响应数据
-    url_provider = AssetUrlProviderFactory.create()
-    assets_out = []
-    for asset, is_favorited_count in results:
-        asset_dict = {
-            'id': asset.id,
-            'created_by': asset.created_by,
-            'original_path': asset.original_path,
-            'original_url': url_provider.maybe_to_public_url(asset.original_path),
-            'thumbnail_path': asset.thumbnail_path,
-            'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
-            'preview_url': url_provider.maybe_to_public_url(asset.preview_path),
-            'asset_type': asset.asset_type,
-            'mime_type': asset.mime_type,
-            'file_size': asset.file_size,
-            'shot_at': asset.shot_at,
-            'created_at': asset.created_at,
-            'updated_at': asset.updated_at,
-            'is_deleted': asset.is_deleted,
-            'visibility': asset.visibility,
-            'is_favorited': is_favorited_count > 0,
-        }
-
-        # 添加标签信息
-        asset_tags = tags_map.get(asset.id, {})
-        asset_dict['aspect_ratio'] = float(asset_tags.get('aspect_ratio')) if asset_tags.get('aspect_ratio') else None
-        asset_dict['location_city'] = asset_tags.get('location_city')
-        asset_dict['location_poi'] = asset_tags.get('location_poi')
-
-        assets_out.append(schema.AssetOut(**asset_dict))
+    # 7. 构建响应数据
+    url_provider = AssetService.get_url_provider()
+    assets_out = [
+        schema.AssetOut(**AssetService.build_asset_dict(
+            asset,
+            url_provider,
+            is_favorited=is_favorited_count > 0,
+            tags_map=tags_map.get(asset.id, {})
+        ))
+        for asset, is_favorited_count in results
+    ]
 
     # 9. 判断是否还有下一页
     has_more = total > page * page_size
@@ -170,41 +138,15 @@ def get_asset(
         raise HTTPException(status_code=404, detail="素材不存在")
 
     asset, is_favorited_count = row
+    tags_map = AssetService.batch_query_asset_tags(db, [asset_id]).get(asset_id, {})
+    url_provider = AssetService.get_url_provider()
 
-    tags_query = db.query(model.AssetTag).filter(
-        and_(
-            model.AssetTag.asset_id == asset_id,
-            model.AssetTag.tag_key.in_(['aspect_ratio', 'location_city', 'location_poi']),
-            model.AssetTag.is_deleted == False
-        )
-    ).all()
-
-    tags_map = {tag.tag_key: tag.tag_value for tag in tags_query}
-
-    url_provider = AssetUrlProviderFactory.create()
-    asset_dict = {
-        'id': asset.id,
-        'created_by': asset.created_by,
-        'original_path': asset.original_path,
-        'original_url': url_provider.maybe_to_public_url(asset.original_path),
-        'thumbnail_path': asset.thumbnail_path,
-        'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
-        'preview_url': url_provider.maybe_to_public_url(asset.preview_path),
-        'asset_type': asset.asset_type,
-        'mime_type': asset.mime_type,
-        'file_size': asset.file_size,
-        'shot_at': asset.shot_at,
-        'created_at': asset.created_at,
-        'updated_at': asset.updated_at,
-        'is_deleted': asset.is_deleted,
-        'visibility': asset.visibility,
-        'is_favorited': is_favorited_count > 0,
-        'aspect_ratio': float(tags_map.get('aspect_ratio')) if tags_map.get('aspect_ratio') else None,
-        'location_city': tags_map.get('location_city'),
-        'location_poi': tags_map.get('location_poi'),
-    }
-
-    return schema.ApiResponse.success(data=schema.AssetOut(**asset_dict))
+    return schema.ApiResponse.success(data=schema.AssetOut(**AssetService.build_asset_dict(
+        asset,
+        url_provider,
+        is_favorited=is_favorited_count > 0,
+        tags_map=tags_map
+    )))
 
 
 @router.get("/{asset_id}/tags", response_model=schema.ApiResponse[dict])
@@ -273,18 +215,8 @@ def get_similar_assets(
     similar_assets = [entry['asset'] for entry in similar_entries]
     similar_asset_ids = [a.id for a in similar_assets]
 
-    favorited_ids = set()
-    if similar_asset_ids:
-        favorited_rows = db.query(model.UserFavorite.asset_id).filter(
-            and_(
-                model.UserFavorite.user_id == user_id,
-                model.UserFavorite.asset_id.in_(similar_asset_ids),
-                model.UserFavorite.is_deleted == False
-            )
-        ).all()
-        favorited_ids = {row[0] for row in favorited_rows}
-
-    url_provider = AssetUrlProviderFactory.create()
+    favorited_ids = AssetService.batch_query_favorited_ids(db, user_id, similar_asset_ids)
+    url_provider = AssetService.get_url_provider()
     assets_out = []
     for entry in similar_entries:
         similar_asset = entry['asset']

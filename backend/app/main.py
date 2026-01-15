@@ -13,7 +13,6 @@ from .routers import (
     ingestion_router,
     management_router,
     home_router,
-    favorite_router,
     tags_router,
     notes_router,
 )
@@ -36,10 +35,7 @@ app.add_middleware(
 )
 
 # 本地媒体文件静态挂载（不鉴权场景）
-media_base_path = settings.MEDIA_BASE_PATH or "/media"
-if not media_base_path.startswith("/"):
-    media_base_path = f"/{media_base_path}"
-media_base_path = media_base_path.rstrip("/") or "/media"
+media_base_path = f"/{(settings.MEDIA_BASE_PATH or 'media').strip('/')}"
 
 if os.path.isdir(settings.NAS_DATA_PATH):
     app.mount(
@@ -90,6 +86,5 @@ app.include_router(albums_router)
 app.include_router(ingestion_router)
 app.include_router(management_router)
 app.include_router(home_router)
-app.include_router(favorite_router)
 app.include_router(tags_router)
 app.include_router(notes_router)
