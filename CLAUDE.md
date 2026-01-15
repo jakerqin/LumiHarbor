@@ -16,16 +16,16 @@
 - **缩略图**: WebP 格式
 
 **前端：**
-- **框架**: Next.js 14 (App Router) + TypeScript
+- **框架**: Next.js 16.1.1 (App Router) + React 19.2.0 + TypeScript
 - **样式**: Tailwind CSS + 自定义深色主题
+- **Markdown**: streamdown (安全渲染 + 流式展示)
 - **图标**: lucide-react
 - **字体**: Space Grotesk (英文) + Noto Sans SC (中文)
 - **3D 渲染**: React Three Fiber + @react-three/drei
-- **动画**: Framer Motion
+- **动画**: GSAP + Motion（必要时配合 Tailwind 动画）
 - **状态管理**: TanStack Query (服务端) + Zustand (客户端)
 - **HTTP 客户端**: Axios
 
----
 
 ## 前端 API 响应约定（Axios 拦截器规则）
 
@@ -52,18 +52,18 @@
 - **组件**: [BentoGrid.tsx](frontend/components/home/BentoGrid.tsx)
 - **布局**: 3x3 不规则网格，卡片尺寸：小 (1x1)、中 (1x2)、大 (2x2)
 - **特性**: Hover 图片缩放 + 渐变遮罩显示元数据
-- **API**: `GET /api/home/featured?limit=9`
+- **API**: `GET /home/featured?limit=9`
 
 #### 1.2 3D 足迹地图
 - **组件**: [MapView3D.tsx](frontend/components/home/MapView3D.tsx) + [Globe3D.tsx](frontend/components/home/Globe3D.tsx)
 - **渲染**: React Three Fiber + 位置标记组件
 - **特性**: 自动旋转 + 用户交互控制 + 统计面板
-- **API**: `GET /api/home/locations`
+- **API**: TODO（当前前端为 Mock，后端接口待实现）
 
 #### 1.3 大事记时间轴
 - **组件**: [Timeline.tsx](frontend/components/home/Timeline.tsx) + [TimelineEvent.tsx](frontend/components/home/TimelineEvent.tsx)
 - **特性**: 按年份分组 + 垂直时间线 + 事件卡片 Hover 展开
-- **API**: `GET /api/home/timeline?limit=10`
+- **API**: TODO（当前前端为 Mock，后端接口待实现）
 
 ### 2. Spotlight 全局搜索
 
@@ -74,14 +74,14 @@
 - 全局搜索: 素材、相册、笔记三类内容
 - 键盘导航: 上下箭头选择，回车跳转
 - 模糊搜索: 300ms 防抖
-- API: `GET /api/search?q=keyword`
+- API: TODO（后端 /search 待实现，当前前端为 Mock）
 
 ### 3. 素材库 (Assets)
 
 **位置**: `frontend/app/(main)/assets/page.tsx`
 
 **功能特性**:
-- **网格展示**: 5 列响应式布局，每页 30 个素材
+- **瀑布流展示**: [AssetMasonry.tsx](frontend/components/assets/AssetMasonry.tsx) 最短列优先分配（断点 5→1）
 - **筛选器**: [AssetFilter.tsx](frontend/components/assets/AssetFilter.tsx)
   - 类型筛选: 图片/视频
   - 地点筛选: 8 个城市选项
@@ -90,12 +90,13 @@
 - **卡片组件**: [AssetCard.tsx](frontend/components/assets/AssetCard.tsx)
   - Hover 效果: 图片缩放 + 信息遮罩
   - 视频标识 + AI 精选标签
-- **分页**: 5 页按钮 + 上一页/下一页
+- **分页**: 无限滚动（每页 30）
 
 **API**:
-- `GET /api/assets?page=1&pageSize=30&type=image&location=上海`
-- `GET /api/assets/tags` - 获取所有标签
-- `GET /api/assets/locations` - 获取所有地点
+- `GET /assets?page=1&page_size=30&user_id=1&asset_type=image&location=上海`
+- `GET /assets/{id}?user_id=1`
+- `GET /assets/{id}/tags` - 获取素材标签（key/value）
+- `GET /tags/definitions?template_type=image` - 获取标签元数据（tag_name / input_type / extra_info）
 
 ### 4. 相册 (Albums)
 
@@ -108,29 +109,33 @@
 - **相册详情**: [albums/[id]/page.tsx](frontend/app/(main)/albums/[id]/page.tsx)
   - 全屏封面展示
   - 相册信息: 日期、地点、照片数量
-  - 素材网格: 5 列布局
+  - 素材网格: 瀑布流（与素材库一致）
 
 **API**:
-- `GET /api/albums?page=1&pageSize=20`
-- `GET /api/albums/:id`
-- `POST /api/albums` - 创建相册
+- `GET /albums?skip=0&limit=20`
+- `GET /albums/{id}`
+- `GET /albums/{id}/assets?user_id=1&skip=0&limit=1000`
+- `POST /albums` - 创建相册
 
 ### 5. 笔记 (Notes)
 
 **位置**: `frontend/app/(main)/notes/page.tsx`
 
 **功能特性**:
-- **双视图模式**:
-  - 网格视图: [NoteGrid.tsx](frontend/components/notes/NoteGrid.tsx) - 3 列网格
-  - 时间轴视图: [NoteTimeline.tsx](frontend/components/notes/NoteTimeline.tsx) - 按月份分组
-- **笔记卡片**: [NoteCard.tsx](frontend/components/notes/NoteCard.tsx)
-  - 支持封面图 + 标题 + 内容预览 + 多标签
-- **视图切换**: 一键切换网格/时间轴
+- **编辑体验**: Markdown 源码 + 实时预览（Streamdown）
+- **正文关联素材**: 在 Markdown 内使用 `![](asset://{id})` 引用素材，渲染为 `AssetEmbed`
+- **封面图**: 选择素材库素材作为 cover（`cover_asset_id`）
+- **列表形态**:
+  - 网格视图: [NoteGrid.tsx](frontend/components/notes/NoteGrid.tsx)
+  - 时间轴视图: [NoteTimeline.tsx](frontend/components/notes/NoteTimeline.tsx)
+- **备注**: tags 现阶段不做（笔记模块不包含标签筛选/编辑）
 
 **API**:
-- `GET /api/notes?page=1&pageSize=20`
-- `GET /api/notes/:id`
-- `POST /api/notes` - 创建笔记
+- `GET /notes?skip=0&limit=20`
+- `GET /notes/{id}?include_assets=true`
+- `POST /notes` - 创建笔记
+- `PATCH /notes/{id}` - 更新笔记
+- `DELETE /notes/{id}` - 删除（软删）
 
 ### 6. 布局与导航
 
@@ -874,9 +879,9 @@ else:
 - 可通过管理接口手动重试失败任务
 - 前端显示空地点信息 (不影响其他功能)
 
-### 6. 为何前端使用 Next.js 14 App Router?
+### 6. 为何前端使用 Next.js App Router（当前 Next.js 16）?
 
-**决策**: Next.js 14 + App Router + TypeScript
+**决策**: Next.js 16.1.1 + App Router + React 19.2.0 + TypeScript
 
 **理由**:
 - ✅ **服务端渲染**: 优化首屏加载和 SEO
@@ -887,13 +892,14 @@ else:
 
 **技术选择**:
 - **TanStack Query**: 服务端状态管理，自动缓存和重新验证
-- **Framer Motion**: 流畅动画，优于 CSS transitions
+- **GSAP + Motion**: 高控制力动效（页面/组件层复用 Hook，避免散落）
 - **Tailwind CSS**: 快速开发，减少 CSS 文件大小
 - **React Three Fiber**: 3D 渲染，WebGL 抽象层
+- **streamdown**: Markdown 安全渲染 + 流式展示（Notes 的实时预览）
 
-### 6. 为何前端当前使用 Mock 数据?
+### 7. 为何前端先 Mock 再逐步接入真实 API?
 
-**决策**: 所有 API 接口先使用 Mock 数据实现
+**决策**: 前期使用 Mock 并行开发，后续按模块逐步替换为真实后端 API
 
 **理由**:
 - ✅ **并行开发**: 前后端可以独立开发，不互相阻塞
@@ -902,9 +908,9 @@ else:
 - ✅ **接口设计**: 前端开发过程中可以反向设计 API 接口
 
 **后续计划**:
-- v0.3 版本将实现真实后端 API
-- 替换 Mock 数据，仅需修改 `lib/api/` 目录下的文件
-- 接口类型定义已完成，切换成本低
+- 已接入真实 API：素材库（assets）、相册（albums）、笔记（notes）、标签元数据（tags/definitions）
+- 仍为 Mock / 待实现：Spotlight 搜索、首页 locations/timeline 等
+- 继续遵循“先定义 schema/类型 → 再落地接口 → 最后替换前端 mock”的迭代节奏
 
 ---
 
@@ -912,9 +918,8 @@ else:
 
 **后端：**
 - **Taskiq 文档**: [app/tasks/README.md](backend/app/tasks/README.md)
-- **地理编码文档**: [app/tasks/GEOCODING_README.md](backend/app/tasks/GEOCODING_README.md)
-- **启动指南**: [STARTUP_GUIDE.md](backend/STARTUP_GUIDE.md)
-- **Redis 安装**: [REDIS_SETUP.md](backend/REDIS_SETUP.md)
+- **容器编排（MySQL/Redis/前后端）**: [docker-compose.yml](docker-compose.yml)
+- **启动入口**: [backend/run.py](backend/run.py) / [backend/app/main.py](backend/app/main.py)
 - **测试指南**: [tests/README.md](backend/tests/README.md)
 
 **前端：**
@@ -926,8 +931,19 @@ else:
 
 ---
 
-**最后更新**: 2026-01-08
-**版本**: v0.3.0
+**最后更新**: 2026-01-14
+**版本**: v0.4.0
+
+**v0.4.0 更新内容** (2026-01-14):
+- ✅ 前端升级：Next.js 16.1.1 + React 19.2.0
+- ✅ 引入 streamdown：Notes 支持 Markdown 源码 + 实时预览
+- ✅ Notes 后端 CRUD + `related_assets`（从 Markdown 提取 `asset://{id}`）+ `include_assets` 聚合返回
+- ✅ Notes 前端完整链路：列表/新建/详情/编辑 + 封面选择 + 正文内素材嵌入
+- ✅ 修复 Streamdown 自定义协议图片被拦截：渲染期重写 `asset://{id}` → `/__asset__/{id}`，并兼容两种解析
+- ✅ 相册与素材库接入真实 API：相册列表/详情/素材列表不再使用 Mock
+- ✅ 瀑布流统一实现：最短列优先分配（素材库/相册详情复用）
+- ✅ GSAP 工具与 Hook：卡片淡入/淡出、交互缩放（可复用）
+- ✅ TanStack Query 全局默认 `staleTime=0`（标签元数据单独长缓存）
 
 **v0.3.0 更新内容** (2026-01-08):
 - ✅ 新增异步地理编码功能（将 GPS 坐标转换为地理位置）
