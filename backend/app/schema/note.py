@@ -58,6 +58,11 @@ class NoteDetailOut(NoteSummaryOut):
     content: str = Field(..., description="笔记内容（Markdown）")
     related_assets: List[int] = Field(default_factory=list, description="正文引用的素材ID列表")
     assets: Optional[List[AssetOut]] = Field(None, description="引用素材的最小元数据（可选）")
+    # 详情页专用：高清封面（原图或预览图）
+    cover_original_path: Optional[str] = Field(None, description="封面素材原图路径")
+    cover_original_url: Optional[str] = Field(None, description="封面素材原图 URL")
+    cover_preview_path: Optional[str] = Field(None, description="封面素材预览图路径（用于 HEIC 等格式）")
+    cover_preview_url: Optional[str] = Field(None, description="封面素材预览图 URL（用于 HEIC 等格式）")
 
 
 class NotesPageResponse(BaseModel):

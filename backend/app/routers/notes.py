@@ -46,6 +46,61 @@ def _cover_meta_for_notes(db: Session, notes: List[model.Note]) -> dict:
     return mapping
 
 
+def _cover_detail_meta_for_note(db: Session, cover_asset_id: int) -> dict:
+    """获取封面素材的详细信息（用于详情页，包含原图和预览图）
+    
+    Returns:
+        {
+            'thumbnail_path': str | None,
+            'thumbnail_url': str | None,
+            'original_path': str | None,
+            'original_url': str | None,
+            'preview_path': str | None,
+            'preview_url': str | None,
+        }
+    """
+    if not cover_asset_id:
+        return {
+            'thumbnail_path': None,
+            'thumbnail_url': None,
+            'original_path': None,
+            'original_url': None,
+            'preview_path': None,
+            'preview_url': None,
+        }
+
+    asset = (
+        db.query(model.Asset)
+        .filter(
+            and_(
+                model.Asset.id == cover_asset_id,
+                model.Asset.is_deleted == False,
+            )
+        )
+        .first()
+    )
+
+    if not asset:
+        return {
+            'thumbnail_path': None,
+            'thumbnail_url': None,
+            'original_path': None,
+            'original_url': None,
+            'preview_path': None,
+            'preview_url': None,
+        }
+
+    url_provider = AssetUrlProviderFactory.create()
+    return {
+        'thumbnail_path': asset.thumbnail_path,
+        'thumbnail_url': url_provider.maybe_to_public_url(asset.thumbnail_path),
+        'original_path': asset.original_path,
+        'original_url': url_provider.maybe_to_public_url(asset.original_path),
+        'preview_path': asset.preview_path,
+        'preview_url': url_provider.maybe_to_public_url(asset.preview_path),
+    }
+
+
 @router.post("", response_model=schema.ApiResponse[schema.NoteDetailOut])
 def create_note(
     note_data: schema.NoteCreate,
@@ -151,10 +206,8 @@ def get_note(
     if not note:
         raise HTTPException(status_code=404, detail="笔记不存在")
 
-    cover_meta = _cover_meta_for_notes(db, [note])
-    cover_thumbnail_path, cover_thumbnail_url = (None, None)
-    if note.cover_asset_id:
-        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+    # 获取封面素材的详细信息（包含原图和预览图）
+    cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
 
     related_assets: List[int] = list(note.related_assets or [])
     assets_out: Optional[List[schema.AssetOut]] = None
@@ -186,8 +239,12 @@ def get_note(
             title=note.title,
             excerpt=NoteService.build_excerpt(note.content),
             cover_asset_id=note.cover_asset_id,
-            cover_thumbnail_path=cover_thumbnail_path,
-            cover_thumbnail_url=cover_thumbnail_url,
+            cover_thumbnail_path=cover_meta['thumbnail_path'],
+            cover_thumbnail_url=cover_meta['thumbnail_url'],
+            cover_original_path=cover_meta['original_path'],
+            cover_original_url=cover_meta['original_url'],
+            cover_preview_path=cover_meta['preview_path'],
+            cover_preview_url=cover_meta['preview_url'],
             shot_at=note.shot_at,
             created_at=note.created_at,
             updated_at=note.updated_at,

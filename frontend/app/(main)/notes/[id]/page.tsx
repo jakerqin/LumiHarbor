@@ -78,7 +78,10 @@ export default function NoteDetailPage() {
   }
 
   const note = noteQuery.data;
-  const coverUrl = resolveMediaUrl(note.cover_thumbnail_url, note.cover_thumbnail_path);
+  // 详情页封面：优先使用预览图（用于 HEIC 等格式），否则使用原图
+  const coverUrl = resolveMediaUrl(note.cover_preview_url, note.cover_preview_path)
+    || resolveMediaUrl(note.cover_original_url, note.cover_original_path)
+    || resolveMediaUrl(note.cover_thumbnail_url, note.cover_thumbnail_path);
   const createdAtText = format(new Date(note.created_at), 'PPP', { locale: zhCN });
   const shotAtText = note.shot_at ? format(new Date(note.shot_at), 'PPP', { locale: zhCN }) : null;
 

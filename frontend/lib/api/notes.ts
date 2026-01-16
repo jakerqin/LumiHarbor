@@ -26,6 +26,11 @@ export interface NoteDetail extends Note {
   content: string;
   related_assets: number[];
   assets?: Asset[] | null;
+  // 详情页专用：高清封面（原图或预览图）
+  cover_original_path: string | null;
+  cover_original_url: string | null;
+  cover_preview_path: string | null;
+  cover_preview_url: string | null;
 }
 
 interface BackendNotesPageResponse {
