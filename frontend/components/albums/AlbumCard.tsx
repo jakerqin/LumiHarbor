@@ -1,19 +1,36 @@
 'use client';
 
-import { useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { Image as ImageIcon, Calendar } from 'lucide-react';
 import type { Album } from '@/lib/api/albums';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { fadeIn } from '@/lib/utils/gsap';
 
 interface AlbumCardProps {
   album: Album;
   onClick?: () => void;
+  disableEntryAnimation?: boolean;
 }
 
-export function AlbumCard({ album, onClick }: AlbumCardProps) {
+export function AlbumCard({ album, onClick, disableEntryAnimation = false }: AlbumCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // 入场动画
+  useLayoutEffect(() => {
+    // 如果禁用入场动画（由父组件控制动画），则跳过
+    if (disableEntryAnimation) return;
+
+    const element = cardRef.current;
+    if (!element) return;
+
+    const ctx = gsap.context(() => {
+      gsap.fromTo(element, { ...fadeIn.from }, { ...fadeIn.to, overwrite: 'auto' });
+    }, element);
+
+    return () => ctx.revert();
+  }, [disableEntryAnimation]);
 
   const handleMouseEnter = () => {
     if (!cardRef.current) return;

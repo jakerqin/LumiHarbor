@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { AlbumCard } from './AlbumCard';
+import { AlbumMasonry } from './AlbumMasonry';
 import { albumsApi } from '@/lib/api/albums';
 import { useRouter } from 'next/navigation';
 
@@ -56,12 +56,8 @@ export function AlbumGrid() {
 
   return (
     <div>
-      {/* 相册网格 */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
-        {data.albums.map((album) => (
-          <AlbumCard key={album.id} album={album} onClick={() => handleAlbumClick(album.id)} />
-        ))}
-      </div>
+      {/* 相册瀑布流 */}
+      <AlbumMasonry albums={data.albums} onAlbumClick={handleAlbumClick} />
 
       {/* 分页 */}
       {totalPages > 1 && (
