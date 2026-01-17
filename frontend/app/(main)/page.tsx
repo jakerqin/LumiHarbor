@@ -1,7 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { BentoGrid } from '@/components/home/BentoGrid';
+// import { BentoGrid } from '@/components/home/BentoGrid'; // 已替换为 DomeGalleryContainer
+import { DomeGalleryContainer } from '@/components/home/DomeGalleryContainer';
 import BlurText from '@/components/animations/BlurText';
 import TextType from '@/components/animations/TextType';
 
@@ -61,7 +62,7 @@ export default function HomePage() {
                 cursorCharacter="_"
               />
           </div>
-          <BentoGrid />
+          <DomeGalleryContainer />
         </div>
       </section>
 

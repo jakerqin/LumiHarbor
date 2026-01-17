@@ -36,7 +36,7 @@ def _classify_aspect_ratio(value: Optional[str]) -> str:
 @router.get("/featured", response_model=FeaturedResponse)
 def get_featured_assets(
     user_id: int = Query(default=1, description="用户ID（v1.0 默认1）"),
-    limit: int = Query(default=9, ge=1, le=20, description="返回数量"),
+    limit: int = Query(default=9, ge=1, le=150, description="返回数量（最多150张，用于 Dome Gallery 动态加载）"),
     db: Session = Depends(get_db)
 ):
     """获取用户的精选素材列表（多用户支持）
@@ -45,13 +45,13 @@ def get_featured_assets(
     1. JOIN user_favorites 和 assets 表
     2. 过滤条件：user_id 匹配 + 素材未删除 + 收藏未删除
     3. 按收藏时间降序排序
-    4. 限制返回数量
+    4. 限制返回数量（最多 150 张，支持 Dome Gallery 动态加载）
     5. 批量查询所有素材的标签（避免 N+1 问题）
     6. 根据 home_featured 模板配置过滤标签
 
     Args:
         user_id: 用户ID（当前默认1，未来从 JWT 获取）
-        limit: 返回数量（1-20）
+        limit: 返回数量（1-150），用于支持 Dome Gallery 动态加载
         db: 数据库会话
 
     Returns:

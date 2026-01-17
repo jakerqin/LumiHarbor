@@ -27,9 +27,9 @@ interface DockItem {
 const dockItems: DockItem[] = [
   { icon: Home, label: '首页', href: '/', shortcut: 'H' },
   { icon: Image, label: '素材', href: '/assets', shortcut: 'A' },
+  { icon: FolderOpen, label: '相册', href: '/albums', shortcut: 'L' },
   { icon: FileText, label: '笔记', href: '/notes', shortcut: 'N' },
   { icon: Map, label: '地图', href: '/map', shortcut: 'M' },
-  { icon: FolderOpen, label: '相册', href: '/albums', shortcut: 'L' },
   { type: 'divider' } as DockItem,
   { icon: Search, label: '搜索', action: 'search', shortcut: 'K' },
   { icon: Settings, label: '设置', href: '/settings', shortcut: ',' },
