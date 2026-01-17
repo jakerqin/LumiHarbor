@@ -13,9 +13,10 @@ import { assetsApi, type AssetsResponse } from '@/lib/api/assets';
 interface AssetCardProps {
   asset: Asset;
   onClick?: () => void;
+  disableEntryAnimation?: boolean;
 }
 
-export function AssetCard({ asset, onClick }: AssetCardProps) {
+export function AssetCard({ asset, onClick, disableEntryAnimation = false }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
@@ -27,6 +28,9 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
   }, [asset.id, asset.is_favorited]);
 
   useLayoutEffect(() => {
+    // 如果禁用入场动画（由父组件控制动画），则跳过
+    if (disableEntryAnimation) return;
+
     const element = cardRef.current;
     if (!element) return;
 
@@ -39,7 +43,7 @@ export function AssetCard({ asset, onClick }: AssetCardProps) {
     }, element);
 
     return () => ctx.revert();
-  }, []);
+  }, [disableEntryAnimation]);
 
   // 收藏/取消收藏 mutation
   const favoriteMutation = useMutation({

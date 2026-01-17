@@ -328,9 +328,7 @@ export default function AssetDetailPage() {
 
             <div className="min-w-0">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
-                  <typeMeta.Icon size={18} className={typeMeta.className} />
-                </div>
+                
                 <div className="min-w-0">
                   <h1 className="text-2xl md:text-3xl font-heading font-bold leading-tight truncate">
                     {headerTitle}
@@ -342,18 +340,14 @@ export default function AssetDetailPage() {
                 </div>
               </div>
 
-              {asset.is_favorited && (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Pill className="text-red-300 border-red-500/20 bg-red-500/10">
-                    <Heart size={14} className="fill-red-500 text-red-500" />
-                    已收藏
-                  </Pill>
-                </div>
-              )}
+              
             </div>
           </div>
 
           <div className="flex items-center gap-2 justify-end">
+            <div className="w-10 h-10 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center">
+              <typeMeta.Icon size={18} className={typeMeta.className} />
+            </div>
             <button
               type="button"
               onClick={() => favoriteMutation.mutate(!asset.is_favorited)}
