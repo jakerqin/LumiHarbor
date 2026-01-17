@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Providers } from './providers';
+import ParticleBackground from '@/components/background/ParticleBackground';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -24,6 +25,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className="font-sans antialiased bg-background text-foreground">
+        <ParticleBackground />
         <Providers>{children}</Providers>
       </body>
     </html>
