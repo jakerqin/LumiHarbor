@@ -173,6 +173,7 @@ export default function DomeGallery({
   const cancelTapRef = useRef(false);
   const movedRef = useRef(false);
   const inertiaRAF = useRef<number | null>(null);
+  const autoRotateRAF = useRef<number | null>(null); // 进场自动旋转动画
   const pointerTypeRef = useRef<'mouse' | 'pen' | 'touch'>('mouse');
   const tapTargetRef = useRef<HTMLElement | null>(null);
   const openingRef = useRef(false);
@@ -304,6 +305,39 @@ export default function DomeGallery({
 
   useEffect(() => {
     applyTransform(rotationRef.current.x, rotationRef.current.y);
+
+    // 进场自动旋转动画
+    let velocity = 0.5; // 初始旋转速度（度/帧）
+    const damping = 0.98; // 阻尼系数
+    const stopThreshold = 0.01; // 停止阈值
+
+    const autoRotate = () => {
+      velocity *= damping;
+
+      if (Math.abs(velocity) < stopThreshold) {
+        autoRotateRAF.current = null;
+        return;
+      }
+
+      const nextY = rotationRef.current.y + velocity;
+      rotationRef.current = { x: rotationRef.current.x, y: nextY };
+      applyTransform(rotationRef.current.x, nextY);
+
+      autoRotateRAF.current = requestAnimationFrame(autoRotate);
+    };
+
+    // 延迟 500ms 启动，让用户先看到画廊
+    const startTimer = setTimeout(() => {
+      autoRotateRAF.current = requestAnimationFrame(autoRotate);
+    }, 500);
+
+    return () => {
+      clearTimeout(startTimer);
+      if (autoRotateRAF.current) {
+        cancelAnimationFrame(autoRotateRAF.current);
+        autoRotateRAF.current = null;
+      }
+    };
   }, []);
 
   const stopInertia = useCallback(() => {
@@ -352,6 +386,12 @@ export default function DomeGallery({
       onDragStart: ({ event }) => {
         if (focusedElRef.current) return;
         stopInertia();
+
+        // 停止进场自动旋转动画
+        if (autoRotateRAF.current) {
+          cancelAnimationFrame(autoRotateRAF.current);
+          autoRotateRAF.current = null;
+        }
 
         const evt = event as PointerEvent;
         pointerTypeRef.current = (evt.pointerType as any) || 'mouse';
@@ -501,6 +541,7 @@ export default function DomeGallery({
         margin: 0;
         transform: none;
         filter: ${grayscale ? 'grayscale(1)' : 'none'};
+        background: rgba(0, 0, 0, 0.95);
       `;
 
       const originalImg = overlay.querySelector('img');
@@ -629,14 +670,14 @@ export default function DomeGallery({
     (el.style as any).zIndex = 0;
     const overlay = document.createElement('div');
     overlay.className = 'enlarge';
-    overlay.style.cssText = `position:absolute; left:${frameR.left - mainR.left}px; top:${frameR.top - mainR.top}px; width:${frameR.width}px; height:${frameR.height}px; opacity:0; z-index:30; will-change:transform,opacity; transform-origin:top left; transition:transform ${enlargeTransitionMs}ms ease, opacity ${enlargeTransitionMs}ms ease; border-radius:${openedImageBorderRadius}; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); cursor: pointer; pointer-events: auto;`;
+    overlay.style.cssText = `position:absolute; left:${frameR.left - mainR.left}px; top:${frameR.top - mainR.top}px; width:${frameR.width}px; height:${frameR.height}px; opacity:0; z-index:30; will-change:transform,opacity; transform-origin:top left; transition:transform ${enlargeTransitionMs}ms ease, opacity ${enlargeTransitionMs}ms ease; border-radius:${openedImageBorderRadius}; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); cursor: pointer; pointer-events: auto; background: rgba(0, 0, 0, 0.95);`;
 
     const rawSrc = parent.dataset.src || (el.querySelector('img') as HTMLImageElement)?.src || '';
     const rawAlt = parent.dataset.alt || (el.querySelector('img') as HTMLImageElement)?.alt || '';
     const img = document.createElement('img');
     img.src = rawSrc;
     img.alt = rawAlt;
-    img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:${grayscale ? 'grayscale(1)' : 'none'}; border-radius:${openedImageBorderRadius};`;
+    img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:${grayscale ? 'grayscale(1)' : 'none'};`;
     overlay.appendChild(img);
 
     // 添加点击事件：放大状态下再次点击跳转详情页
@@ -664,7 +705,7 @@ export default function DomeGallery({
       rootRef.current?.setAttribute('data-enlarging', 'true');
     }, 16);
 
-    const wantsResize = openedImageWidth || openedImageHeight;
+    const wantsResize = openedImageWidth && openedImageHeight && openedImageWidth !== 'auto' && openedImageHeight !== 'auto';
     if (wantsResize) {
       const onFirstEnd = (ev: TransitionEvent) => {
         if (ev.propertyName !== 'transform') return;
@@ -697,6 +738,79 @@ export default function DomeGallery({
         });
       };
       overlay.addEventListener('transitionend', onFirstEnd);
+    } else if (openedImageWidth === 'auto' || openedImageHeight === 'auto') {
+      // 动态计算尺寸：根据图片宽高比
+      const imgElement = overlay.querySelector('img') as HTMLImageElement;
+      const onImageLoad = () => {
+        const naturalWidth = imgElement.naturalWidth;
+        const naturalHeight = imgElement.naturalHeight;
+
+        if (naturalWidth === 0 || naturalHeight === 0) return;
+
+        const aspectRatio = naturalWidth / naturalHeight;
+        const maxWidth = 400;  // 最大宽度
+        const maxHeight = 300; // 最大高度
+
+        let targetWidth: number;
+        let targetHeight: number;
+
+        if (aspectRatio > 1) {
+          // 横图
+          targetWidth = Math.min(maxWidth, naturalWidth);
+          targetHeight = targetWidth / aspectRatio;
+          if (targetHeight > maxHeight) {
+            targetHeight = maxHeight;
+            targetWidth = targetHeight * aspectRatio;
+          }
+        } else {
+          // 竖图或方图
+          targetHeight = Math.min(maxHeight, naturalHeight);
+          targetWidth = targetHeight * aspectRatio;
+          if (targetWidth > maxWidth) {
+            targetWidth = maxWidth;
+            targetHeight = targetWidth / aspectRatio;
+          }
+        }
+
+        const onFirstEnd = (ev: TransitionEvent) => {
+          if (ev.propertyName !== 'transform') return;
+          overlay.removeEventListener('transitionend', onFirstEnd);
+          const prevTransition = overlay.style.transition;
+          overlay.style.transition = 'none';
+
+          overlay.style.width = `${targetWidth}px`;
+          overlay.style.height = `${targetHeight}px`;
+          overlay.style.width = frameR.width + 'px';
+          overlay.style.height = frameR.height + 'px';
+          void overlay.offsetWidth;
+
+          overlay.style.transition = `left ${enlargeTransitionMs}ms ease, top ${enlargeTransitionMs}ms ease, width ${enlargeTransitionMs}ms ease, height ${enlargeTransitionMs}ms ease`;
+          const centeredLeft = frameR.left - mainR.left + (frameR.width - targetWidth) / 2;
+          const centeredTop = frameR.top - mainR.top + (frameR.height - targetHeight) / 2;
+
+          requestAnimationFrame(() => {
+            overlay.style.left = `${centeredLeft}px`;
+            overlay.style.top = `${centeredTop}px`;
+            overlay.style.width = `${targetWidth}px`;
+            overlay.style.height = `${targetHeight}px`;
+          });
+
+          const cleanupSecond = () => {
+            overlay.removeEventListener('transitionend', cleanupSecond);
+            overlay.style.transition = prevTransition;
+          };
+          overlay.addEventListener('transitionend', cleanupSecond, {
+            once: true,
+          });
+        };
+        overlay.addEventListener('transitionend', onFirstEnd);
+      };
+
+      if (imgElement.complete && imgElement.naturalWidth > 0) {
+        onImageLoad();
+      } else {
+        imgElement.addEventListener('load', onImageLoad, { once: true });
+      }
     }
   };
 

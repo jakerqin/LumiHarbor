@@ -101,8 +101,8 @@ export function DomeGalleryContainer() {
           overlayBlurColor="rgba(6, 0, 16, 0.8)"
           imageBorderRadius="16px"
           openedImageBorderRadius="24px"
-          openedImageWidth="33vw"
-          openedImageHeight="33vh"
+          openedImageWidth="auto"
+          openedImageHeight="auto"
         />
         {/* 加载进度提示 */}
         {loadedCount < data.total && loadedCount < MAX_ASSETS && (
