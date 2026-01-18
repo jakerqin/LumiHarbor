@@ -437,7 +437,6 @@ export default function AssetDetailPage() {
                 <div className="flex items-center gap-2">
                   <Hash size={18} className="text-foreground-secondary" />
                   <h2 className="text-lg font-heading font-semibold">相似推荐</h2>
-                  <span className="text-sm text-foreground-tertiary">（基于 phash）</span>
                 </div>
                 {!similarQuery.isLoading && !similarQuery.isError && similarAssets.length > 0 && (
                   <span className="text-xs text-foreground-tertiary">

@@ -171,6 +171,11 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
 
   const locationText = getLocationText();
 
+  // 计算宽高比（用于确保容器高度正确）
+  const aspectRatio = typeof asset.aspect_ratio === 'number' && asset.aspect_ratio > 0
+    ? asset.aspect_ratio
+    : 1;
+
   return (
     <motion.div
       ref={cardRef}
@@ -191,13 +196,14 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
           rotateY,
           scale,
           transformStyle: 'preserve-3d',
+          aspectRatio: aspectRatio.toString(),
         }}
       >
-        {/* 图片：自适应高度 */}
+        {/* 图片：填充容器 */}
         <motion.img
           src={getThumbnailUrl()}
           alt=""
-          className="w-full h-auto object-cover transition-transform duration-300"
+          className="w-full h-full object-cover transition-transform duration-300"
           style={{
             transform: 'translateZ(0)',
           }}

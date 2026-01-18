@@ -180,11 +180,17 @@ def get_asset_tags(
 def get_similar_assets(
     asset_id: int,
     user_id: int = Query(1, description="当前用户ID"),
-    threshold: int = Query(10, ge=0, le=64, description="相似度阈值（汉明距离，越小越相似）"),
+    threshold: int = Query(15, ge=0, le=64, description="相似度阈值（汉明距离，越小越相似）"),
     limit: int = Query(12, ge=1, le=50, description="返回数量限制"),
     db: Session = Depends(get_db)
 ):
-    """基于 phash 查找相似素材（用于相似推荐）"""
+    """基于 phash 查找相似素材（用于相似推荐）
+
+    默认阈值说明：
+    - threshold=20: 可以找到"有一定相似性"的素材（推荐）
+    - threshold=10: 只能找到"非常相似"的素材（如同一张照片的不同压缩版本）
+    - threshold=30: 相似度要求更宽松，可能包含不太相似的素材
+    """
     asset = db.query(model.Asset).filter(
         and_(
             model.Asset.id == asset_id,

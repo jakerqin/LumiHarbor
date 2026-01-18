@@ -88,6 +88,9 @@ function estimateRelativeHeight(asset: Asset, columnWidth: number): number {
   return columnWidth / ratio;
 }
 
+// 瀑布流列间距（单位：px）
+const GAP = 12;
+
 interface GridItem {
   asset: Asset;
   x: number;
@@ -163,20 +166,24 @@ export function AssetMasonry({
     preloadImages(urls).then(() => setImagesReady(true));
   }, [assets]);
 
-  // 计算网格布局（最短列优先算法）
+  // 计算网格布局（最短列优先算法，考虑列间距）
   const grid = useMemo<GridItem[]>(() => {
     if (!width) return [];
 
     const colHeights = new Array(columns).fill(0);
-    const columnWidth = width / columns;
+    // 计算列宽：总宽度减去间距后平均分配
+    const totalGap = (columns - 1) * GAP;
+    const columnWidth = (width - totalGap) / columns;
 
     return assets.map((asset) => {
       const col = colHeights.indexOf(Math.min(...colHeights));
-      const x = columnWidth * col;
+      // x 坐标 = 列宽 * 列索引 + 间距 * 列索引
+      const x = columnWidth * col + GAP * col;
       const height = estimateRelativeHeight(asset, columnWidth);
       const y = colHeights[col];
 
-      colHeights[col] += height;
+      // 累加高度时包含底部间距
+      colHeights[col] += height + GAP;
 
       return { asset, x, y, w: columnWidth, h: height };
     });

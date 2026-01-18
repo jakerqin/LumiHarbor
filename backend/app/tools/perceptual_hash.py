@@ -144,7 +144,9 @@ class PerceptualHashCalculator:
         try:
             h1 = imagehash.hex_to_hash(hash1)
             h2 = imagehash.hex_to_hash(hash2)
-            return h1 - h2  # imagehash 重载了减法运算符计算汉明距离
+            # imagehash 重载了减法运算符计算汉明距离，返回 numpy.int64
+            # 需要转换为 Python 原生 int 以便 JSON 序列化
+            return int(h1 - h2)
         except Exception as e:
             logger.error(f"计算哈希距离失败: {e}")
             return 999  # 返回一个很大的值表示完全不同
