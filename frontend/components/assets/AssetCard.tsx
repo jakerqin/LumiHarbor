@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Video, Image as ImageIcon, Music, MapPin, Calendar, Heart } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { gsap } from 'gsap';
-import { fadeIn, fadeOut } from '@/lib/utils/gsap';
+import { motion, useMotionValue, useSpring } from 'motion/react';
 import { assetsApi, type AssetsResponse } from '@/lib/api/assets';
 
 interface AssetCardProps {
@@ -16,34 +15,28 @@ interface AssetCardProps {
   disableEntryAnimation?: boolean;
 }
 
+// 弹簧动画配置
+const springConfig = { damping: 30, stiffness: 100, mass: 2 };
+
+// 3D 倾斜幅度
+const ROTATE_AMPLITUDE = 14;
+
 export function AssetCard({ asset, onClick, disableEntryAnimation = false }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
 
-  const isAnimatingOutRef = useRef(false);
+  // Motion 状态管理
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useSpring(0, springConfig);
+  const rotateY = useSpring(0, springConfig);
+  const scale = useSpring(1, springConfig);
+  const overlayOpacity = useSpring(0, springConfig);
 
   useEffect(() => {
     setIsFavorited(asset.is_favorited);
   }, [asset.id, asset.is_favorited]);
-
-  useLayoutEffect(() => {
-    // 如果禁用入场动画（由父组件控制动画），则跳过
-    if (disableEntryAnimation) return;
-
-    const element = cardRef.current;
-    if (!element) return;
-
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        element,
-        { ...fadeIn.from },
-        { ...fadeIn.to, overwrite: 'auto' }
-      );
-    }, element);
-
-    return () => ctx.revert();
-  }, [disableEntryAnimation]);
 
   // 收藏/取消收藏 mutation
   const favoriteMutation = useMutation({
@@ -96,42 +89,48 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
     },
   });
 
+  // 处理鼠标移动 - 3D 倾斜效果
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+
+    const rect = cardRef.current.getBoundingClientRect();
+    const offsetX = e.clientX - rect.left - rect.width / 2;
+    const offsetY = e.clientY - rect.top - rect.height / 2;
+
+    const rotationX = (offsetY / (rect.height / 2)) * -ROTATE_AMPLITUDE;
+    const rotationY = (offsetX / (rect.width / 2)) * ROTATE_AMPLITUDE;
+
+    rotateX.set(rotationX);
+    rotateY.set(rotationY);
+
+    x.set(e.clientX - rect.left);
+    y.set(e.clientY - rect.top);
+  };
+
+  // 处理鼠标进入
+  const handleMouseEnter = () => {
+    scale.set(1.05);
+    overlayOpacity.set(1);
+  };
+
+  // 处理鼠标离开
+  const handleMouseLeave = () => {
+    scale.set(1);
+    overlayOpacity.set(0);
+    rotateX.set(0);
+    rotateY.set(0);
+  };
+
   // 处理收藏点击（阻止冒泡）
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     favoriteMutation.mutate(!isFavorited);
   };
 
+  // 处理卡片点击
   const handleCardClick = () => {
     if (!onClick) return;
-    if (isAnimatingOutRef.current) return;
-
-    const element = cardRef.current;
-    if (!element) {
-      onClick();
-      return;
-    }
-
-    isAnimatingOutRef.current = true;
-    gsap.to(element, {
-      ...fadeOut,
-      overwrite: 'auto',
-      onComplete: onClick,
-    });
-  };
-
-  const handleMouseEnter = () => {
-    if (isAnimatingOutRef.current) return;
-    const element = cardRef.current;
-    if (!element) return;
-    gsap.to(element, { y: -4, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
-  };
-
-  const handleMouseLeave = () => {
-    if (isAnimatingOutRef.current) return;
-    const element = cardRef.current;
-    if (!element) return;
-    gsap.to(element, { y: 0, duration: 0.3, ease: 'power2.out', overwrite: 'auto' });
+    onClick();
   };
 
   const assetTypeMeta = (() => {
@@ -173,23 +172,45 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
   const locationText = getLocationText();
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
       onClick={handleCardClick}
+      onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      className="group"
+      className="group cursor-pointer"
+      style={{ perspective: '1000px' }}
+      initial={disableEntryAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     >
-      <div className="relative rounded-xl overflow-hidden bg-background-secondary">
+      <motion.div
+        className="relative rounded-xl overflow-hidden bg-background-secondary"
+        style={{
+          rotateX,
+          rotateY,
+          scale,
+          transformStyle: 'preserve-3d',
+        }}
+      >
         {/* 图片：自适应高度 */}
-        <img
+        <motion.img
           src={getThumbnailUrl()}
           alt=""
-          className="w-full h-auto object-cover transition-transform duration-300 group-hover:scale-110"
+          className="w-full h-auto object-cover transition-transform duration-300"
+          style={{
+            transform: 'translateZ(0)',
+          }}
         />
 
-        {/* 右上角：类型图标 + 收藏按钮（独立半透明） */}
-        <div className="absolute top-3 right-3 flex items-center gap-2 cursor-default">
+        {/* 右上角：类型图标 + 收藏按钮（浮起层） */}
+        <motion.div
+          className="absolute top-3 right-3 flex items-center gap-2 cursor-default"
+          style={{
+            transform: 'translateZ(30px)',
+            transformStyle: 'preserve-3d',
+          }}
+        >
           <div
             className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
             aria-hidden="true"
@@ -217,10 +238,16 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
               } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
             />
           </button>
-        </div>
+        </motion.div>
 
         {/* Hover 信息覆盖层 */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none"
+          style={{
+            opacity: overlayOpacity,
+            transform: 'translateZ(0)',
+          }}
+        >
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
             {/* 地点 */}
             {locationText && (
@@ -240,8 +267,8 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
+        </motion.div>
+      </motion.div>
+    </motion.div>
   );
 }
