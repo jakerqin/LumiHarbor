@@ -230,17 +230,35 @@
 - [file_hash.py](backend/app/tools/file_hash.py)
 
 #### 感知哈希 (Perceptual Hash)
-- **算法**: average_hash (imagehash 库)
-- **用途**: 相似度搜索 (查找相似图片/视频)
-- **特点**: 容忍轻微编辑、压缩、缩放
-- **汉明距离**:
-  - 0-5: 非常相似
-  - 6-10: 相似
-  - 11-20: 有一定相似性
-  - >20: 不同
+
+**多哈希组合策略**：使用 4 种哈希算法组合，提高相似度判断准确率
+
+| 哈希类型 | 算法原理 | 权重 | 用途 |
+|---------|---------|------|------|
+| **phash** | DCT 变换（频域特征） | 0.5 | 关注图像结构，对内容最敏感 |
+| **dhash** | 梯度差异（像素变化） | 0.3 | 关注边缘和纹理 |
+| **average_hash** | 平均亮度 | 0.1 | 兼容旧数据，权重最低 |
+| **colorhash** | 颜色分布 | 0.1 | 区分不同色调 |
+
+**综合相似度计算**:
+```python
+combined_distance = (
+    0.5 * phash_distance +      # 结构相似度
+    0.3 * dhash_distance +      # 边缘相似度
+    0.1 * average_distance +    # 亮度相似度
+    0.1 * color_distance        # 颜色相似度
+)
+```
+
+**汉明距离阈值**（综合距离）:
+- 0-8: 非常相似
+- 8-12: 相似（推荐阈值：10.0）
+- 12-20: 有一定相似性
+- >20: 不同
 
 **重要文件**:
-- [perceptual_hash.py](backend/app/tools/perceptual_hash.py)
+- [perceptual_hash.py](backend/app/tools/perceptual_hash.py) - 统一的感知哈希工具（包含单哈希和多哈希组合）
+- [color_histogram.py](backend/app/tools/color_histogram.py) - 颜色直方图（可选）
 
 ### 5. 异步任务系统 (Taskiq + Redis)
 
@@ -252,8 +270,8 @@ FastAPI → Redis 队列 (lumiharbor_tasks) → Taskiq Worker → 更新数据�
 ```
 
 **已实现任务**:
-1. **calculate_phash**: 单个素材感知哈希计算
-2. **batch_calculate_phash**: 批量计算 (用于数据迁移)
+1. **calculate_phash**: 单个素材多哈希计算（phash + dhash + average_hash + colorhash）
+2. **batch_calculate_phash**: 批量计算多哈希 (用于数据迁移)
 3. **calculate_location**: 异步地理编码（将 GPS 坐标转换为地理位置信息）
 
 **任务日志表** (`task_logs`):
@@ -345,7 +363,10 @@ asset_type        VARCHAR(20)    # 类型: image/video/audio
 mime_type         VARCHAR(100)   # MIME 类型
 file_size         BIGINT         # 文件大小 (字节)
 file_hash         VARCHAR(64)    # SHA256 (用于精确去重)
-phash             VARCHAR(64)    # 感知哈希 (用于相似搜索)
+phash             VARCHAR(64)    # 感知哈希-DCT变换 (权重0.5，关注图像结构)
+dhash             VARCHAR(64)    # 感知哈希-梯度差异 (权重0.3，关注边缘纹理)
+average_hash      VARCHAR(64)    # 感知哈希-平均亮度 (权重0.1，兼容旧数据)
+colorhash         VARCHAR(64)    # 感知哈希-颜色分布 (权重0.1，区分色调)
 visibility        VARCHAR(20)    # general/private
 shot_at           DATETIME       # 拍摄时间
 created_at        DATETIME       # 创建时间
@@ -912,6 +933,48 @@ else:
 - 仍为 Mock / 待实现：Spotlight 搜索、首页 locations/timeline 等
 - 继续遵循“先定义 schema/类型 → 再落地接口 → 最后替换前端 mock”的迭代节奏
 
+### 8. 为何使用多哈希组合策略？
+
+**决策**: 使用 4 种哈希算法组合（phash + dhash + average_hash + colorhash）
+
+**单哈希的问题**:
+- ❌ **误判率高**: 单一算法容易受特定因素影响（如 average_hash 对亮度敏感）
+- ❌ **准确率低**: 无法全面评估图像相似度
+- ❌ **鲁棒性差**: 对旋转、缩放、压缩等变换敏感度不一致
+
+**多哈希组合的优势**:
+- ✅ **更高准确率**: 多种算法互补，综合判断更准确
+- ✅ **降低误判**: 单一算法的弱点被其他算法补偿
+- ✅ **更好鲁棒性**: 对各种图像变换都有较好的容忍度
+- ✅ **灵活权重**: 可根据实际需求调整各哈希的权重
+
+**实现细节**:
+```python
+# 4 种哈希算法
+phash = imagehash.phash(img)           # DCT 变换（权重 0.5）
+dhash = imagehash.dhash(img)           # 梯度差异（权重 0.3）
+average_hash = imagehash.average_hash(img)  # 平均亮度（权重 0.1）
+colorhash = imagehash.colorhash(img)   # 颜色分布（权重 0.1）
+
+# 综合距离计算
+combined_distance = (
+    0.5 * phash_distance +      # 结构相似度（最重要）
+    0.3 * dhash_distance +      # 边缘相似度
+    0.1 * average_distance +    # 亮度相似度
+    0.1 * color_distance        # 颜色相似度
+)
+```
+
+**向后兼容**:
+- 旧数据只有 `phash` 字段，自动降级为单哈希判断
+- 新数据计算全部 4 个哈希，使用多哈希综合判断
+- 渐进式升级，不影响现有功能
+
+**性能影响**:
+- 计算时间: 4 个哈希约为单个哈希的 3-4 倍（仍在可接受范围 100-500ms）
+- 存储空间: 每个素材增加 192 字节（3 个新哈希字段）
+- 查询性能: 无影响（仍然是内存计算汉明距离）
+
 ---
 
 ## 参考文档
@@ -931,8 +994,17 @@ else:
 
 ---
 
-**最后更新**: 2026-01-14
-**版本**: v0.4.0
+**最后更新**: 2026-01-19
+**版本**: v0.5.0
+
+**v0.5.0 更新内容** (2026-01-19):
+- ✅ 升级感知哈希为多哈希组合策略（phash + dhash + average_hash + colorhash）
+- ✅ 数据库模型新增 3 个哈希字段（dhash, average_hash, colorhash）
+- ✅ 异步任务支持计算 4 个哈希值（提高相似度判断准确率）
+- ✅ 相似度搜索使用加权综合距离（phash 0.5 + dhash 0.3 + average 0.1 + color 0.1）
+- ✅ 向后兼容旧数据（自动降级为单哈希判断）
+- ✅ 合并 perceptual_hash_v2.py 到 perceptual_hash.py（统一代码结构）
+- ✅ 更新项目文档和技术决策记录
 
 **v0.4.0 更新内容** (2026-01-14):
 - ✅ 前端升级：Next.js 16.1.1 + React 19.2.0

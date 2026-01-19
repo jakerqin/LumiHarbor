@@ -40,7 +40,10 @@ class Asset(Base):
 
     # 哈希字段（用于去重和相似搜索）
     file_hash = Column(String(64), nullable=True, index=True, comment='文件内容哈希（SHA256，用于精确去重）')
-    phash = Column(String(64), nullable=True, comment='感知哈希（用于查找相似素材，如相似图片搜索）')
+    phash = Column(String(64), nullable=True, comment='感知哈希-DCT变换（权重0.5，关注图像结构）')
+    dhash = Column(String(64), nullable=True, comment='感知哈希-梯度差异（权重0.3，关注边缘纹理）')
+    average_hash = Column(String(64), nullable=True, comment='感知哈希-平均亮度（权重0.1，兼容旧数据）')
+    colorhash = Column(String(64), nullable=True, comment='感知哈希-颜色分布（权重0.1，区分色调）')
 
     # 权限控制
     visibility = Column(

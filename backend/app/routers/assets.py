@@ -216,6 +216,9 @@ def get_similar_assets(
         limit=limit,
         exclude_asset_id=asset_id,
         asset_type=asset.asset_type,
+        dhash=asset.dhash,
+        average_hash=asset.average_hash,
+        colorhash=asset.colorhash,
     )
 
     similar_assets = [entry['asset'] for entry in similar_entries]

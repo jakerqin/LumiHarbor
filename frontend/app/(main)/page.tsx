@@ -55,7 +55,7 @@ export default function HomePage() {
               
             </p>
             <TextType
-                text={["记录生活,珍藏回忆", "弯弓射大雕"]}
+                text={["光影流转，岁月留痕", "那些走过的路，都藏在这里", "每一刻，都值得珍藏"]}
                 className="text-xl text-foreground-secondary"
                 typingSpeed={75}
                 showCursor={true}
