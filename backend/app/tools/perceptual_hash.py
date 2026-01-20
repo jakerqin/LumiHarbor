@@ -16,6 +16,7 @@
 """
 from typing import Optional, Dict, Tuple
 from PIL import Image
+import numpy
 import imagehash
 from pillow_heif import register_heif_opener
 from ..tools.utils import get_logger
@@ -24,6 +25,23 @@ from ..tools.utils import get_logger
 register_heif_opener()
 
 logger = get_logger(__name__)
+
+
+def _hex_to_colorhash(hexstr: str) -> imagehash.ImageHash:
+    if not hexstr:
+        raise ValueError("colorhash is empty")
+
+    value = int(hexstr, 16)
+    total_bits = len(hexstr) * 4
+    bit_length = (total_bits // 14) * 14
+    if bit_length <= 0:
+        raise ValueError("colorhash length is invalid")
+
+    binary = bin(value)[2:].zfill(total_bits)
+    binary = binary[-bit_length:]
+    bits = [c == '1' for c in binary]
+    hash_array = numpy.array(bits, dtype=bool).reshape((14, bit_length // 14))
+    return imagehash.ImageHash(hash_array)
 
 
 class MultiHashCalculator:
@@ -210,9 +228,18 @@ class MultiHashCalculator:
 
         for hash_type in ['phash', 'dhash', 'average_hash', 'colorhash']:
             if hash_type in hashes1 and hash_type in hashes2:
+                value1 = hashes1.get(hash_type)
+                value2 = hashes2.get(hash_type)
+                if not value1 or not value2:
+                    continue
+
                 try:
-                    h1 = imagehash.hex_to_hash(hashes1[hash_type])
-                    h2 = imagehash.hex_to_hash(hashes2[hash_type])
+                    if hash_type == 'colorhash':
+                        h1 = _hex_to_colorhash(value1)
+                        h2 = _hex_to_colorhash(value2)
+                    else:
+                        h1 = imagehash.hex_to_hash(value1)
+                        h2 = imagehash.hex_to_hash(value2)
                     distance = int(h1 - h2)
 
                     # 加权累加
@@ -506,13 +533,13 @@ def find_similar_assets(
         if dhash and average_hash and colorhash:
             # 使用多哈希组合策略
             distance = calculator.calculate_combined_distance(
-                hash1={
+                hashes1={
                     'phash': phash,
                     'dhash': dhash,
                     'average_hash': average_hash,
                     'colorhash': colorhash
                 },
-                hash2={
+                hashes2={
                     'phash': asset.phash,
                     'dhash': asset.dhash or '',
                     'average_hash': asset.average_hash or '',
