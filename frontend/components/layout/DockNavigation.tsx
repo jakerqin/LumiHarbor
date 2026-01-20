@@ -60,9 +60,8 @@ export function DockNavigation() {
   // 鼠标移动检测
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      // 当鼠标距离右侧边缘小于 80px 时显示 Dock
       const distanceFromRight = window.innerWidth - e.clientX;
-      setIsVisible(distanceFromRight < 80);
+      setIsVisible(distanceFromRight <= 1);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
