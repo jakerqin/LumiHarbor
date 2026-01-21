@@ -11,9 +11,19 @@ interface AssetGridProps {
   filter?: AssetsFilter;
   onAssetClick?: (id: number) => void;
   onAssetSelect?: (asset: Asset) => void;
+  selectionMode?: boolean;
+  selectedAssetIds?: Set<number>;
+  onSelectionToggle?: (asset: Asset) => void;
 }
 
-export function AssetGrid({ filter, onAssetClick, onAssetSelect }: AssetGridProps) {
+export function AssetGrid({
+  filter,
+  onAssetClick,
+  onAssetSelect,
+  selectionMode = false,
+  selectedAssetIds,
+  onSelectionToggle,
+}: AssetGridProps) {
   const [page, setPage] = useState(1);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const pageSize = 30;
@@ -95,6 +105,10 @@ export function AssetGrid({ filter, onAssetClick, onAssetSelect }: AssetGridProp
         assets={displayAssets}
         onAssetClick={(id) => onAssetClick?.(id)}
         onAssetSelect={onAssetSelect}
+        selectionMode={selectionMode}
+        selectedAssetIds={selectedAssetIds}
+        onSelectionToggle={onSelectionToggle}
+        disableHoverEffects={selectionMode}
       />
 
       {/* 加载更多提示 */}

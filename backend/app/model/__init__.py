@@ -27,6 +27,7 @@ from .album import Album
 from .album_asset import AlbumAsset
 from .user_favorite import UserFavorite
 from .task_log import TaskLog
+from .metadata_dictionary import MetadataDictionary
 
 # 导出所有模型，方便其他模块导入
 __all__ = [
@@ -41,4 +42,5 @@ __all__ = [
     'AlbumAsset',
     'UserFavorite',
     'TaskLog',
+    'MetadataDictionary',
 ]

@@ -121,24 +121,32 @@ export interface AssetMasonryProps {
   assets: Asset[];
   onAssetClick?: (id: number) => void;
   onAssetSelect?: (asset: Asset) => void;
+  selectionMode?: boolean;
+  selectedAssetIds?: Set<number>;
+  onSelectionToggle?: (asset: Asset) => void;
   breakpointColumns?: BreakpointColumns;
   animateFrom?: 'bottom' | 'top' | 'left' | 'right' | 'center' | 'random';
   blurToFocus?: boolean;
   duration?: number;
   stagger?: number;
   ease?: string;
+  disableHoverEffects?: boolean;
 }
 
 export function AssetMasonry({
   assets,
   onAssetClick,
   onAssetSelect,
+  selectionMode = false,
+  selectedAssetIds,
+  onSelectionToggle,
   breakpointColumns = defaultBreakpointColumns,
   animateFrom = 'bottom',
   blurToFocus = true,
   duration = 0.8,
   stagger = 0.05,
   ease = 'power3.out',
+  disableHoverEffects = false,
 }: AssetMasonryProps) {
   // 响应式列数（基于 breakpointColumns 动态生成媒体查询）
   const breakpoints = useMemo(() => {
@@ -288,12 +296,19 @@ export function AssetMasonry({
           <AssetCard
             asset={item.asset}
             onClick={() => {
+              if (selectionMode && onSelectionToggle) {
+                onSelectionToggle(item.asset);
+                return;
+              }
               if (onAssetSelect) {
                 onAssetSelect(item.asset);
                 return;
               }
               onAssetClick?.(item.asset.id);
             }}
+            showSelectionIndicator={selectionMode}
+            isSelected={selectionMode ? selectedAssetIds?.has(item.asset.id) ?? false : false}
+            disableHoverEffects={disableHoverEffects}
             disableEntryAnimation
           />
         </div>

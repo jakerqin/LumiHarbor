@@ -15,7 +15,7 @@ Schema 说明：
     AlbumDetailOut: 相册详情输出 Schema
     ApiResponse: 统一 API 响应格式
 """
-from .asset import AssetBase, AssetOut, AssetsPageResponse
+from .asset import AssetBase, AssetOut, AssetsPageResponse, AssetBatchDeleteRequest
 from .common import ApiResponse
 from .tag_definition import TagDefinitionOut
 from .album import (
@@ -45,6 +45,7 @@ __all__ = [
     'AssetBase',
     'AssetOut',
     'AssetsPageResponse',
+    'AssetBatchDeleteRequest',
     'ApiResponse',
     'TagDefinitionOut',
     'AlbumCreate',

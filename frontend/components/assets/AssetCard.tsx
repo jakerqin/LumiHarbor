@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Video, Image as ImageIcon, Music, MapPin, Calendar, Heart } from 'lucide-react';
+import { Video, Image as ImageIcon, Music, MapPin, Calendar, Heart, Check } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
@@ -13,6 +13,9 @@ interface AssetCardProps {
   asset: Asset;
   onClick?: () => void;
   disableEntryAnimation?: boolean;
+  showSelectionIndicator?: boolean;
+  isSelected?: boolean;
+  disableHoverEffects?: boolean;
 }
 
 // 弹簧动画配置
@@ -21,7 +24,14 @@ const springConfig = { damping: 30, stiffness: 100, mass: 2 };
 // 3D 倾斜幅度
 const ROTATE_AMPLITUDE = 14;
 
-export function AssetCard({ asset, onClick, disableEntryAnimation = false }: AssetCardProps) {
+export function AssetCard({
+  asset,
+  onClick,
+  disableEntryAnimation = false,
+  showSelectionIndicator = false,
+  isSelected = false,
+  disableHoverEffects = false,
+}: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
@@ -33,6 +43,14 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
   const rotateY = useSpring(0, springConfig);
   const scale = useSpring(1, springConfig);
   const overlayOpacity = useSpring(0, springConfig);
+
+  useEffect(() => {
+    if (!disableHoverEffects) return;
+    scale.set(1);
+    overlayOpacity.set(0);
+    rotateX.set(0);
+    rotateY.set(0);
+  }, [disableHoverEffects, overlayOpacity, rotateX, rotateY, scale]);
 
   useEffect(() => {
     setIsFavorited(asset.is_favorited);
@@ -91,6 +109,7 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
 
   // 处理鼠标移动 - 3D 倾斜效果
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (disableHoverEffects) return;
     if (!cardRef.current) return;
 
     const rect = cardRef.current.getBoundingClientRect();
@@ -109,12 +128,14 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
 
   // 处理鼠标进入
   const handleMouseEnter = () => {
+    if (disableHoverEffects) return;
     scale.set(1.05);
     overlayOpacity.set(1);
   };
 
   // 处理鼠标离开
   const handleMouseLeave = () => {
+    if (disableHoverEffects) return;
     scale.set(1);
     overlayOpacity.set(0);
     rotateX.set(0);
@@ -180,9 +201,9 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
     <motion.div
       ref={cardRef}
       onClick={handleCardClick}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseMove={disableHoverEffects ? undefined : handleMouseMove}
+      onMouseEnter={disableHoverEffects ? undefined : handleMouseEnter}
+      onMouseLeave={disableHoverEffects ? undefined : handleMouseLeave}
       className="group cursor-pointer"
       style={{ perspective: '1000px' }}
       initial={disableEntryAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
@@ -190,7 +211,9 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
       transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     >
       <motion.div
-        className="relative rounded-xl overflow-hidden bg-background-secondary"
+        className={`relative rounded-xl overflow-hidden bg-background-secondary ${
+          isSelected ? 'ring-2 ring-primary/80' : ''
+        }`}
         style={{
           rotateX,
           rotateY,
@@ -199,6 +222,22 @@ export function AssetCard({ asset, onClick, disableEntryAnimation = false }: Ass
           aspectRatio: aspectRatio.toString(),
         }}
       >
+        {showSelectionIndicator && (
+          <div
+            className="absolute top-3 left-3 z-10"
+            style={{ transform: 'translateZ(30px)', transformStyle: 'preserve-3d' }}
+          >
+            <div
+              className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${
+                isSelected
+                  ? 'bg-primary border-primary text-white'
+                  : 'bg-black/30 border-white/40 text-transparent'
+              }`}
+            >
+              <Check size={14} className={isSelected ? 'text-white' : 'text-transparent'} />
+            </div>
+          </div>
+        )}
         {/* 图片：填充容器 */}
         <motion.img
           src={getThumbnailUrl()}

@@ -13,13 +13,19 @@ Routers Package
     tags: 标签定义管理
     notes: 笔记管理
 """
+from fastapi import APIRouter
 from .assets import router as assets_router
 from .albums import router as albums_router
-from .ingestion.scan import router as ingestion_router
+from .ingestion.scan import router as ingestion_scan_router
+from .ingestion.upload import router as ingestion_upload_router
 from .management import router as management_router
 from .home import router as home_router
 from .tags import router as tags_router
 from .notes import router as notes_router
+
+ingestion_router = APIRouter()
+ingestion_router.include_router(ingestion_scan_router)
+ingestion_router.include_router(ingestion_upload_router)
 
 __all__ = [
     'assets_router',

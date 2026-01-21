@@ -7,6 +7,10 @@ const CURRENT_USER_ID = 1;
 export interface AssetsFilter {
   asset_type?: 'image' | 'video' | 'audio';
   location?: string;
+  location_poi?: string;
+  shot_at_start?: string;
+  shot_at_end?: string;
+  is_favorited?: boolean;
   sort_by?: 'shot_at' | 'created_at';
   sort_order?: 'asc' | 'desc';
 }
@@ -94,8 +98,18 @@ export const assetsApi = {
 
   // 获取所有地点
   getLocations: async (): Promise<string[]> => {
-    // TODO: 后端实现地点列表接口
     const response = await apiClient.get<string[]>('/assets/locations');
+    return response.data;
+  },
+
+  /**
+   * 批量删除素材（软删除）
+   */
+  deleteAssets: async (assetIds: number[]): Promise<{ deleted: number; missing_ids: number[] }> => {
+    const response = await apiClient.post<{ deleted: number; missing_ids: number[] }>(
+      '/assets/batch-delete',
+      { asset_ids: assetIds }
+    );
     return response.data;
   },
 

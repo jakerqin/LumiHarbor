@@ -1,14 +1,16 @@
 """HTTP 上传导入素材"""
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+from pathlib import Path
 from ...db import get_db
-from ...config import settings
-from ... import schema
+from ... import schema, model
 from ...tools.utils import get_logger
+from ...services.ingestion import AssetImportService, ImportConfig
+from ...services.tags import TagService
 import os
 import shutil
-from datetime import datetime
+import tempfile
 
 logger = get_logger(__name__)
 
@@ -21,8 +23,9 @@ router = APIRouter(
 @router.post("/upload", response_model=schema.ApiResponse[dict])
 async def upload_single_asset(
     file: UploadFile = File(...),
-    created_by: int = 1,
-    visibility: str = "general",
+    created_by: int = Form(1),
+    visibility: str = Form("general"),
+    location_poi: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """通过 HTTP 上传单个素材文件
@@ -36,26 +39,15 @@ async def upload_single_asset(
         上传结果信息
     """
     logger.info(f"接收上传文件: {file.filename}, 类型: {file.content_type}")
-
-    # TODO: 实现上传逻辑
-    # 1. 验证文件类型和大小
-    # 2. 生成唯一文件名
-    # 3. 保存到 NAS 存储
-    # 4. 提取元数据
-    # 5. 创建数据库记录
-    # 6. 生成缩略图
-
-    return schema.ApiResponse.success(data={
-        "status": "pending",
-        "message": "上传功能即将推出"
-    })
+    return await _handle_upload([file], created_by, visibility, location_poi, db)
 
 
 @router.post("/upload/batch", response_model=schema.ApiResponse[dict])
 async def upload_batch_assets(
     files: List[UploadFile] = File(...),
-    created_by: int = 1,
-    visibility: str = "general",
+    created_by: int = Form(1),
+    visibility: str = Form("general"),
+    location_poi: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """批量上传素材文件
@@ -69,14 +61,104 @@ async def upload_batch_assets(
         批量上传结果信息
     """
     logger.info(f"接收批量上传，共 {len(files)} 个文件")
+    return await _handle_upload(files, created_by, visibility, location_poi, db)
 
-    # TODO: 实现批量上传逻辑
-    # 1. 并发处理多个文件
-    # 2. 错误处理和部分成功
-    # 3. 进度追踪
 
-    return schema.ApiResponse.success(data={
-        "status": "pending",
-        "total": len(files),
-        "message": "批量上传功能即将推出"
-    })
+async def _handle_upload(
+    files: List[UploadFile],
+    created_by: int,
+    visibility: str,
+    location_poi: Optional[str],
+    db: Session
+) -> schema.ApiResponse[dict]:
+    if not files:
+        raise HTTPException(status_code=400, detail="未选择上传文件")
+
+    temp_dir = tempfile.mkdtemp(prefix="ingestion-upload-")
+    normalized_location = _normalize_location_poi(location_poi)
+    try:
+        _save_upload_files(files, temp_dir)
+        stats, imported_ids = _import_uploaded_files(temp_dir, created_by, visibility, db)
+        location_tags = 0
+        if normalized_location:
+            location_tags = _apply_location_poi_tags(db, imported_ids, normalized_location)
+
+        return schema.ApiResponse.success(data={
+            "status": "completed",
+            "total": stats.total,
+            "imported": stats.imported,
+            "skipped": stats.skipped,
+            "failed": stats.failed,
+            "location_tags": location_tags
+        })
+    except HTTPException:
+        raise
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except Exception as exc:
+        logger.error(f"上传导入失败: {exc}", exc_info=True)
+        raise HTTPException(status_code=500, detail="上传导入失败")
+    finally:
+        try:
+            shutil.rmtree(temp_dir, ignore_errors=True)
+        finally:
+            for file in files:
+                try:
+                    await file.close()
+                except Exception:
+                    continue
+
+
+def _save_upload_files(files: List[UploadFile], temp_dir: str) -> None:
+    for index, file in enumerate(files, 1):
+        filename = Path(file.filename or "").name
+        if not filename:
+            filename = f"upload_{index}"
+        target_path = os.path.join(temp_dir, f"{index}_{filename}")
+        with open(target_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+
+def _import_uploaded_files(
+    temp_dir: str,
+    created_by: int,
+    visibility: str,
+    db: Session
+):
+    config = ImportConfig(
+        scan_path=temp_dir,
+        created_by=created_by,
+        visibility=visibility,
+        db=db
+    )
+    service = AssetImportService(config)
+    stats = service.import_assets()
+    return stats, service.imported_asset_ids
+
+
+def _apply_location_poi_tags(db: Session, asset_ids: List[int], location_poi: str) -> int:
+    if not asset_ids:
+        return 0
+
+    assets = db.query(model.Asset.id, model.Asset.asset_type).filter(
+        model.Asset.id.in_(asset_ids),
+        model.Asset.is_deleted == False
+    ).all()
+
+    saved_total = 0
+    for asset_id, asset_type in assets:
+        saved_total += TagService.batch_save_asset_tags(
+            db=db,
+            asset_id=asset_id,
+            asset_type=asset_type,
+            tag_data={"location_poi": location_poi}
+        )
+
+    return saved_total
+
+
+def _normalize_location_poi(location_poi: Optional[str]) -> Optional[str]:
+    if not location_poi:
+        return None
+    cleaned = location_poi.strip()
+    return cleaned if cleaned else None

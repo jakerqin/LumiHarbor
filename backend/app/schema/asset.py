@@ -77,3 +77,8 @@ class AssetsPageResponse(BaseModel):
     page: int
     page_size: int
     has_more: bool
+
+
+class AssetBatchDeleteRequest(BaseModel):
+    """批量删除素材请求"""
+    asset_ids: List[int]

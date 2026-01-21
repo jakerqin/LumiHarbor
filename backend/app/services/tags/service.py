@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import Dict
 from ... import model
 from ...tools.utils import get_logger
+from ..metadata_dictionary import MetadataDictionaryService
 
 logger = get_logger(__name__)
 
@@ -71,6 +72,7 @@ class TagService:
             for tag_key, tag_value in tag_data.items()
             if tag_key in template_tag_keys
         }
+        location_poi_value = valid_tags.get('location_poi')
 
         if not valid_tags:
             logger.debug(f"Asset {asset_id} 的标签均未在模板中定义")
@@ -98,7 +100,11 @@ class TagService:
             db.bulk_save_objects(new_asset_tags)
             db.commit()
             logger.info(f"Asset {asset_id} 成功保存 {len(new_asset_tags)} 个标签")
+            if location_poi_value:
+                MetadataDictionaryService.upsert_location_poi(db, location_poi_value)
             return len(new_asset_tags)
         else:
             logger.debug(f"Asset {asset_id} 的标签已全部存在,跳过保存")
+            if location_poi_value:
+                MetadataDictionaryService.upsert_location_poi(db, location_poi_value)
             return 0

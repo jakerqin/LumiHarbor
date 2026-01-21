@@ -101,6 +101,20 @@ CREATE TABLE IF NOT EXISTS asset_tags (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源标签关联表';
 
 -- ==========================================
+-- 元数据字典表
+-- ==========================================
+CREATE TABLE IF NOT EXISTS metadata_dictionary (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '记录ID',
+    scene_type VARCHAR(100) NOT NULL COMMENT '场景类型',
+    value VARCHAR(255) NOT NULL COMMENT '元数据值',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
+    INDEX idx_scene_type (scene_type),
+    UNIQUE KEY uk_scene_value (scene_type, value)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='元数据字典表';
+
+-- ==========================================
 -- 叙事笔记表
 -- ==========================================
 CREATE TABLE IF NOT EXISTS notes (

@@ -2,11 +2,12 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
-from typing import Optional
-from datetime import datetime
+from typing import Optional, List
+from datetime import date, datetime
 from ..db import get_db
 from .. import model, schema
 from ..services.asset import AssetService
+from ..services.metadata_dictionary import MetadataDictionaryService
 from ..tools.perceptual_hash import find_similar_assets
 
 router = APIRouter(
@@ -22,8 +23,12 @@ def list_assets(
     user_id: int = Query(1, description="当前用户ID"),
     asset_type: Optional[str] = Query(None, description="资源类型: image/video/audio"),
     location: Optional[str] = Query(None, description="地点筛选（城市或POI）"),
+    location_poi: Optional[str] = Query(None, description="地标筛选（location_poi 标签）"),
+    shot_at_start: Optional[date] = Query(None, description="拍摄日期起始（yyyy-mm-dd）"),
+    shot_at_end: Optional[date] = Query(None, description="拍摄日期结束（yyyy-mm-dd）"),
     sort_by: str = Query("shot_at", description="排序字段"),
     sort_order: str = Query("desc", description="排序方向: asc/desc"),
+    is_favorited: Optional[bool] = Query(None, description="是否仅看收藏"),
     db: Session = Depends(get_db)
 ):
     """获取素材列表（支持筛选、分页、收藏状态）
@@ -34,8 +39,12 @@ def list_assets(
         user_id: 当前用户ID（用于判断收藏状态）
         asset_type: 资源类型筛选
         location: 地点筛选（匹配 location_city 或 location_poi）
+        location_poi: 地标筛选（匹配 location_poi）
+        shot_at_start: 拍摄日期起始
+        shot_at_end: 拍摄日期结束
         sort_by: 排序字段（shot_at/created_at）
         sort_order: 排序方向（asc/desc）
+        is_favorited: 是否仅看收藏
 
     返回:
         分页的素材列表，包含标签信息和收藏状态
@@ -59,16 +68,29 @@ def list_assets(
     if asset_type:
         query = query.filter(model.Asset.asset_type == asset_type)
 
-    # 地点筛选（需要子查询）
-    if location:
-        location_asset_ids = db.query(model.AssetTag.asset_id).filter(
+
+    # 地标筛选（location_poi）
+    if location_poi:
+        poi_asset_ids = db.query(model.AssetTag.asset_id).filter(
             and_(
-                model.AssetTag.tag_key.in_(['location_city', 'location_poi']),
-                model.AssetTag.tag_value.like(f'%{location}%'),
+                model.AssetTag.tag_key == 'location_poi',
+                model.AssetTag.tag_value.like(f'%{location_poi}%'),
                 model.AssetTag.is_deleted == False
             )
         ).distinct()
-        query = query.filter(model.Asset.id.in_(location_asset_ids))
+        query = query.filter(model.Asset.id.in_(poi_asset_ids))
+
+    # 拍摄日期范围筛选
+    if shot_at_start:
+        query = query.filter(func.date(model.Asset.shot_at) >= shot_at_start)
+    if shot_at_end:
+        query = query.filter(func.date(model.Asset.shot_at) <= shot_at_end)
+
+    # 收藏筛选
+    if is_favorited is True:
+        query = query.filter(model.UserFavorite.id.isnot(None))
+    elif is_favorited is False:
+        query = query.filter(model.UserFavorite.id.is_(None))
 
     # 3. 排序
     sort_column = getattr(model.Asset, sort_by, model.Asset.shot_at)
@@ -110,6 +132,15 @@ def list_assets(
         page_size=page_size,
         has_more=has_more
     ))
+
+
+@router.get("/locations", response_model=schema.ApiResponse[List[str]])
+def list_locations(
+    db: Session = Depends(get_db)
+):
+    """获取所有地标（location_poi）列表"""
+    values = MetadataDictionaryService.get_location_poi_values(db)
+    return schema.ApiResponse.success(data=values)
 
 
 @router.get("/{asset_id}", response_model=schema.ApiResponse[schema.AssetOut])
@@ -332,3 +363,13 @@ def unfavorite_asset(
     db.commit()
 
     return schema.ApiResponse.success(data={"message": "取消收藏成功"})
+
+
+@router.post("/batch-delete", response_model=schema.ApiResponse[dict])
+def batch_delete_assets(
+    request: schema.AssetBatchDeleteRequest,
+    db: Session = Depends(get_db)
+):
+    """批量删除素材（软删除）"""
+    result = AssetService.batch_delete_assets(db, request.asset_ids)
+    return schema.ApiResponse.success(data=result)

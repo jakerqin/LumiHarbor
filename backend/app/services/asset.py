@@ -6,11 +6,17 @@
 - 收藏状态查询
 """
 from typing import Dict, List, Optional, Set
+from pathlib import Path
+from datetime import datetime
+import shutil
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from .. import model
 from .asset_url import AssetUrlProviderFactory, AssetUrlProvider
+from .metadata_dictionary import MetadataDictionaryService
+from ..config import settings
+from ..tools.utils import get_logger
 
 
 # 默认查询的标签键
@@ -22,6 +28,8 @@ class AssetService:
 
     提供素材数据处理的通用方法，供路由层复用。
     """
+
+    _logger = get_logger(__name__)
 
     @staticmethod
     def build_asset_dict(
@@ -130,6 +138,162 @@ class AssetService:
         ).all()
 
         return {row[0] for row in favorited_rows}
+
+    @staticmethod
+    def batch_delete_assets(
+        db: Session,
+        asset_ids: List[int]
+    ) -> Dict[str, object]:
+        """批量软删除素材及关联数据"""
+        if not asset_ids:
+            return {"deleted": 0, "missing_ids": []}
+
+        unique_ids = list(dict.fromkeys(asset_ids))
+        assets = db.query(model.Asset).filter(
+            and_(
+                model.Asset.id.in_(unique_ids),
+                model.Asset.is_deleted == False
+            )
+        ).all()
+
+        found_ids = {asset.id for asset in assets}
+        location_values = []
+        if found_ids:
+            location_rows = db.query(model.AssetTag.tag_value).filter(
+                and_(
+                    model.AssetTag.asset_id.in_(found_ids),
+                    model.AssetTag.tag_key == 'location_poi',
+                    model.AssetTag.is_deleted == False
+                )
+            ).distinct().all()
+            location_values = [row[0] for row in location_rows]
+
+        AssetService._move_assets_to_trash(db, assets, found_ids)
+
+        for asset in assets:
+            asset.is_deleted = True
+
+        if found_ids:
+            db.query(model.AlbumAsset).filter(
+                and_(
+                    model.AlbumAsset.asset_id.in_(found_ids),
+                    model.AlbumAsset.is_deleted == False
+                )
+            ).update({model.AlbumAsset.is_deleted: True}, synchronize_session=False)
+
+            db.query(model.AssetTag).filter(
+                and_(
+                    model.AssetTag.asset_id.in_(found_ids),
+                    model.AssetTag.is_deleted == False
+                )
+            ).update({model.AssetTag.is_deleted: True}, synchronize_session=False)
+
+            db.query(model.UserFavorite).filter(
+                and_(
+                    model.UserFavorite.asset_id.in_(found_ids),
+                    model.UserFavorite.is_deleted == False
+                )
+            ).update({model.UserFavorite.is_deleted: True}, synchronize_session=False)
+
+        db.commit()
+
+        if location_values:
+            MetadataDictionaryService.remove_location_poi_if_unused(db, location_values)
+
+        missing_ids = [asset_id for asset_id in unique_ids if asset_id not in found_ids]
+        return {"deleted": len(found_ids), "missing_ids": missing_ids}
+
+    @staticmethod
+    def _move_assets_to_trash(db: Session, assets: List[model.Asset], found_ids: Set[int]) -> None:
+        trash_root = AssetService._get_trash_root()
+        if not trash_root:
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        for asset in assets:
+            asset_root = trash_root / timestamp / f"asset_{asset.id}"
+            for label, path in (
+                ("original", asset.original_path),
+                ("thumbnail", asset.thumbnail_path),
+                ("preview", getattr(asset, 'preview_path', None)),
+            ):
+                full_path, rel_path = AssetService._resolve_asset_path(trash_root.parent, path)
+                if not full_path or not rel_path:
+                    continue
+                if not full_path.exists():
+                    continue
+                if label == "original" and AssetService._is_path_in_use(
+                    db,
+                    asset.original_path,
+                    found_ids
+                ):
+                    AssetService._logger.warning(
+                        "原始文件仍被其他素材引用，跳过移动: %s",
+                        asset.original_path
+                    )
+                    continue
+
+                target_path = asset_root / rel_path
+                try:
+                    target_path.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.move(str(full_path), str(target_path))
+                except Exception as exc:
+                    AssetService._logger.warning(
+                        "移动素材文件失败 (%s): %s -> %s (%s)",
+                        label,
+                        full_path,
+                        target_path,
+                        exc
+                    )
+
+    @staticmethod
+    def _get_trash_root() -> Optional[Path]:
+        if not settings.NAS_DATA_PATH:
+            AssetService._logger.warning("NAS_DATA_PATH 未配置，跳过物理删除")
+            return None
+        nas_root = Path(settings.NAS_DATA_PATH).expanduser().resolve()
+        if not nas_root.exists() or not nas_root.is_dir():
+            AssetService._logger.warning("NAS_DATA_PATH 不存在或不是目录: %s", nas_root)
+            return None
+        return nas_root / "recycle_bin"
+
+    @staticmethod
+    def _resolve_asset_path(
+        nas_root: Path,
+        relative_path: Optional[str]
+    ) -> tuple[Optional[Path], Optional[Path]]:
+        if not relative_path:
+            return None, None
+        path = Path(relative_path)
+
+        if path.is_absolute():
+            try:
+                rel = path.resolve().relative_to(nas_root)
+            except ValueError:
+                AssetService._logger.warning(
+                    "素材路径不在 NAS 根目录内，跳过物理删除: %s",
+                    relative_path
+                )
+                return None, None
+            return path.resolve(), rel
+
+        if ".." in path.parts:
+            AssetService._logger.warning("素材路径包含非法片段，跳过物理删除: %s", relative_path)
+            return None, None
+
+        return (nas_root / path).resolve(), path
+
+    @staticmethod
+    def _is_path_in_use(db: Session, original_path: Optional[str], deleting_ids: Set[int]) -> bool:
+        if not original_path:
+            return False
+        query = db.query(model.Asset.id).filter(
+            model.Asset.original_path == original_path,
+            model.Asset.is_deleted == False
+        )
+        if deleting_ids:
+            query = query.filter(model.Asset.id.notin_(deleting_ids))
+        return query.first() is not None
 
     @staticmethod
     def get_url_provider() -> AssetUrlProvider:
