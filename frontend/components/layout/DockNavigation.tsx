@@ -41,10 +41,10 @@ export function DockNavigation() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const [isVisible, setIsVisible] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null); // 指示器父容器的引用
+  const containerRef = useRef<HTMLDivElement>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tooltipRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const indicatorRef = useRef<HTMLDivElement>(null);
+  const indicatorRef = useRef<HTMLDivElement>(null); // 活动指示器（固定在屏幕右侧边）
 
   // Dock 滑入/滑出动画
   useEffect(() => {
@@ -57,20 +57,36 @@ export function DockNavigation() {
     });
   }, [isVisible]);
 
-  // 鼠标移动检测（带滞后区机制，避免频繁闪烁）
+  // 鼠标移动检测（基于活动指示器位置 + 滞后区机制）
   useEffect(() => {
+    const TRIGGER_EXPAND = 100; // 触发区域垂直扩展范围（指示器上下各扩展 100px）
+    const SHOW_DISTANCE = 40; // 显示阈值（距离右侧边）
+    const HIDE_DISTANCE = 100; // 隐藏阈值（距离右侧边）
+
     const handleMouseMove = (e: MouseEvent) => {
       const distanceFromRight = window.innerWidth - e.clientX;
 
       setIsVisible((prevVisible) => {
-        // 显示阈值：距离右侧边 <= 50px 时显示
-        if (distanceFromRight <= 50) {
-          return true;
-        }
-        // 隐藏阈值：距离右侧边 > 100px 时隐藏
-        if (distanceFromRight > 100) {
+        // 隐藏条件：距离右侧边 > 100px（优先判断，避免误触发）
+        if (distanceFromRight > HIDE_DISTANCE) {
           return false;
         }
+
+        // 显示条件：鼠标在活动指示器附近 + 距离右侧边 <= 50px
+        if (indicatorRef.current && distanceFromRight <= SHOW_DISTANCE) {
+          const indicatorRect = indicatorRef.current.getBoundingClientRect();
+          const indicatorCenterY = indicatorRect.top + indicatorRect.height / 2;
+          const triggerTop = indicatorCenterY - TRIGGER_EXPAND;
+          const triggerBottom = indicatorCenterY + TRIGGER_EXPAND;
+
+          const isInTriggerZone =
+            e.clientY >= triggerTop && e.clientY <= triggerBottom;
+
+          if (isInTriggerZone) {
+            return true;
+          }
+        }
+
         // 50-100px 之间：保持前一状态（滞后区）
         return prevVisible;
       });
@@ -160,9 +176,9 @@ export function DockNavigation() {
     });
   };
 
-  // 活动指示器位置动画
+  // 活动指示器位置动画（使用屏幕绝对位置）
   useEffect(() => {
-    if (!indicatorRef.current || !containerRef.current) return;
+    if (!indicatorRef.current) return;
 
     // 找到匹配当前路径的 item 在 dockItems 中的索引
     const dockItemIndex = dockItems.findIndex((item) => item.href === pathname);
@@ -180,13 +196,11 @@ export function DockNavigation() {
     if (!activeButton) return;
 
     const buttonRect = activeButton.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
 
-    // 使用 containerRect 作为参考点（指示器的直接父容器）
-    const topOffset = buttonRect.top - containerRect.top + buttonRect.height / 2 - 12; // 12 = indicator height / 2
-
+    // 更新活动指示器（相对于屏幕的绝对位置）
+    const indicatorTop = buttonRect.top + buttonRect.height / 2 - 12; // 12 = indicator height / 2
     gsap.to(indicatorRef.current, {
-      top: topOffset,
+      top: indicatorTop,
       duration: 0.3,
       ease: 'power2.out',
     });
@@ -195,24 +209,29 @@ export function DockNavigation() {
   let itemIndex = 0; // 用于跟踪非 divider 项的索引
 
   return (
-    <nav
-      ref={navRef}
-      className="fixed right-0 top-0 h-screen flex items-center z-50"
-      style={{ transform: 'translateX(100%)' }}
-    >
+    <>
+      {/* 活动指示器（固定在屏幕右侧边，始终可见）*/}
       <div
-        ref={containerRef}
-        className="relative w-20 py-6 px-4 bg-black/40 backdrop-blur-2xl border-l border-white/10 rounded-l-3xl shadow-[-8px_0_32px_rgba(0,0,0,0.3)]"
-      >
-        {/* 活动指示器 */}
-        <div
-          ref={indicatorRef}
-          className="absolute -left-4 w-1 h-6 bg-gradient-to-b from-primary to-purple-600 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.8)] opacity-0"
-          style={{
-            opacity: dockItems.some((item) => item.href === pathname) ? 1 : 0,
-          }}
-        />
+        ref={indicatorRef}
+        className={cn(
+          'fixed right-0 w-1 h-6 bg-gradient-to-b from-primary to-purple-600 rounded-l-full shadow-[0_0_8px_rgba(59,130,246,0.8)]',
+          'transition-all duration-300 z-40'
+        )}
+        style={{
+          // 只在有激活页面时显示
+          display: dockItems.some((item) => item.href === pathname) ? 'block' : 'none',
+        }}
+      />
 
+      <nav
+        ref={navRef}
+        className="fixed right-0 top-0 h-screen flex items-center z-50"
+        style={{ transform: 'translateX(100%)' }}
+      >
+        <div
+          ref={containerRef}
+          className="relative w-20 py-6 px-4 bg-black/40 backdrop-blur-2xl border-l border-white/10 rounded-l-3xl shadow-[-8px_0_32px_rgba(0,0,0,0.3)]"
+        >
         <div className="space-y-3">
           {dockItems.map((item, index) => {
             if (item.type === 'divider') {
@@ -277,5 +296,6 @@ export function DockNavigation() {
         </div>
       </div>
     </nav>
+    </>
   );
 }
