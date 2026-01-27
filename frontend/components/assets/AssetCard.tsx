@@ -204,7 +204,7 @@ export function AssetCard({
       onMouseMove={disableHoverEffects ? undefined : handleMouseMove}
       onMouseEnter={disableHoverEffects ? undefined : handleMouseEnter}
       onMouseLeave={disableHoverEffects ? undefined : handleMouseLeave}
-      className="group cursor-pointer"
+      className="group cursor-pointer relative"
       style={{ perspective: '1000px' }}
       initial={disableEntryAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
@@ -248,43 +248,6 @@ export function AssetCard({
           }}
         />
 
-        {/* 右上角：类型图标 + 收藏按钮（浮起层） */}
-        <motion.div
-          className="absolute top-3 right-3 flex items-center gap-2 cursor-default"
-          style={{
-            transform: 'translateZ(30px)',
-            transformStyle: 'preserve-3d',
-          }}
-        >
-          <div
-            className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
-            aria-hidden="true"
-          >
-            <assetTypeMeta.Icon size={14} className={assetTypeMeta.className} />
-          </div>
-
-          <button
-            type="button"
-            onClick={handleFavoriteClick}
-            disabled={favoriteMutation.isPending}
-            className={`group/fav w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-              isFavorited
-                ? 'bg-red-500/10 hover:bg-red-500/20'
-                : 'bg-black/20 hover:bg-black/35'
-            }`}
-            aria-label={isFavorited ? '取消收藏' : '收藏'}
-          >
-            <Heart
-              size={14}
-              className={`transition-all duration-200 ${
-                isFavorited
-                  ? 'fill-red-500 text-red-500'
-                  : 'text-white group-hover/fav:scale-110'
-              } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
-            />
-          </button>
-        </motion.div>
-
         {/* Hover 信息覆盖层 */}
         <motion.div
           className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none"
@@ -314,6 +277,37 @@ export function AssetCard({
           </div>
         </motion.div>
       </motion.div>
+
+      {/* 右上角：类型图标 + 收藏按钮（固定在外层容器，不参与卡片 3D 变换） */}
+      <div className="absolute top-3 right-3 flex items-center gap-2 cursor-default z-10">
+        <div
+          className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
+          aria-hidden="true"
+        >
+          <assetTypeMeta.Icon size={14} className={assetTypeMeta.className} />
+        </div>
+
+        <button
+          type="button"
+          onClick={handleFavoriteClick}
+          disabled={favoriteMutation.isPending}
+          className={`group/fav w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+            isFavorited
+              ? 'bg-red-500/10 hover:bg-red-500/20'
+              : 'bg-black/20 hover:bg-black/35'
+          }`}
+          aria-label={isFavorited ? '取消收藏' : '收藏'}
+        >
+          <Heart
+            size={14}
+            className={`transition-all duration-200 ${
+              isFavorited
+                ? 'fill-red-500 text-red-500'
+                : 'text-white group-hover/fav:scale-110'
+            } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
+          />
+        </button>
+      </div>
     </motion.div>
   );
 }
