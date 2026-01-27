@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AssetGrid } from '@/components/assets/AssetGrid';
-import { AssetFilterPanel } from '@/components/assets/AssetFilterPanel';
+import { AssetFilterBar } from '@/components/assets/AssetFilterBar';
 import { UploadAssetsModal } from '@/components/assets/UploadAssetsModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
@@ -18,7 +18,6 @@ export default function AssetsPage() {
   const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -142,7 +141,7 @@ export default function AssetsPage() {
               <p className="text-foreground-secondary">浏览和管理所有照片、视频素材</p>
             </div>
 
-            <div ref={menuRef} className="relative">
+            <div ref={menuRef} className="relative z-50">
               <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
@@ -154,16 +153,6 @@ export default function AssetsPage() {
 
               {menuOpen && (
                 <div className="absolute right-0 mt-3 w-48 rounded-xl bg-background-secondary border border-white/10 shadow-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setFilterOpen(true);
-                      setMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 transition-colors"
-                  >
-                    筛选
-                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -219,6 +208,13 @@ export default function AssetsPage() {
           )}
         </div>
 
+        {/* 内联筛选栏 */}
+        <AssetFilterBar
+          filter={filter}
+          locations={locations}
+          onChange={setFilter}
+        />
+
         {/* 素材网格 */}
         <AssetGrid
           filter={filter}
@@ -228,14 +224,6 @@ export default function AssetsPage() {
           onSelectionToggle={handleSelectionToggle}
         />
       </div>
-
-      <AssetFilterPanel
-        open={filterOpen}
-        filter={filter}
-        locations={locations}
-        onChange={setFilter}
-        onClose={() => setFilterOpen(false)}
-      />
 
       <UploadAssetsModal
         open={uploadOpen}
