@@ -57,11 +57,23 @@ export function DockNavigation() {
     });
   }, [isVisible]);
 
-  // 鼠标移动检测
+  // 鼠标移动检测（带滞后区机制，避免频繁闪烁）
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       const distanceFromRight = window.innerWidth - e.clientX;
-      setIsVisible(distanceFromRight <= 1);
+
+      setIsVisible((prevVisible) => {
+        // 显示阈值：距离右侧边 <= 50px 时显示
+        if (distanceFromRight <= 50) {
+          return true;
+        }
+        // 隐藏阈值：距离右侧边 > 100px 时隐藏
+        if (distanceFromRight > 100) {
+          return false;
+        }
+        // 50-100px 之间：保持前一状态（滞后区）
+        return prevVisible;
+      });
     };
 
     window.addEventListener('mousemove', handleMouseMove);
