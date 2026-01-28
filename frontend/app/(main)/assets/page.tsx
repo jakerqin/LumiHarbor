@@ -9,15 +9,13 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
 import { ingestionApi } from '@/lib/api/ingestion';
 import type { Asset } from '@/lib/api/types';
-import { Image, MoreVertical } from 'lucide-react';
+import { Image, ListChecks, Upload, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function AssetsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const menuRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
@@ -35,17 +33,6 @@ export default function AssetsPage() {
   const handleAssetClick = (id: number) => {
     router.push(`/assets/${id}`);
   };
-
-  useEffect(() => {
-    if (!menuOpen) return;
-    const handleClickOutside = (event: MouseEvent) => {
-      if (!menuRef.current) return;
-      if (menuRef.current.contains(event.target as Node)) return;
-      setMenuOpen(false);
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [menuOpen]);
 
   useEffect(() => {
     if (!isBatchMode) return;
@@ -131,89 +118,52 @@ export default function AssetsPage() {
     <div className="min-h-screen py-12 px-8">
       <div className="max-w-[1920px] mx-auto">
         {/* 页面头部 */}
-        <div className="mb-12">
-          <div className="flex items-start justify-between gap-6 mb-6">
-            <div>
-              <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-                <Image size={40} className="text-primary" />
-                素材库
-              </h1>
-              <p className="text-foreground-secondary">浏览和管理所有照片、视频素材</p>
-            </div>
-
-            <div ref={menuRef} className="relative z-50">
-              <button
-                type="button"
-                onClick={() => setMenuOpen((prev) => !prev)}
-                className="h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
-                aria-label="素材操作菜单"
-              >
-                <MoreVertical size={20} />
-              </button>
-
-              {menuOpen && (
-                <div className="absolute right-0 mt-3 w-48 rounded-xl bg-background-secondary border border-white/10 shadow-xl overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isBatchMode) {
-                        handleExitBatchMode();
-                      } else {
-                        setIsBatchMode(true);
-                      }
-                      setMenuOpen(false);
-                    }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 transition-colors"
-                  >
-                    {isBatchMode ? '退出批量编辑' : '批量编辑'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMenuOpen(false);
-                      handleUploadPick();
-                    }}
-                    className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 transition-colors"
-                  >
-                    上传文件
-                  </button>
-                </div>
-              )}
-            </div>
+        <div className="mb-8">
+          <div>
+            <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
+              <Image size={40} className="text-primary" />
+              素材库
+            </h1>
+            <p className="text-foreground-secondary">浏览和管理所有照片、视频素材</p>
           </div>
-
-          {isBatchMode && (
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl bg-background-secondary border border-white/10 px-4 py-3">
-              <div className="text-sm text-foreground-secondary">
-                已选择 {selectedIds.size} 项
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={handleDeleteSelected}
-                  disabled={selectedIds.size === 0 || deleting}
-                  className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {deleting ? '删除中...' : '删除'}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleExitBatchMode}
-                  className="px-4 py-2 rounded-lg bg-background-tertiary hover:bg-white/10 transition-colors text-sm"
-                >
-                  取消
-                </button>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* 内联筛选栏 */}
-        <AssetFilterBar
-          filter={filter}
-          locations={locations}
-          onChange={setFilter}
-        />
+        {/* 筛选栏和操作按钮 */}
+        <div className="flex items-center justify-between gap-4">
+          <AssetFilterBar
+            filter={filter}
+            locations={locations}
+            onChange={setFilter}
+          />
+
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* 批量编辑按钮 */}
+            <button
+              type="button"
+              onClick={() => setIsBatchMode(!isBatchMode)}
+              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="批量编辑"
+            >
+              <ListChecks size={20} className={isBatchMode ? 'text-primary' : ''} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                批量编辑
+              </span>
+            </button>
+
+            {/* 上传按钮 */}
+            <button
+              type="button"
+              onClick={handleUploadPick}
+              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="上传素材"
+            >
+              <Upload size={20} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                上传素材
+              </span>
+            </button>
+          </div>
+        </div>
 
         {/* 素材网格 */}
         <AssetGrid
@@ -224,6 +174,48 @@ export default function AssetsPage() {
           onSelectionToggle={handleSelectionToggle}
         />
       </div>
+
+      {/* 批量编辑浮动操作栏 */}
+      {isBatchMode && (
+        <div className="fixed left-1/2 bottom-32 -translate-x-1/2 z-50">
+          <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-background-secondary/80 backdrop-blur-lg border border-white/10 shadow-2xl">
+            {/* 选中数量 */}
+            <div className="text-sm text-foreground-secondary px-3">
+              已选择 <span className="text-foreground font-medium">{selectedIds.size}</span> 项
+            </div>
+
+            {/* 分隔线 */}
+            <div className="h-6 w-px bg-white/10" />
+
+            {/* 删除按钮 */}
+            <button
+              type="button"
+              onClick={handleDeleteSelected}
+              disabled={selectedIds.size === 0 || deleting}
+              className="group relative h-10 w-10 rounded-lg bg-red-500/10 hover:bg-red-500/20 inline-flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              aria-label="删除选中素材"
+            >
+              <Trash2 size={18} className="text-red-400" />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                {deleting ? '删除中...' : '删除'}
+              </span>
+            </button>
+
+            {/* 取消按钮 */}
+            <button
+              type="button"
+              onClick={handleExitBatchMode}
+              className="group relative h-10 w-10 rounded-lg bg-background-tertiary hover:bg-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="取消批量编辑"
+            >
+              <X size={18} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                取消
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
 
       <UploadAssetsModal
         open={uploadOpen}
