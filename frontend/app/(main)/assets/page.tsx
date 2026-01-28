@@ -98,11 +98,11 @@ export default function AssetsPage() {
     setPendingFiles([]);
   };
 
-  const handleUploadSubmit = async (payload: { files: File[]; locationPoi?: string }) => {
+  const handleUploadSubmit = async (payload: { files: File[]; locationData?: import('@/components/common/MapPicker').LocationData }) => {
     if (uploading) return;
     setUploading(true);
     try {
-      await ingestionApi.uploadAssets(payload.files, payload.locationPoi);
+      await ingestionApi.uploadAssets(payload.files, payload.locationData);
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       setUploadOpen(false);
       setPendingFiles([]);

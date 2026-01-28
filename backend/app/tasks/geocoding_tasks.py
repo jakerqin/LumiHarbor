@@ -17,16 +17,16 @@ logger = get_logger(__name__)
 @broker.task(task_name="calculate_location", retry_on_error=True, max_retries=3)
 async def calculate_location_task(
     asset_id: int,
-    latitude: float,
     longitude: float,
+    latitude: float,
     task_log_id: int = None
 ) -> dict:
     """异步计算地理位置信息任务
 
     Args:
         asset_id: 素材 ID
-        latitude: GPS 纬度
         longitude: GPS 经度
+        latitude: GPS 纬度
         task_log_id: 任务日志 ID（用于更新任务状态）
 
     Returns:
@@ -44,7 +44,7 @@ async def calculate_location_task(
         - 更新 task_logs 表记录任务状态
         - 失败重试 3 次后记录失败任务
     """
-    logger.info(f"🚀 开始异步计算地理位置 - Asset ID: {asset_id}, GPS: ({latitude}, {longitude})")
+    logger.info(f"🚀 开始异步计算地理位置 - Asset ID: {asset_id}, GPS: ({longitude}, {latitude})")
 
     db = SessionLocal()
     try:
@@ -58,7 +58,7 @@ async def calculate_location_task(
 
         # 2. 调用地理编码服务
         location_service = LocationService(settings.AMAP_API_KEY or None)
-        location_tags = location_service.extract_location_tags(latitude, longitude)
+        location_tags = location_service.extract_location_tags(longitude, latitude)
 
         if not location_tags:
             # 地理编码失败（可能是网络问题或坐标无效）

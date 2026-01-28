@@ -309,8 +309,8 @@ class AssetProcessor:
                     run_coroutine_sync(
                         calculate_location_task.kiq(
                             asset_id=asset.id,
-                            latitude=latitude,
                             longitude=longitude,
+                            latitude=latitude,
                             task_log_id=task_log.id
                         )
                     )

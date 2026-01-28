@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Upload, X, MapPin } from 'lucide-react';
+import { MapPicker, type LocationData } from '@/components/common/MapPicker';
 
 interface UploadAssetsModalProps {
   open: boolean;
@@ -10,7 +11,10 @@ interface UploadAssetsModalProps {
   uploading: boolean;
   onPickFiles: () => void;
   onClose: () => void;
-  onSubmit: (payload: { files: File[]; locationPoi?: string }) => void;
+  onSubmit: (payload: {
+    files: File[];
+    locationData?: LocationData;
+  }) => void;
 }
 
 export function UploadAssetsModal({
@@ -22,11 +26,12 @@ export function UploadAssetsModal({
   onClose,
   onSubmit,
 }: UploadAssetsModalProps) {
-  const [locationPoi, setLocationPoi] = useState('');
+  const [mapPickerOpen, setMapPickerOpen] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
 
   useEffect(() => {
     if (open) return;
-    setLocationPoi('');
+    setSelectedLocation(null);
   }, [open]);
 
   const previewFiles = useMemo(() => files.slice(0, 5), [files]);
@@ -79,23 +84,45 @@ export function UploadAssetsModal({
             </div>
 
             <div className="space-y-3">
-              <div className="flex items-center gap-2 text-sm text-foreground-secondary">
-                <MapPin size={16} />
-                <span>拍摄地点</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-sm text-foreground-secondary">
+                  <MapPin size={16} />
+                  <span>拍摄地点</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setMapPickerOpen(true)}
+                  className="px-3 py-1.5 rounded-lg bg-primary/10 hover:bg-primary/20 text-primary text-sm transition-colors"
+                >
+                  在地图上选择
+                </button>
               </div>
-              <input
-                type="text"
-                list="upload-location-options"
-                value={locationPoi}
-                onChange={(event) => setLocationPoi(event.target.value)}
-                placeholder="输入或选择地标（可选）"
-                className="w-full px-3 py-2 rounded-lg bg-background-tertiary border border-white/10 text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
-              />
-              <datalist id="upload-location-options">
-                {locations.map((location) => (
-                  <option key={location} value={location} />
-                ))}
-              </datalist>
+
+              {selectedLocation ? (
+                <div className="p-3 rounded-lg bg-background-tertiary border border-white/10 space-y-2">
+                  <div className="text-sm">
+                    <span className="text-foreground-secondary">经纬度：</span>
+                    <span className="text-foreground">{selectedLocation.longitude.toFixed(6)}, {selectedLocation.latitude.toFixed(6)}</span>
+                  </div>
+                  {selectedLocation.formatted && (
+                    <div className="text-sm">
+                      <span className="text-foreground-secondary">地址：</span>
+                      <span className="text-foreground">{selectedLocation.formatted}</span>
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setSelectedLocation(null)}
+                    className="text-xs text-foreground-secondary hover:text-foreground transition-colors"
+                  >
+                    清除
+                  </button>
+                </div>
+              ) : (
+                <div className="text-sm text-foreground-secondary">
+                  未选择地点（可选）
+                </div>
+              )}
             </div>
           </div>
 
@@ -121,7 +148,7 @@ export function UploadAssetsModal({
                 onClick={() =>
                   onSubmit({
                     files,
-                    locationPoi: locationPoi.trim() ? locationPoi.trim() : undefined,
+                    locationData: selectedLocation || undefined,
                   })
                 }
                 disabled={files.length === 0 || uploading}
@@ -134,6 +161,16 @@ export function UploadAssetsModal({
           </div>
         </div>
       </div>
+
+      {/* 地图选择器 */}
+      <MapPicker
+        open={mapPickerOpen}
+        onConfirm={(location) => {
+          setSelectedLocation(location);
+          setMapPickerOpen(false);
+        }}
+        onClose={() => setMapPickerOpen(false)}
+      />
     </div>
   );
 }

@@ -20,8 +20,8 @@
 
     await calculate_location_task.kiq(
         asset_id=123,
-        latitude=39.9042,
         longitude=116.4074,
+        latitude=39.9042,
         task_log_id=1
     )
 

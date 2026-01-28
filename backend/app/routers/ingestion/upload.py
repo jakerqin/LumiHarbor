@@ -26,6 +26,7 @@ async def upload_single_asset(
     created_by: int = Form(1),
     visibility: str = Form("general"),
     location_poi: Optional[str] = Form(None),
+    default_gps: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """通过 HTTP 上传单个素材文件
@@ -34,12 +35,14 @@ async def upload_single_asset(
         file: 上传的文件
         created_by: 创建者用户ID
         visibility: 素材可见性 ('general' | 'private')
+        location_poi: 地标名称（可选）
+        default_gps: 默认经纬度，格式：'经度,纬度'（可选）
 
     返回:
         上传结果信息
     """
     logger.info(f"接收上传文件: {file.filename}, 类型: {file.content_type}")
-    return await _handle_upload([file], created_by, visibility, location_poi, db)
+    return await _handle_upload([file], created_by, visibility, location_poi, default_gps, db)
 
 
 @router.post("/upload/batch", response_model=schema.ApiResponse[dict])
@@ -48,6 +51,7 @@ async def upload_batch_assets(
     created_by: int = Form(1),
     visibility: str = Form("general"),
     location_poi: Optional[str] = Form(None),
+    default_gps: Optional[str] = Form(None),
     db: Session = Depends(get_db)
 ):
     """批量上传素材文件
@@ -56,12 +60,14 @@ async def upload_batch_assets(
         files: 上传的文件列表
         created_by: 创建者用户ID
         visibility: 素材可见性 ('general' | 'private')
+        location_poi: 地标名称（可选）
+        default_gps: 默认经纬度，格式：'经度,纬度'（可选）
 
     返回:
         批量上传结果信息
     """
     logger.info(f"接收批量上传，共 {len(files)} 个文件")
-    return await _handle_upload(files, created_by, visibility, location_poi, db)
+    return await _handle_upload(files, created_by, visibility, location_poi, default_gps, db)
 
 
 async def _handle_upload(
@@ -69,16 +75,26 @@ async def _handle_upload(
     created_by: int,
     visibility: str,
     location_poi: Optional[str],
+    default_gps: Optional[str],
     db: Session
 ) -> schema.ApiResponse[dict]:
     if not files:
         raise HTTPException(status_code=400, detail="未选择上传文件")
 
+    # 解析默认 GPS
+    parsed_gps = None
+    if default_gps:
+        try:
+            lng_str, lat_str = default_gps.split(',')
+            parsed_gps = (float(lng_str), float(lat_str))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="经纬度格式错误，应为：'经度,纬度'")
+
     temp_dir = tempfile.mkdtemp(prefix="ingestion-upload-")
     normalized_location = _normalize_location_poi(location_poi)
     try:
         _save_upload_files(files, temp_dir)
-        stats, imported_ids = _import_uploaded_files(temp_dir, created_by, visibility, db)
+        stats, imported_ids = _import_uploaded_files(temp_dir, created_by, visibility, parsed_gps, db)
         location_tags = 0
         if normalized_location:
             location_tags = _apply_location_poi_tags(db, imported_ids, normalized_location)
@@ -123,12 +139,14 @@ def _import_uploaded_files(
     temp_dir: str,
     created_by: int,
     visibility: str,
+    default_gps: Optional[tuple[float, float]],
     db: Session
 ):
     config = ImportConfig(
         scan_path=temp_dir,
         created_by=created_by,
         visibility=visibility,
+        default_gps=default_gps,
         db=db
     )
     service = AssetImportService(config)
