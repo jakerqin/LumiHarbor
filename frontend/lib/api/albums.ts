@@ -67,16 +67,25 @@ function toAlbum(dto: BackendAlbum): Album {
 
 export const albumsApi = {
   // 获取相册列表
-  getAlbums: async (page: number = 1, pageSize: number = 20): Promise<AlbumsResponse> => {
+  getAlbums: async (
+    page: number = 1,
+    pageSize: number = 20,
+    filter?: { name?: string; shot_at_start?: string; shot_at_end?: string }
+  ): Promise<AlbumsResponse> => {
     const skip = (page - 1) * pageSize;
-    const response = await apiClient.get<BackendAlbumsPageResponse>('/albums', {
-      params: {
-        skip,
-        limit: pageSize,
-        sort_by: 'created_at',
-        order: 'desc',
-      },
-    });
+    const params: Record<string, any> = {
+      skip,
+      limit: pageSize,
+      sort_by: 'created_at',
+      order: 'desc',
+    };
+
+    // 添加筛选参数（注意：后端使用 search 而不是 name）
+    if (filter?.name) params.search = filter.name;
+    if (filter?.shot_at_start) params.start_time_from = filter.shot_at_start;
+    if (filter?.shot_at_end) params.end_time_to = filter.shot_at_end;
+
+    const response = await apiClient.get<BackendAlbumsPageResponse>('/albums', { params });
 
     return {
       albums: response.data.albums.map(toAlbum),
@@ -101,10 +110,19 @@ export const albumsApi = {
   },
 
   // 创建相册
-  createAlbum: async (name: string, description: string): Promise<Album> => {
+  createAlbum: async (data: {
+    name: string;
+    description?: string;
+    start_time?: string;
+    end_time?: string;
+    cover_asset_id?: number;
+  }): Promise<Album> => {
     const response = await apiClient.post<BackendAlbum>('/albums', {
-      name,
-      description,
+      name: data.name,
+      description: data.description || '',
+      start_time: data.start_time || null,
+      end_time: data.end_time || null,
+      cover_asset_id: data.cover_asset_id || null,
       visibility: 'general',
     });
     return toAlbum(response.data);

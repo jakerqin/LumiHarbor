@@ -12,6 +12,9 @@ import type { Asset } from '@/lib/api/types';
 import { Image, ListChecks, Upload, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
+// 禁用静态生成，因为页面使用了浏览器 API
+export const dynamic = 'force-dynamic';
+
 export default function AssetsPage() {
   const router = useRouter();
   const queryClient = useQueryClient();

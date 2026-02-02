@@ -1,19 +1,29 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AlbumMasonry } from './AlbumMasonry';
 import { albumsApi } from '@/lib/api/albums';
 import { useRouter } from 'next/navigation';
+import type { AlbumsFilter } from './AlbumFilterBar';
 
-export function AlbumGrid() {
+interface AlbumGridProps {
+  filter?: AlbumsFilter;
+}
+
+export function AlbumGrid({ filter = {} }: AlbumGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const router = useRouter();
 
+  // 筛选变化时重置页码
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
   const { data, isLoading, error } = useQuery({
-    queryKey: ['albums', page, pageSize],
-    queryFn: () => albumsApi.getAlbums(page, pageSize),
+    queryKey: ['albums', page, pageSize, filter],
+    queryFn: () => albumsApi.getAlbums(page, pageSize, filter),
   });
 
   const handleAlbumClick = (id: number) => {

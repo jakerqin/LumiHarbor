@@ -1,61 +1,61 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import {
-  Calendar,
-  MapPin,
-  Heart,
-  Plus,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-} from 'lucide-react';
+import { Calendar, Plus, X, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { DayPicker, type DateRange, type DropdownProps as DayPickerDropdownProps } from 'react-day-picker';
 import { format, parse } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import type { AssetsFilter } from '@/lib/api/assets';
 
 // ============================================================
 // 类型定义
 // ============================================================
 
-interface AssetFilterBarProps {
-  filter: AssetsFilter;
-  locations: string[];
-  onChange: (filter: AssetsFilter) => void;
+export interface AlbumsFilter {
+  name?: string;
+  shot_at_start?: string;
+  shot_at_end?: string;
 }
 
-type FilterType = 'date' | 'location' | 'favorite';
+interface AlbumFilterBarProps {
+  filter: AlbumsFilter;
+  onChange: (filter: AlbumsFilter) => void;
+}
+
+type FilterType = 'name' | 'date';
 
 // ============================================================
 // 工具函数
 // ============================================================
 
-function normalizeFilter(filter: AssetsFilter): AssetsFilter {
-  const next: AssetsFilter = { ...filter };
+function normalizeFilter(filter: AlbumsFilter): AlbumsFilter {
+  const next: AlbumsFilter = { ...filter };
+  if (!next.name?.trim()) delete next.name;
   if (!next.shot_at_start) delete next.shot_at_start;
   if (!next.shot_at_end) delete next.shot_at_end;
-  if (next.location_poi !== undefined) {
-    const cleaned = next.location_poi.trim();
-    if (cleaned) {
-      next.location_poi = cleaned;
-    } else {
-      delete next.location_poi;
-    }
-  }
-  if (!next.is_favorited) delete next.is_favorited;
   return next;
 }
 
-// 生成时间筛选的显示文本
-function getDateLabel(filter: AssetsFilter): string {
+function getDateLabel(filter: AlbumsFilter): string {
   if (filter.shot_at_start && filter.shot_at_end) {
     return `${filter.shot_at_start} ~ ${filter.shot_at_end}`;
   }
   if (filter.shot_at_start) return `${filter.shot_at_start} 起`;
   if (filter.shot_at_end) return `至 ${filter.shot_at_end}`;
   return '';
+}
+
+function parseDate(dateStr?: string): Date | undefined {
+  if (!dateStr) return undefined;
+  try {
+    return parse(dateStr, 'yyyy-MM-dd', new Date());
+  } catch {
+    return undefined;
+  }
+}
+
+function formatDate(date?: Date): string | undefined {
+  if (!date) return undefined;
+  return format(date, 'yyyy-MM-dd');
 }
 
 // ============================================================
@@ -129,40 +129,13 @@ function FilterChip({ icon, label, onRemove, onClick, isActive, panel }: FilterC
           <X size={12} />
         </button>
       </div>
-      {/* 在 Chip 下方渲染面板 */}
       {isActive && panel}
     </div>
   );
 }
 
 // ============================================================
-// 时间筛选面板（使用 react-day-picker）
-// ============================================================
-
-interface DateFilterPanelProps {
-  filter: AssetsFilter;
-  onApply: (start?: string, end?: string) => void;
-  onClose: () => void;
-}
-
-// 解析日期字符串为 Date 对象
-function parseDate(dateStr?: string): Date | undefined {
-  if (!dateStr) return undefined;
-  try {
-    return parse(dateStr, 'yyyy-MM-dd', new Date());
-  } catch {
-    return undefined;
-  }
-}
-
-// 格式化 Date 对象为日期字符串
-function formatDate(date?: Date): string | undefined {
-  if (!date) return undefined;
-  return format(date, 'yyyy-MM-dd');
-}
-
-// ============================================================
-// 自定义下拉选择器组件（用于年月选择）
+// 自定义下拉选择器组件
 // ============================================================
 
 function CustomDropdown(props: DayPickerDropdownProps) {
@@ -171,7 +144,6 @@ function CustomDropdown(props: DayPickerDropdownProps) {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // 点击外部关闭
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (e: MouseEvent) => {
@@ -247,10 +219,19 @@ function CustomDropdown(props: DayPickerDropdownProps) {
   );
 }
 
+// ============================================================
+// 时间筛选面板
+// ============================================================
+
+interface DateFilterPanelProps {
+  filter: AlbumsFilter;
+  onApply: (start?: string, end?: string) => void;
+  onClose: () => void;
+}
+
 function DateFilterPanel({ filter, onApply, onClose }: DateFilterPanelProps) {
   const ref = useRef<HTMLDivElement>(null);
 
-  // 初始化日期范围
   const initialRange: DateRange | undefined = useMemo(() => {
     const from = parseDate(filter.shot_at_start);
     const to = parseDate(filter.shot_at_end);
@@ -284,7 +265,6 @@ function DateFilterPanel({ filter, onApply, onClose }: DateFilterPanelProps) {
       ref={ref}
       className="absolute left-0 top-full mt-2 p-4 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50"
     >
-      {/* 日期选择器 - 支持年月下拉选择 */}
       <DayPicker
         mode="range"
         selected={range}
@@ -328,7 +308,6 @@ function DateFilterPanel({ filter, onApply, onClose }: DateFilterPanelProps) {
         }}
       />
 
-      {/* 已选范围显示 */}
       <div className="mt-3 pt-3 border-t border-white/5">
         <div className="text-xs text-foreground-secondary mb-3">
           {range?.from && range?.to ? (
@@ -343,7 +322,6 @@ function DateFilterPanel({ filter, onApply, onClose }: DateFilterPanelProps) {
           )}
         </div>
 
-        {/* 操作按钮 */}
         <div className="flex justify-end gap-2">
           <button
             type="button"
@@ -373,18 +351,18 @@ function DateFilterPanel({ filter, onApply, onClose }: DateFilterPanelProps) {
 }
 
 // ============================================================
-// 地点筛选面板
+// 名称筛选面板
 // ============================================================
 
-interface LocationFilterPanelProps {
-  locations: string[];
-  onSelect: (location: string) => void;
+interface NameFilterPanelProps {
+  value: string;
+  onApply: (name: string) => void;
   onClose: () => void;
 }
 
-function LocationFilterPanel({ locations, onSelect, onClose }: LocationFilterPanelProps) {
+function NameFilterPanel({ value, onApply, onClose }: NameFilterPanelProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const [search, setSearch] = useState('');
+  const [name, setName] = useState(value);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -401,60 +379,51 @@ function LocationFilterPanel({ locations, onSelect, onClose }: LocationFilterPan
     };
   }, [onClose]);
 
-  // 模糊搜索过滤
-  const filteredLocations = useMemo(() => {
-    if (!search.trim()) return locations;
-    const keyword = search.toLowerCase().trim();
-    return locations.filter((loc) => loc.toLowerCase().includes(keyword));
-  }, [locations, search]);
+  const handleApply = () => {
+    onApply(name.trim());
+  };
 
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-2 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50 min-w-[240px] overflow-hidden"
+      className="absolute left-0 top-full mt-2 p-4 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50 min-w-[320px]"
     >
-      {/* 搜索框 */}
-      <div className="p-3 border-b border-white/5">
-        <div className="relative">
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm text-foreground-secondary mb-2">相册名称</label>
           <input
             type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="搜索地点..."
-            className="w-full pl-3 pr-8 py-2 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-foreground-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="输入相册名称..."
+            className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-foreground-secondary/50 focus:outline-none focus:border-primary/50 transition-colors"
             autoFocus
           />
-          {search && (
-            <button
-              type="button"
-              onClick={() => setSearch('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10"
-            >
-              <X size={12} className="text-foreground-secondary" />
-            </button>
-          )}
         </div>
-      </div>
 
-      {/* 地点列表 */}
-      <div className="max-h-[280px] overflow-y-auto p-2">
-        {filteredLocations.length === 0 ? (
-          <div className="px-3 py-4 text-center text-sm text-foreground-secondary">
-            {locations.length === 0 ? '暂无地点数据' : '无匹配结果'}
-          </div>
-        ) : (
-          filteredLocations.map((loc) => (
-            <button
-              key={loc}
-              type="button"
-              onClick={() => onSelect(loc)}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-sm rounded-xl hover:bg-white/5 transition-colors"
-            >
-              <MapPin size={14} className="text-foreground-secondary shrink-0" />
-              <span className="truncate">{loc}</span>
-            </button>
-          ))
-        )}
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setName('')}
+            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/5 transition-colors"
+          >
+            清除
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/5 transition-colors"
+          >
+            取消
+          </button>
+          <button
+            type="button"
+            onClick={handleApply}
+            className="px-4 py-1.5 text-sm bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+          >
+            应用
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -464,63 +433,71 @@ function LocationFilterPanel({ locations, onSelect, onClose }: LocationFilterPan
 // 主组件
 // ============================================================
 
-export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarProps) {
+export function AlbumFilterBar({ filter, onChange }: AlbumFilterBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<FilterType | null>(null);
   const [filterOrder, setFilterOrder] = useState<FilterType[]>([]);
 
-  // 判断各筛选是否激活
+  const hasNameFilter = Boolean(filter.name?.trim());
   const hasDateFilter = Boolean(filter.shot_at_start || filter.shot_at_end);
-  const hasLocationFilter = Boolean(filter.location_poi);
-  const hasFavoriteFilter = Boolean(filter.is_favorited);
-  const hasAnyFilter = hasDateFilter || hasLocationFilter || hasFavoriteFilter;
+  const hasAnyFilter = hasNameFilter || hasDateFilter;
 
-  // 初始化筛选顺序（仅在组件挂载时执行一次）
   useEffect(() => {
     const initialOrder: FilterType[] = [];
+    if (hasNameFilter) initialOrder.push('name');
     if (hasDateFilter) initialOrder.push('date');
-    if (hasLocationFilter) initialOrder.push('location');
-    if (hasFavoriteFilter) initialOrder.push('favorite');
     setFilterOrder(initialOrder);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 更新筛选（同时更新顺序）
-  const updateFilter = (next: AssetsFilter, addedType?: FilterType) => {
+  const updateFilter = (next: AlbumsFilter, addedType?: FilterType) => {
     onChange(normalizeFilter(next));
-
-    // 如果添加了新筛选，更新顺序
     if (addedType && !filterOrder.includes(addedType)) {
       setFilterOrder([...filterOrder, addedType]);
     }
   };
 
-  // 移除单个筛选（同时从顺序中移除）
+  const removeName = () => {
+    updateFilter({ ...filter, name: undefined });
+    setFilterOrder(filterOrder.filter(t => t !== 'name'));
+  };
+
   const removeDate = () => {
     updateFilter({ ...filter, shot_at_start: undefined, shot_at_end: undefined });
     setFilterOrder(filterOrder.filter(t => t !== 'date'));
   };
-  const removeLocation = () => {
-    updateFilter({ ...filter, location_poi: undefined });
-    setFilterOrder(filterOrder.filter(t => t !== 'location'));
-  };
-  const removeFavorite = () => {
-    updateFilter({ ...filter, is_favorited: false });
-    setFilterOrder(filterOrder.filter(t => t !== 'favorite'));
-  };
 
-  // 打开筛选面板
   const openPanel = (type: FilterType) => {
     setActivePanel(type);
     setMenuOpen(false);
   };
 
-  // 关闭面板
   const closePanel = () => setActivePanel(null);
 
-  // 根据类型渲染对应的 FilterChip
   const renderFilterChip = (type: FilterType) => {
     switch (type) {
+      case 'name':
+        if (!hasNameFilter) return null;
+        return (
+          <FilterChip
+            key="name"
+            icon={<span className="text-xs">📝</span>}
+            label={filter.name!}
+            onRemove={removeName}
+            onClick={() => setActivePanel(activePanel === 'name' ? null : 'name')}
+            isActive={activePanel === 'name'}
+            panel={
+              <NameFilterPanel
+                value={filter.name || ''}
+                onApply={(name) => {
+                  updateFilter({ ...filter, name }, 'name');
+                  closePanel();
+                }}
+                onClose={closePanel}
+              />
+            }
+          />
+        );
       case 'date':
         if (!hasDateFilter) return null;
         return (
@@ -543,38 +520,6 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
             }
           />
         );
-      case 'location':
-        if (!hasLocationFilter) return null;
-        return (
-          <FilterChip
-            key="location"
-            icon={<MapPin size={14} />}
-            label={filter.location_poi!}
-            onRemove={removeLocation}
-            onClick={() => setActivePanel(activePanel === 'location' ? null : 'location')}
-            isActive={activePanel === 'location'}
-            panel={
-              <LocationFilterPanel
-                locations={locations}
-                onSelect={(loc) => {
-                  updateFilter({ ...filter, location_poi: loc }, 'location');
-                  closePanel();
-                }}
-                onClose={closePanel}
-              />
-            }
-          />
-        );
-      case 'favorite':
-        if (!hasFavoriteFilter) return null;
-        return (
-          <FilterChip
-            key="favorite"
-            icon={<Heart size={14} className="fill-current" />}
-            label="已收藏"
-            onRemove={removeFavorite}
-          />
-        );
       default:
         return null;
     }
@@ -582,10 +527,8 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
 
   return (
     <div className="relative mb-6 flex flex-wrap items-center gap-2">
-      {/* 已激活的筛选 Chips - 按添加顺序显示 */}
       {filterOrder.map(type => renderFilterChip(type))}
 
-      {/* 添加筛选按钮 */}
       <div className="relative">
         <Dropdown
           open={menuOpen}
@@ -601,7 +544,16 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
           }
         >
           <div className="p-2 space-y-1">
-            {/* 时间筛选选项 */}
+            {!hasNameFilter && (
+              <button
+                type="button"
+                onClick={() => openPanel('name')}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5 transition-colors"
+              >
+                <span className="text-base">📝</span>
+                <span>按名称筛选</span>
+              </button>
+            )}
             {!hasDateFilter && (
               <button
                 type="button"
@@ -612,33 +564,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
                 <span>按时间筛选</span>
               </button>
             )}
-            {/* 地点筛选选项 */}
-            {!hasLocationFilter && (
-              <button
-                type="button"
-                onClick={() => openPanel('location')}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5 transition-colors"
-              >
-                <MapPin size={16} className="text-foreground-secondary" />
-                <span>按地点筛选</span>
-              </button>
-            )}
-            {/* 收藏筛选选项 */}
-            {!hasFavoriteFilter && (
-              <button
-                type="button"
-                onClick={() => {
-                  updateFilter({ ...filter, is_favorited: true }, 'favorite');
-                  setMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm hover:bg-white/5 transition-colors"
-              >
-                <Heart size={16} className="text-foreground-secondary" />
-                <span>仅显示收藏</span>
-              </button>
-            )}
-            {/* 所有筛选都已激活时的提示 */}
-            {hasDateFilter && hasLocationFilter && hasFavoriteFilter && (
+            {hasNameFilter && hasDateFilter && (
               <div className="px-3 py-2 text-sm text-foreground-secondary">
                 所有筛选条件已添加
               </div>
@@ -646,7 +572,16 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
           </div>
         </Dropdown>
 
-        {/* 在「添加筛选」按钮下方渲染面板（仅当对应筛选未激活时） */}
+        {activePanel === 'name' && !hasNameFilter && (
+          <NameFilterPanel
+            value={filter.name || ''}
+            onApply={(name) => {
+              updateFilter({ ...filter, name }, 'name');
+              closePanel();
+            }}
+            onClose={closePanel}
+          />
+        )}
         {activePanel === 'date' && !hasDateFilter && (
           <DateFilterPanel
             filter={filter}
@@ -657,19 +592,8 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
             onClose={closePanel}
           />
         )}
-        {activePanel === 'location' && !hasLocationFilter && (
-          <LocationFilterPanel
-            locations={locations}
-            onSelect={(loc) => {
-              updateFilter({ ...filter, location_poi: loc }, 'location');
-              closePanel();
-            }}
-            onClose={closePanel}
-          />
-        )}
       </div>
 
-      {/* 清空所有筛选 */}
       {hasAnyFilter && (
         <button
           type="button"

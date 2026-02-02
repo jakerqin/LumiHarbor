@@ -1,16 +1,43 @@
 """相册业务逻辑层"""
 from sqlalchemy.orm import Session
-from sqlalchemy import func, or_, and_
+from sqlalchemy import func, and_
 from typing import List, Optional, Tuple
-from datetime import datetime
+from datetime import datetime, time
 from .. import model, schema
+from ..tools.utils import get_logger
 
-
+logger = get_logger(__name__)
 class AlbumService:
     """相册服务类（业务逻辑层）
 
     负责处理相册的 CRUD 操作、时间范围自动维护、封面管理等业务逻辑
     """
+
+    @staticmethod
+    def _parse_date_bound(date_str: str, field_name: str, bound: str) -> datetime:
+        """解析日期字符串为 datetime 边界（start -> 00:00:00.000000，end -> 23:59:59.999999）"""
+        try:
+            parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError as exc:
+            raise ValueError(f"{field_name} 格式错误，应为 YYYY-MM-DD") from exc
+
+        if bound == "start":
+            return datetime.combine(parsed_date, time.min)
+        if bound == "end":
+            return datetime.combine(parsed_date, time.max)
+        raise ValueError("无效的时间边界类型")
+
+    @staticmethod
+    def _validate_cover_asset(db: Session, cover_asset_id: Optional[int]) -> None:
+        """校验封面素材是否存在且未删除"""
+        if cover_asset_id is None:
+            return
+        exists = db.query(model.Asset.id).filter(
+            model.Asset.id == cover_asset_id,
+            model.Asset.is_deleted == False
+        ).first()
+        if not exists:
+            raise ValueError(f"封面素材不存在或已删除: {cover_asset_id}")
 
     @staticmethod
     def create_album(
@@ -28,11 +55,25 @@ class AlbumService:
         Returns:
             创建的相册对象
         """
+        start_dt = None
+        end_dt = None
+        if album_data.start_time:
+            start_dt = AlbumService._parse_date_bound(album_data.start_time, "start_time", "start")
+        if album_data.end_time:
+            end_dt = AlbumService._parse_date_bound(album_data.end_time, "end_time", "end")
+        if start_dt and end_dt and start_dt > end_dt:
+            raise ValueError("start_time 不能晚于 end_time")
+
+        AlbumService._validate_cover_asset(db, album_data.cover_asset_id)
+
         album = model.Album(
             name=album_data.name,
             description=album_data.description,
             visibility=album_data.visibility,
-            created_by=created_by
+            created_by=created_by,
+            start_time=start_dt,
+            end_time=end_dt,
+            cover_asset_id=album_data.cover_asset_id,
         )
         db.add(album)
         db.commit()
@@ -118,7 +159,9 @@ class AlbumService:
         order: str = "desc",
         visibility: Optional[str] = None,
         search: Optional[str] = None,
-        created_by: Optional[int] = None
+        created_by: Optional[int] = None,
+        start_time_from: Optional[str] = None,
+        end_time_to: Optional[str] = None
     ) -> Tuple[List[model.Album], int]:
         """获取相册列表（支持排序、筛选、搜索）
 
@@ -131,6 +174,8 @@ class AlbumService:
             visibility: 可见性筛选（general, private）
             search: 按名称模糊搜索
             created_by: 按创建者筛选
+            start_time_from: 相册开始时间筛选（相册 start_time >= 此值）
+            end_time_to: 相册结束时间筛选（相册 end_time <= 此值）
 
         Returns:
             (相册列表, 总数)
@@ -144,6 +189,18 @@ class AlbumService:
             query = query.filter(model.Album.created_by == created_by)
         if search:
             query = query.filter(model.Album.name.like(f"%{search}%"))
+
+        # 时间范围筛选（将日期字符串转换为 datetime 对象）
+        if start_time_from:
+            # 筛选 start_time >= start_time_from 00:00:00.000000
+            start_date = datetime.strptime(start_time_from, "%Y-%m-%d").date()
+            start_dt = datetime.combine(start_date, time.min)
+            query = query.filter(model.Album.start_time >= start_dt)
+        if end_time_to:
+            # 筛选 end_time <= end_time_to 23:59:59.999999
+            end_date = datetime.strptime(end_time_to, "%Y-%m-%d").date()
+            end_dt = datetime.combine(end_date, time.max)
+            query = query.filter(model.Album.end_time <= end_dt)
 
         # 获取总数
         total = query.count()
@@ -182,6 +239,31 @@ class AlbumService:
 
         # 仅更新提供的字段
         update_data = album_data.model_dump(exclude_unset=True)
+
+        if "start_time" in update_data:
+            start_value = update_data["start_time"]
+            update_data["start_time"] = (
+                AlbumService._parse_date_bound(start_value, "start_time", "start")
+                if start_value
+                else None
+            )
+
+        if "end_time" in update_data:
+            end_value = update_data["end_time"]
+            update_data["end_time"] = (
+                AlbumService._parse_date_bound(end_value, "end_time", "end")
+                if end_value
+                else None
+            )
+
+        if "cover_asset_id" in update_data:
+            AlbumService._validate_cover_asset(db, update_data["cover_asset_id"])
+
+        start_dt = update_data.get("start_time", album.start_time)
+        end_dt = update_data.get("end_time", album.end_time)
+        if start_dt and end_dt and start_dt > end_dt:
+            raise ValueError("start_time 不能晚于 end_time")
+
         for field, value in update_data.items():
             setattr(album, field, value)
 

@@ -30,7 +30,10 @@ def create_album(
     Returns:
         创建的相册信息
     """
-    album = AlbumService.create_album(db, album_data, current_user_id)
+    try:
+        album = AlbumService.create_album(db, album_data, current_user_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     return schema.ApiResponse.success(data=album)
 
 
@@ -46,6 +49,8 @@ def list_albums(
     visibility: Optional[str] = Query(None, description="可见性筛选"),
     search: Optional[str] = Query(None, description="按名称模糊搜索"),
     created_by: Optional[int] = Query(None, description="按创建者筛选"),
+    start_time_from: Optional[str] = Query(None, description="相册开始时间筛选（格式：YYYY-MM-DD）"),
+    end_time_to: Optional[str] = Query(None, description="相册结束时间筛选（格式：YYYY-MM-DD）"),
     db: Session = Depends(get_db)
 ):
     """获取相册列表（支持排序、筛选、搜索）
@@ -58,6 +63,8 @@ def list_albums(
         visibility: 可见性筛选（general, private）
         search: 按名称模糊搜索
         created_by: 按创建者筛选
+        start_time_from: 相册开始时间筛选（相册 start_time >= 此值）
+        end_time_to: 相册结束时间筛选（相册 end_time <= 此值）
         db: 数据库会话
 
     Returns:
@@ -71,7 +78,9 @@ def list_albums(
         order=order,
         visibility=visibility,
         search=search,
-        created_by=created_by
+        created_by=created_by,
+        start_time_from=start_time_from,
+        end_time_to=end_time_to
     )
 
     album_ids = [album.id for album in albums]
@@ -193,7 +202,10 @@ def update_album(
     Returns:
         更新后的相册信息
     """
-    album = AlbumService.update_album(db, album_id, album_data)
+    try:
+        album = AlbumService.update_album(db, album_id, album_data)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not album:
         raise HTTPException(status_code=404, detail="相册不存在")
 

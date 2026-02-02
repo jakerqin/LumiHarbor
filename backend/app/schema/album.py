@@ -19,10 +19,16 @@ class AlbumCreate(BaseModel):
     Attributes:
         name: 相册名称
         description: 相册描述
+        start_time: 相册开始时间（格式：YYYY-MM-DD）
+        end_time: 相册结束时间（格式：YYYY-MM-DD）
+        cover_asset_id: 封面素材ID
         visibility: 可见性（general: 公共, private: 私有）
     """
     name: str = Field(..., min_length=1, max_length=255, description="相册名称")
     description: Optional[str] = Field(None, description="相册描述")
+    start_time: Optional[str] = Field(None, description="相册开始时间（格式：YYYY-MM-DD）")
+    end_time: Optional[str] = Field(None, description="相册结束时间（格式：YYYY-MM-DD）")
+    cover_asset_id: Optional[int] = Field(None, description="封面素材ID")
     visibility: str = Field(default="general", description="可见性: general(公共), private(私有)")
 
 
@@ -32,10 +38,16 @@ class AlbumUpdate(BaseModel):
     Attributes:
         name: 相册名称
         description: 相册描述
+        start_time: 相册开始时间（格式：YYYY-MM-DD）
+        end_time: 相册结束时间（格式：YYYY-MM-DD）
+        cover_asset_id: 封面素材ID（可为空表示移除封面）
         visibility: 可见性
     """
     name: Optional[str] = Field(None, min_length=1, max_length=255, description="相册名称")
     description: Optional[str] = Field(None, description="相册描述")
+    start_time: Optional[str] = Field(None, description="相册开始时间（格式：YYYY-MM-DD）")
+    end_time: Optional[str] = Field(None, description="相册结束时间（格式：YYYY-MM-DD）")
+    cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可为空表示移除封面）")
     visibility: Optional[str] = Field(None, description="可见性: general(公共), private(私有)")
 
 

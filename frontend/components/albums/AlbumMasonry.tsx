@@ -23,6 +23,8 @@ const defaultBreakpointColumns: BreakpointColumns = {
  */
 const useMedia = (queries: string[], values: number[], defaultValue: number): number => {
   const [value, setValue] = useState<number>(() => {
+    // 服务端渲染时直接返回默认值
+    if (typeof window === 'undefined') return defaultValue;
     const index = queries.findIndex((q) => matchMedia(q).matches);
     return values[index] ?? defaultValue;
   });
@@ -182,11 +184,11 @@ export function AlbumMasonry({
         case 'top':
           return { x: item.x, y: -200 };
         case 'bottom':
-          return { x: item.x, y: window.innerHeight + 200 };
+          return { x: item.x, y: (typeof window !== 'undefined' ? window.innerHeight : 1000) + 200 };
         case 'left':
           return { x: -200, y: item.y };
         case 'right':
-          return { x: window.innerWidth + 200, y: item.y };
+          return { x: (typeof window !== 'undefined' ? window.innerWidth : 1000) + 200, y: item.y };
         case 'center':
           return {
             x: containerRect.width / 2 - item.w / 2,

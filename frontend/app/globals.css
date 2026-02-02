@@ -39,6 +39,27 @@
     scrollbar-width: none;
   }
 
+  /* 下拉列表滚动条样式（与下拉背景一致） */
+  .dropdown-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(59, 130, 246, 0.55) rgba(26, 26, 26, 0.95);
+  }
+
+  .dropdown-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .dropdown-scrollbar::-webkit-scrollbar-track {
+    background: rgba(26, 26, 26, 0.95);
+    border-radius: 999px;
+  }
+
+  .dropdown-scrollbar::-webkit-scrollbar-thumb {
+    background-color: rgba(59, 130, 246, 0.55);
+    border-radius: 999px;
+    border: 2px solid rgba(26, 26, 26, 0.95);
+  }
+
   .glass {
     @apply bg-white/10 backdrop-blur-xl border border-white/20;
   }
