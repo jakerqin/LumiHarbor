@@ -273,7 +273,7 @@ class AlbumService:
 
     @staticmethod
     def delete_album(db: Session, album_id: int) -> bool:
-        """删除相册（软删除）
+        """删除相册（软删除）并级联删除相册下所有素材及物理文件
 
         Args:
             db: 数据库会话
@@ -282,12 +282,29 @@ class AlbumService:
         Returns:
             是否删除成功
         """
+        from .asset import AssetService
+
         album = AlbumService.get_album_by_id(db, album_id)
         if not album:
             return False
 
+        # 获取相册下所有素材ID
+        asset_ids = db.query(model.AlbumAsset.asset_id).filter(
+            and_(
+                model.AlbumAsset.album_id == album_id,
+                model.AlbumAsset.is_deleted == False
+            )
+        ).all()
+        asset_ids = [row[0] for row in asset_ids]
+
+        # 软删除相册
         album.is_deleted = True
         db.commit()
+
+        # 批量删除素材及物理文件（会自动处理 album_assets、asset_tags 等关联数据）
+        if asset_ids:
+            AssetService.batch_delete_assets(db, asset_ids)
+
         return True
 
     @staticmethod

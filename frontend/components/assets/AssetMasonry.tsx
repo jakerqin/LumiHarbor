@@ -116,7 +116,7 @@ function getThumbnailUrl(asset: Asset): string {
       : `/${asset.thumbnail_path}`;
     return `${normalizedBaseUrl}${normalizedPath}`;
   }
-  return '/placeholder-image.jpg';
+  return '/icon.svg';
 }
 
 export interface AssetMasonryProps {

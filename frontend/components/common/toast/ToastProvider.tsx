@@ -42,7 +42,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       tone: options.tone ?? 'info',
       duration: options.duration ?? DEFAULT_DURATION,
       withProgress: options.withProgress ?? true,
-      hideClose: options.hideClose ?? false,
+      hideClose: options.hideClose ?? true,
       createdAt: now,
     };
 

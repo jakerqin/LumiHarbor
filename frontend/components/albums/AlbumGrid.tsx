@@ -1,11 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { AlbumMasonry } from './AlbumMasonry';
-import { albumsApi } from '@/lib/api/albums';
+import { albumsApi, type Album } from '@/lib/api/albums';
 import { useRouter } from 'next/navigation';
 import type { AlbumsFilter } from './AlbumFilterBar';
+import { CreateAlbumModal, type CreateAlbumData } from './CreateAlbumModal';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { useToast } from '@/components/common/toast/ToastProvider';
 
 interface AlbumGridProps {
   filter?: AlbumsFilter;
@@ -15,6 +18,14 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const { showToast } = useToast();
+
+  // 编辑/删除状态
+  const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
+  const [deletingAlbum, setDeletingAlbum] = useState<Album | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // 筛选变化时重置页码
   useEffect(() => {
@@ -28,6 +39,66 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
 
   const handleAlbumClick = (id: number) => {
     router.push(`/albums/${id}`);
+  };
+
+  // 编辑相册
+  const handleEdit = (album: Album) => {
+    setEditingAlbum(album);
+    setEditModalOpen(true);
+  };
+
+  // 删除相册
+  const handleDelete = (album: Album) => {
+    setDeletingAlbum(album);
+    setDeleteDialogOpen(true);
+  };
+
+  // 更新相册 mutation
+  const updateMutation = useMutation({
+    mutationFn: async (data: { id: number; updateData: CreateAlbumData }) => {
+      return albumsApi.updateAlbum(data.id, {
+        name: data.updateData.name,
+        description: data.updateData.description,
+        start_time: data.updateData.start_time,
+        end_time: data.updateData.end_time,
+        cover_asset_id: data.updateData.cover_asset_id,
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      showToast({ title: '相册更新成功', tone: 'success' });
+      setEditModalOpen(false);
+      setEditingAlbum(null);
+    },
+    onError: (error: any) => {
+      showToast({ title: error?.message || '相册更新失败', tone: 'error' });
+    },
+  });
+
+  // 删除相册 mutation
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => albumsApi.deleteAlbum(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      showToast({ title: '相册已删除', tone: 'success' });
+      setDeleteDialogOpen(false);
+      setDeletingAlbum(null);
+    },
+    onError: (error: any) => {
+      showToast({ title: error?.message || '删除失败', tone: 'error' });
+    },
+  });
+
+  // 提交编辑
+  const handleEditSubmit = (data: CreateAlbumData) => {
+    if (!editingAlbum) return;
+    updateMutation.mutate({ id: editingAlbum.id, updateData: data });
+  };
+
+  // 确认删除
+  const handleConfirmDelete = () => {
+    if (!deletingAlbum) return;
+    deleteMutation.mutate(deletingAlbum.id);
   };
 
   if (isLoading) {
@@ -67,7 +138,12 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
   return (
     <div>
       {/* 相册瀑布流 */}
-      <AlbumMasonry albums={data.albums} onAlbumClick={handleAlbumClick} />
+      <AlbumMasonry
+        albums={data.albums}
+        onAlbumClick={handleAlbumClick}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
       {/* 分页 */}
       {totalPages > 1 && (
@@ -122,6 +198,35 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
           </span>
         </div>
       )}
+
+      {/* 编辑相册 Modal */}
+      <CreateAlbumModal
+        open={editModalOpen}
+        mode="edit"
+        initialData={editingAlbum || undefined}
+        onClose={() => {
+          setEditModalOpen(false);
+          setEditingAlbum(null);
+        }}
+        onSubmit={handleEditSubmit}
+        loading={updateMutation.isPending}
+      />
+
+      {/* 删除确认 Dialog */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="删除相册"
+        description="删除相册也会删除相册下的所有素材及物理文件，此操作不可恢复，确定要继续吗？"
+        confirmText="删除"
+        cancelText="取消"
+        confirmTone="danger"
+        loading={deleteMutation.isPending}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => {
+          setDeleteDialogOpen(false);
+          setDeletingAlbum(null);
+        }}
+      />
     </div>
   );
 }

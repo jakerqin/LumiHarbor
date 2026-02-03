@@ -179,7 +179,7 @@ export function AssetCard({
         : `/${asset.thumbnail_path}`;
       return `${normalizedBaseUrl}${normalizedPath}`;
     }
-    return '/placeholder-image.jpg'; // 占位图
+    return '/icon.svg'; // 占位图
   };
 
   // 获取地点显示文本

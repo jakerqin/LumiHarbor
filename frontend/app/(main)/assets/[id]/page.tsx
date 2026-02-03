@@ -76,7 +76,7 @@ function getDisplayUrl(asset: Asset): string {
   if (originalUrl) return originalUrl;
 
   // 最后回退到缩略图
-  return resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/placeholder-image.jpg';
+  return resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/icon.svg';
 }
 
 function Pill({
@@ -302,11 +302,11 @@ export default function AssetDetailPage() {
   const originalUrl =
     resolveMediaUrl(asset.original_url, asset.original_path) ||
     resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) ||
-    '/placeholder-image.jpg';
+    '/icon.svg';
   const thumbnailUrl =
-    resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/placeholder-image.jpg';
+    resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/icon.svg';
   const locationText = [asset.location_city, asset.location_poi].filter(Boolean).join(' · ');
-  const canOpenOriginal = originalUrl !== '/placeholder-image.jpg';
+  const canOpenOriginal = originalUrl !== '/icon.svg';
   const headerTitle =
     locationText ||
     (shotAtDate ? format(shotAtDate, 'PPP', { locale: zhCN }) : `${typeMeta.label}详情`);
@@ -405,7 +405,7 @@ export default function AssetDetailPage() {
                 <video
                   key={originalUrl}
                   src={originalUrl}
-                  poster={thumbnailUrl !== '/placeholder-image.jpg' ? thumbnailUrl : undefined}
+                  poster={thumbnailUrl !== '/icon.svg' ? thumbnailUrl : undefined}
                   controls
                   playsInline
                   className="w-full max-h-[72vh] bg-black"
@@ -574,7 +574,7 @@ function SimilarAssetTile({
 }) {
   const typeMeta = getAssetTypeMeta(asset.asset_type);
   const thumbnailUrl =
-    resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/placeholder-image.jpg';
+    resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/icon.svg';
   const similarityLabel = `${Math.round(asset.similarity)}%`;
 
   return (

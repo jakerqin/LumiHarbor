@@ -103,6 +103,8 @@ interface GridItem {
 export interface AlbumMasonryProps {
   albums: Album[];
   onAlbumClick?: (id: number) => void;
+  onEdit?: (album: Album) => void;
+  onDelete?: (album: Album) => void;
   breakpointColumns?: BreakpointColumns;
   animateFrom?: 'bottom' | 'top' | 'left' | 'right' | 'center' | 'random';
   blurToFocus?: boolean;
@@ -114,6 +116,8 @@ export interface AlbumMasonryProps {
 export function AlbumMasonry({
   albums,
   onAlbumClick,
+  onEdit,
+  onDelete,
   breakpointColumns = defaultBreakpointColumns,
   animateFrom = 'bottom',
   blurToFocus = true,
@@ -262,6 +266,8 @@ export function AlbumMasonry({
           <AlbumCard
             album={item.album}
             onClick={() => onAlbumClick?.(item.album.id)}
+            onEdit={onEdit}
+            onDelete={onDelete}
             disableEntryAnimation
           />
         </div>

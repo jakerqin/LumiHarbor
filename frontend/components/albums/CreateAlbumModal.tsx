@@ -4,12 +4,15 @@ import { useEffect, useRef, useState } from 'react';
 import { X, Calendar, Image as ImageIcon, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 import { AssetPickerModal } from '@/components/common/AssetPickerModal';
 import type { Asset } from '@/lib/api/types';
+import type { Album } from '@/lib/api/albums';
 import { DayPicker, type DropdownProps as DayPickerDropdownProps } from 'react-day-picker';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
 interface CreateAlbumModalProps {
   open: boolean;
+  mode?: 'create' | 'edit';
+  initialData?: Album;
   onClose: () => void;
   onSubmit: (data: CreateAlbumData) => void;
   loading?: boolean;
@@ -220,7 +223,7 @@ function SingleDatePicker({
   );
 }
 
-export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlbumModalProps) {
+export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, onSubmit, loading }: CreateAlbumModalProps) {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
@@ -228,6 +231,36 @@ export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlb
   const [activePicker, setActivePicker] = useState<ActiveDatePicker>(null);
   const [coverAsset, setCoverAsset] = useState<Asset | null>(null);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
+
+  // 编辑模式下回显数据
+  useEffect(() => {
+    if (mode === 'edit' && initialData && open) {
+      setName(initialData.name);
+      setDescription(initialData.description || '');
+      setStartDate(initialData.startTime ? new Date(initialData.startTime) : undefined);
+      setEndDate(initialData.endTime ? new Date(initialData.endTime) : undefined);
+
+      // 封面回显：如果有 coverUrl，创建一个临时 Asset 对象
+      if (initialData.coverUrl) {
+        setCoverAsset({
+          id: 0, // 临时 ID，后端会使用 cover_asset_id
+          thumbnail_url: initialData.coverUrl,
+          preview_url: initialData.coverPreviewUrl,
+          original_url: initialData.coverOriginalUrl,
+          original_path: initialData.name,
+        } as Asset);
+      } else {
+        setCoverAsset(null);
+      }
+    } else if (mode === 'create' && open) {
+      // 创建模式下重置表单
+      setName('');
+      setDescription('');
+      setStartDate(undefined);
+      setEndDate(undefined);
+      setCoverAsset(null);
+    }
+  }, [mode, initialData, open]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -263,6 +296,10 @@ export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlb
 
   if (!open) return null;
 
+  const modalTitle = mode === 'edit' ? '编辑相册' : '创建相册';
+  const submitButtonText = mode === 'edit' ? '保存' : '创建相册';
+  const submitButtonLoadingText = mode === 'edit' ? '保存中...' : '创建中...';
+
   return (
     <>
       <div className="fixed inset-0 z-50 flex items-center justify-center">
@@ -276,7 +313,7 @@ export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlb
         <div className="relative w-full max-w-2xl mx-4 rounded-2xl bg-background-secondary/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden">
           {/* 头部 */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-            <h2 className="text-xl font-semibold">创建相册</h2>
+            <h2 className="text-xl font-semibold">{modalTitle}</h2>
             <button
               type="button"
               onClick={handleClose}
@@ -364,7 +401,7 @@ export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlb
               {coverAsset ? (
                 <div className="relative group">
                   <img
-                    src={coverAsset.thumbnail_url || '/placeholder-image.jpg'}
+                    src={coverAsset.thumbnail_url || '/icon.svg'}
                     alt={coverAsset.original_path || '封面'}
                     className="w-full h-48 object-cover rounded-xl"
                   />
@@ -415,7 +452,7 @@ export function CreateAlbumModal({ open, onClose, onSubmit, loading }: CreateAlb
                 disabled={loading || !name.trim()}
                 className="px-6 py-2.5 rounded-xl text-sm bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? '创建中...' : '创建相册'}
+                {loading ? submitButtonLoadingText : submitButtonText}
               </button>
             </div>
           </form>

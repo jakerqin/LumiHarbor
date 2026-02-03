@@ -127,4 +127,41 @@ export const albumsApi = {
     });
     return toAlbum(response.data);
   },
+
+  // 更新相册
+  updateAlbum: async (
+    id: number,
+    data: {
+      name?: string;
+      description?: string;
+      start_time?: string;
+      end_time?: string;
+      cover_asset_id?: number;
+    }
+  ): Promise<Album> => {
+    const response = await apiClient.put<BackendAlbum>(`/albums/${id}`, {
+      name: data.name,
+      description: data.description,
+      start_time: data.start_time || null,
+      end_time: data.end_time || null,
+      cover_asset_id: data.cover_asset_id || null,
+    });
+    return toAlbum(response.data);
+  },
+
+  // 删除相册
+  deleteAlbum: async (id: number): Promise<void> => {
+    await apiClient.delete(`/albums/${id}`);
+  },
+
+  // 批量添加素材到相册
+  addAssetsToAlbum: async (albumId: number, assetIds: number[]): Promise<{ success_count: number; failed_ids: number[]; total: number }> => {
+    const response = await apiClient.post(`/albums/${albumId}/assets/batch`, { asset_ids: assetIds });
+    return response.data;
+  },
+
+  // 从相册移除素材
+  removeAssetFromAlbum: async (albumId: number, assetId: number): Promise<void> => {
+    await apiClient.delete(`/albums/${albumId}/assets/${assetId}`);
+  },
 };
