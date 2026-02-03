@@ -5,8 +5,9 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlbumGrid } from '@/components/albums/AlbumGrid';
 import { AlbumFilterBar, type AlbumsFilter } from '@/components/albums/AlbumFilterBar';
 import { CreateAlbumModal, type CreateAlbumData } from '@/components/albums/CreateAlbumModal';
-import { FolderOpen, Plus } from 'lucide-react';
+import { FolderOpen, FolderPlus } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
+import { useToast } from '@/components/common/toast/ToastProvider';
 
 // 禁用静态生成，因为页面使用了浏览器 API
 export const dynamic = 'force-dynamic';
@@ -16,6 +17,7 @@ export default function AlbumsPage() {
   const [filter, setFilter] = useState<AlbumsFilter>({});
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const { showToast } = useToast();
 
   const handleCreateAlbum = async (data: CreateAlbumData) => {
     if (creating) return;
@@ -24,10 +26,10 @@ export default function AlbumsPage() {
       await albumsApi.createAlbum(data);
       queryClient.invalidateQueries({ queryKey: ['albums'] });
       setCreateModalOpen(false);
-      window.alert('相册创建成功！');
+      showToast({ title: '相册创建成功', description: '已刷新列表', tone: 'success', hideClose: true });
     } catch (error) {
       console.error(error);
-      window.alert('创建失败，请稍后重试');
+      showToast({ title: '创建失败', description: '请稍后重试', tone: 'error' });
     } finally {
       setCreating(false);
     }
@@ -56,10 +58,13 @@ export default function AlbumsPage() {
             <button
               type="button"
               onClick={() => setCreateModalOpen(true)}
-              className="group relative h-11 px-4 rounded-xl bg-primary hover:bg-primary-hover inline-flex items-center gap-2 transition-colors"
+              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="创建相册"
             >
-              <Plus size={20} />
-              <span className="font-medium">创建相册</span>
+              <FolderPlus size={20} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                创建相册
+              </span>
             </button>
           </div>
         </div>

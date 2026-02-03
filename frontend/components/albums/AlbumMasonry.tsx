@@ -79,6 +79,8 @@ const preloadImages = async (urls: string[]): Promise<void> => {
   );
 };
 
+const ITEM_GAP = 16;
+
 /**
  * 计算相册卡片高度（固定 16:10 宽高比 + 底部信息区域）
  */
@@ -150,15 +152,16 @@ export function AlbumMasonry({
     if (!width) return [];
 
     const colHeights = new Array(columns).fill(0);
-    const columnWidth = width / columns;
+    const totalGap = ITEM_GAP * (columns - 1);
+    const columnWidth = (width - totalGap) / columns;
 
     return albums.map((album) => {
       const col = colHeights.indexOf(Math.min(...colHeights));
-      const x = columnWidth * col;
+      const x = (columnWidth + ITEM_GAP) * col;
       const height = calculateAlbumCardHeight(columnWidth);
       const y = colHeights[col];
 
-      colHeights[col] += height;
+      colHeights[col] += height + ITEM_GAP;
 
       return { album, x, y, w: columnWidth, h: height };
     });
