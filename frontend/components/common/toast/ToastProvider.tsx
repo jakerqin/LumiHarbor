@@ -60,21 +60,26 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 
+  const portal =
+    typeof document !== 'undefined'
+      ? createPortal(
+          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-3 pointer-events-none max-w-[420px] w-[clamp(260px,40vw,420px)] items-center">
+            {toasts.map((toast) => (
+              <ToastCard
+                key={toast.id}
+                toast={toast}
+                onDismiss={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+              />
+            ))}
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <ToastContext.Provider value={value}>
       {children}
-      {createPortal(
-        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-3 pointer-events-none max-w-[420px] w-[clamp(260px,40vw,420px)] items-center">
-          {toasts.map((toast) => (
-            <ToastCard
-              key={toast.id}
-              toast={toast}
-              onDismiss={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
-            />
-          ))}
-        </div>,
-        document.body
-      )}
+      {portal}
     </ToastContext.Provider>
   );
 }
