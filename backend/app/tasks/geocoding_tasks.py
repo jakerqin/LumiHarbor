@@ -58,7 +58,7 @@ async def calculate_location_task(
 
         # 2. 调用地理编码服务
         location_service = LocationService(settings.AMAP_API_KEY or None)
-        location_tags = location_service.extract_location_tags(longitude, latitude)
+        location_tags = location_service.extract_location_tags(latitude, longitude)
 
         if not location_tags:
             # 地理编码失败（可能是网络问题或坐标无效）
