@@ -164,4 +164,28 @@ export const albumsApi = {
   removeAssetFromAlbum: async (albumId: number, assetId: number): Promise<void> => {
     await apiClient.delete(`/albums/${albumId}/assets/${assetId}`);
   },
+
+  // 从文件夹导入到相册
+  importFromFolder: async (data: {
+    album_name: string;
+    description?: string;
+    source_path: string;
+    start_time?: string;
+    end_time?: string;
+    default_gps?: string;
+  }): Promise<{ status: string; path: string }> => {
+    const response = await apiClient.post('/ingestion/scan', {
+      source_path: data.source_path,
+      created_by: 1,
+      visibility: 'general',
+      import_to_album: true,
+      album_info: {
+        album_name: data.album_name,
+        start_time: data.start_time ? `${data.start_time}T00:00:00` : null,
+        end_time: data.end_time ? `${data.end_time}T23:59:59` : null,
+      },
+      default_gps: data.default_gps || null,
+    });
+    return response.data;
+  },
 };

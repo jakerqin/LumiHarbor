@@ -5,7 +5,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { AlbumGrid } from '@/components/albums/AlbumGrid';
 import { AlbumFilterBar, type AlbumsFilter } from '@/components/albums/AlbumFilterBar';
 import { CreateAlbumModal, type CreateAlbumData } from '@/components/albums/CreateAlbumModal';
-import { FolderOpen, FolderPlus } from 'lucide-react';
+import { ImportAlbumModal, type ImportAlbumData } from '@/components/albums/ImportAlbumModal';
+import { FolderOpen, FolderPlus, FolderInput } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
 import { useToast } from '@/components/common/toast/ToastProvider';
 
@@ -16,7 +17,9 @@ export default function AlbumsPage() {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<AlbumsFilter>({});
   const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [importing, setImporting] = useState(false);
   const { showToast } = useToast();
 
   const handleCreateAlbum = async (data: CreateAlbumData) => {
@@ -32,6 +35,27 @@ export default function AlbumsPage() {
       showToast({ title: '创建失败', description: '请稍后重试', tone: 'error' });
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleImportAlbum = async (data: ImportAlbumData) => {
+    if (importing) return;
+    setImporting(true);
+    try {
+      await albumsApi.importFromFolder(data);
+      queryClient.invalidateQueries({ queryKey: ['albums'] });
+      setImportModalOpen(false);
+      showToast({
+        title: '导入任务已启动',
+        description: '素材正在后台导入，请稍后刷新查看',
+        tone: 'success',
+        hideClose: true
+      });
+    } catch (error) {
+      console.error(error);
+      showToast({ title: '导入失败', description: '请检查路径是否正确', tone: 'error' });
+    } finally {
+      setImporting(false);
     }
   };
 
@@ -54,6 +78,19 @@ export default function AlbumsPage() {
           <AlbumFilterBar filter={filter} onChange={setFilter} />
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* 从文件夹导入按钮 */}
+            <button
+              type="button"
+              onClick={() => setImportModalOpen(true)}
+              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="从文件夹导入"
+            >
+              <FolderInput size={20} />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                从文件夹导入
+              </span>
+            </button>
+
             {/* 创建按钮 */}
             <button
               type="button"
@@ -79,6 +116,14 @@ export default function AlbumsPage() {
         onClose={() => setCreateModalOpen(false)}
         onSubmit={handleCreateAlbum}
         loading={creating}
+      />
+
+      {/* 从文件夹导入 Modal */}
+      <ImportAlbumModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSubmit={handleImportAlbum}
+        loading={importing}
       />
     </div>
   );
