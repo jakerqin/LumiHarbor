@@ -31,6 +31,7 @@ export default function AssetsPage() {
   const { data: locations = [] } = useQuery({
     queryKey: ['asset-locations'],
     queryFn: () => assetsApi.getLocations(),
+    staleTime: 5 * 60 * 1000, // 5 分钟缓存（地点数据相对静态）
   });
 
   const handleAssetClick = (id: number) => {

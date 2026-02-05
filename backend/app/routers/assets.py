@@ -26,7 +26,7 @@ def list_assets(
     location_poi: Optional[str] = Query(None, description="地标筛选（location_poi 标签）"),
     shot_at_start: Optional[date] = Query(None, description="拍摄日期起始（yyyy-mm-dd）"),
     shot_at_end: Optional[date] = Query(None, description="拍摄日期结束（yyyy-mm-dd）"),
-    sort_by: str = Query("shot_at", description="排序字段"),
+    sort_by: str = Query("created_at", description="排序字段"),
     sort_order: str = Query("desc", description="排序方向: asc/desc"),
     is_favorited: Optional[bool] = Query(None, description="是否仅看收藏"),
     db: Session = Depends(get_db)

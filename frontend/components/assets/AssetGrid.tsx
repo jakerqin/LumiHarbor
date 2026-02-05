@@ -33,8 +33,6 @@ export function AssetGrid({
     queryFn: () => assetsApi.getAssets(page, pageSize, filter),
   });
 
-  const displayAssets = allAssets.length > 0 ? allAssets : data?.assets ?? [];
-
   // 当数据更新时，更新 allAssets
   useEffect(() => {
     if (data) {
@@ -66,7 +64,7 @@ export function AssetGrid({
     500
   );
 
-  if ((isLoading || isFetching) && page === 1 && displayAssets.length === 0) {
+  if ((isLoading || isFetching) && page === 1 && allAssets.length === 0) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -88,7 +86,7 @@ export function AssetGrid({
     );
   }
 
-  if (displayAssets.length === 0 && !isLoading && !isFetching) {
+  if (allAssets.length === 0 && !isLoading && !isFetching) {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
@@ -102,7 +100,7 @@ export function AssetGrid({
     <div>
       {/* 瀑布流网格 */}
       <AssetMasonry
-        assets={displayAssets}
+        assets={allAssets}
         onAssetClick={(id) => onAssetClick?.(id)}
         onAssetSelect={onAssetSelect}
         selectionMode={selectionMode}
@@ -122,7 +120,7 @@ export function AssetGrid({
       )}
 
       {/* 已加载全部提示 */}
-      {!data?.has_more && displayAssets.length > 0 && (
+      {!data?.has_more && allAssets.length > 0 && (
         <div className="flex items-center justify-center py-8">
           <p className="text-sm text-foreground-secondary">
             已加载全部 {data?.total} 个素材
