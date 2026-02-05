@@ -2,7 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Upload, X, MapPin } from 'lucide-react';
-import { MapPicker, type LocationData } from '@/components/common/MapPicker';
+import dynamic from 'next/dynamic';
+import type { LocationData } from '@/components/common/MapPicker';
+
+// 动态导入 MapPicker，禁用 SSR（避免 window is not defined 错误）
+const MapPicker = dynamic(
+  () => import('@/components/common/MapPicker').then((mod) => mod.MapPicker),
+  { ssr: false }
+);
 
 interface UploadAssetsModalProps {
   open: boolean;
