@@ -1,6 +1,6 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check } from 'lucide-react';
 
@@ -31,7 +31,12 @@ const DEFAULT_DURATION = 2000;
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastInternal[]>([]);
+  const [mounted, setMounted] = useState(false);
   const idRef = useRef(0);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const showToast = useCallback((options: ToastOptions) => {
     const now = Date.now();
@@ -60,21 +65,20 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => ({ showToast }), [showToast]);
 
-  const portal =
-    typeof document !== 'undefined'
-      ? createPortal(
-          <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-3 pointer-events-none max-w-[420px] w-[clamp(260px,40vw,420px)] items-center">
-            {toasts.map((toast) => (
-              <ToastCard
-                key={toast.id}
-                toast={toast}
-                onDismiss={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
-              />
-            ))}
-          </div>,
-          document.body
-        )
-      : null;
+  const portal = mounted
+    ? createPortal(
+        <div className="fixed top-6 left-1/2 -translate-x-1/2 z-[90] flex flex-col gap-3 pointer-events-none max-w-[420px] w-[clamp(260px,40vw,420px)] items-center">
+          {toasts.map((toast) => (
+            <ToastCard
+              key={toast.id}
+              toast={toast}
+              onDismiss={() => setToasts((prev) => prev.filter((t) => t.id !== toast.id))}
+            />
+          ))}
+        </div>,
+        document.body
+      )
+    : null;
 
   return (
     <ToastContext.Provider value={value}>
