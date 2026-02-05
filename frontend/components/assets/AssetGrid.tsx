@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AssetMasonry } from './AssetMasonry';
 import { assetsApi, type AssetsFilter, type AssetsResponse } from '@/lib/api/assets';
@@ -27,29 +27,43 @@ export function AssetGrid({
   const [page, setPage] = useState(1);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
   const pageSize = 30;
+  const lastProcessedPageRef = useRef(0);
+  const prevFilterRef = useRef<string>('');
 
   const { data, isLoading, error, isFetching } = useQuery<AssetsResponse>({
     queryKey: ['assets', page, pageSize, filter],
     queryFn: () => assetsApi.getAssets(page, pageSize, filter),
   });
 
-  // 当数据更新时，更新 allAssets
-  useEffect(() => {
-    if (data) {
-      if (page === 1) {
-        // 第一页，重置列表
-        setAllAssets(data.assets);
-      } else {
-        // 后续页，追加到列表
-        setAllAssets((prev) => [...prev, ...data.assets]);
-      }
-    }
-  }, [data, page]);
-
-  // 当筛选条件变化时，重置页码和列表
+  // 组件挂载时重置到第一页
   useEffect(() => {
     setPage(1);
     setAllAssets([]);
+    lastProcessedPageRef.current = 0;
+    prevFilterRef.current = JSON.stringify(filter);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // 当数据更新时，更新 allAssets（确保每页只处理一次）
+  useEffect(() => {
+    if (data && page > lastProcessedPageRef.current) {
+      if (page === 1) {
+        setAllAssets(data.assets);
+      } else {
+        setAllAssets((prev) => [...prev, ...data.assets]);
+      }
+      lastProcessedPageRef.current = page;
+    }
+  }, [data, page]);
+
+  // 当筛选条件内容真正变化时，重置页码和列表
+  useEffect(() => {
+    const currentFilter = JSON.stringify(filter);
+    if (prevFilterRef.current && currentFilter !== prevFilterRef.current) {
+      setPage(1);
+      setAllAssets([]);
+      lastProcessedPageRef.current = 0;
+    }
+    prevFilterRef.current = currentFilter;
   }, [filter]);
 
   // 无限滚动：距离底部 500px 时加载下一页
