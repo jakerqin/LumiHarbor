@@ -351,6 +351,7 @@ export default function AlbumDetailPage() {
               selectionMode={isBatchMode}
               selectedAssetIds={selectedIds}
               onSelectionToggle={handleSelectionToggle}
+              disableHoverEffects={isBatchMode}
             />
           ) : (
             <div className="flex items-center justify-center py-20">
