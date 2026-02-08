@@ -96,3 +96,234 @@
     animation: fade-in 0.8s ease-out;
   }
 }
+
+/* Novel 官方编辑器迁移样式 */
+.ProseMirror {
+  @apply px-8 py-12 sm:px-12;
+}
+
+.ProseMirror .is-editor-empty:first-child::before,
+.ProseMirror .is-empty::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #8a8a8a;
+  pointer-events: none;
+  height: 0;
+}
+
+.ProseMirror img {
+  transition: filter 0.15s ease-in-out;
+}
+
+.ProseMirror img:hover {
+  cursor: pointer;
+  filter: brightness(92%);
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid #5abbf7;
+  filter: brightness(92%);
+}
+
+.ProseMirror:not(.dragging) .ProseMirror-selectednode {
+  outline: none !important;
+  background-color: #1a3d5c;
+  transition: background-color 0.2s;
+  box-shadow: none;
+}
+
+.img-placeholder {
+  position: relative;
+}
+
+.img-placeholder::before {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  margin-top: -18px;
+  margin-left: -18px;
+  border-radius: 9999px;
+  border: 3px solid #3f3f46;
+  border-top-color: #e4e4e7;
+  animation: novel-spinning 0.6s linear infinite;
+}
+
+@keyframes novel-spinning {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+ul[data-type="taskList"] li > label {
+  margin-right: 0.3rem;
+  user-select: none;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background-color: #0a0a0a;
+  margin: 0;
+  cursor: pointer;
+  width: 1.2em;
+  height: 1.2em;
+  position: relative;
+  top: 5px;
+  border: 2px solid rgba(255, 255, 255, 0.24);
+  margin-right: 0.3rem;
+  display: grid;
+  place-content: center;
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:hover,
+ul[data-type="taskList"] li > label input[type="checkbox"]:active {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]::before {
+  content: "";
+  width: 0.65em;
+  height: 0.65em;
+  transform: scale(0);
+  transition: transform 120ms ease-in-out;
+  box-shadow: inset 1em 1em;
+  transform-origin: center;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+
+ul[data-type="taskList"] li > label input[type="checkbox"]:checked::before {
+  transform: scale(1);
+}
+
+ul[data-type="taskList"] li[data-checked="true"] > div > p {
+  color: #808080;
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
+.tippy-box {
+  max-width: 420px !important;
+}
+
+.drag-handle {
+  position: fixed;
+  opacity: 1;
+  transition: opacity ease-in 0.2s;
+  border-radius: 0.25rem;
+  width: 1.1rem;
+  height: 1.4rem;
+  z-index: 50;
+  cursor: grab;
+  background-color: rgba(255, 255, 255, 0.12);
+}
+
+.drag-handle.hide {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+@media screen and (max-width: 600px) {
+  .drag-handle {
+    display: none;
+    pointer-events: none;
+  }
+}
+
+iframe {
+  border: 8px solid #ffd00027;
+  border-radius: 4px;
+  min-width: 200px;
+  min-height: 200px;
+  display: block;
+  outline: 0 solid transparent;
+}
+
+div[data-youtube-video] > iframe {
+  cursor: move;
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+.ProseMirror-selectednode iframe {
+  transition: outline 0.15s;
+  outline: 6px solid #fbbf24;
+}
+
+span[style] > strong,
+mark[style] > strong {
+  color: inherit;
+}
+
+pre {
+  background: #0d0d0d;
+  border-radius: 0.5rem;
+  color: #fff;
+  font-family: "JetBrainsMono", monospace;
+  padding: 0.75rem 1rem;
+}
+
+pre code {
+  background: none;
+  color: inherit;
+  font-size: 0.8rem;
+  padding: 0;
+}
+
+pre .hljs-comment,
+pre .hljs-quote {
+  color: #616161;
+}
+
+pre .hljs-variable,
+pre .hljs-template-variable,
+pre .hljs-attribute,
+pre .hljs-tag,
+pre .hljs-name,
+pre .hljs-regexp,
+pre .hljs-link,
+pre .hljs-selector-id,
+pre .hljs-selector-class {
+  color: #f98181;
+}
+
+pre .hljs-number,
+pre .hljs-meta,
+pre .hljs-built_in,
+pre .hljs-builtin-name,
+pre .hljs-literal,
+pre .hljs-type,
+pre .hljs-params {
+  color: #fbbc88;
+}
+
+pre .hljs-string,
+pre .hljs-symbol,
+pre .hljs-bullet {
+  color: #b9f18d;
+}
+
+pre .hljs-title,
+pre .hljs-section {
+  color: #faf594;
+}
+
+pre .hljs-keyword,
+pre .hljs-selector-tag {
+  color: #70cff8;
+}
+
+pre .hljs-emphasis {
+  font-style: italic;
+}
+
+pre .hljs-strong {
+  font-weight: 700;
+}
