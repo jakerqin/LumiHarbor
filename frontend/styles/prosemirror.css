@@ -73,24 +73,24 @@ ul[data-type="taskList"] li > label {
 ul[data-type="taskList"] li > label input[type="checkbox"] {
   -webkit-appearance: none;
   appearance: none;
-  background-color: hsl(var(--background));
+  background-color: white;
   margin: 0;
   cursor: pointer;
   width: 1.2em;
   height: 1.2em;
   position: relative;
   top: 5px;
-  border: 2px solid hsl(var(--border));
+  border: 2px solid #d1d5db;
   margin-right: 0.3rem;
   display: grid;
   place-content: center;
 
   &:hover {
-    background-color: hsl(var(--accent));
+    background-color: #f3f4f6;
   }
 
   &:active {
-    background-color: hsl(var(--accent));
+    background-color: #f3f4f6;
   }
 
   &::before {
@@ -99,7 +99,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
     height: 0.65em;
     transform: scale(0);
     transition: 120ms transform ease-in-out;
-    box-shadow: inset 1em 1em;
+    box-shadow: inset 1em 1em #1f2937;
     transform-origin: center;
     clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
   }
@@ -110,7 +110,7 @@ ul[data-type="taskList"] li > label input[type="checkbox"] {
 }
 
 ul[data-type="taskList"] li[data-checked="true"] > div > p {
-  color: var(--muted-foreground);
+  color: #6b7280;
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
@@ -209,4 +209,26 @@ span[style] > strong {
 
 mark[style] > strong {
   color: inherit;
+}
+
+/* Light theme overrides for editor */
+.editor-light-theme ul[data-type="taskList"] li > label input[type="checkbox"] {
+  background-color: white;
+  border: 2px solid #d1d5db;
+
+  &:hover {
+    background-color: #f3f4f6;
+  }
+
+  &:active {
+    background-color: #f3f4f6;
+  }
+
+  &::before {
+    box-shadow: inset 1em 1em #1f2937;
+  }
+}
+
+.editor-light-theme ul[data-type="taskList"] li[data-checked="true"] > div > p {
+  color: #6b7280;
 }

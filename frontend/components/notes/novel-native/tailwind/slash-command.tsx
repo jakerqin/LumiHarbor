@@ -11,6 +11,7 @@ import {
   TextQuote,
   Twitter,
   Youtube,
+  FileImage,
 } from "lucide-react";
 import { Command, createSuggestionItems, renderItems } from "novel";
 import { uploadFn } from "./image-upload";
@@ -118,6 +119,20 @@ export const suggestionItems = createSuggestionItems([
         uploadFn(file, editor.view, pos);
       };
       input.click();
+    },
+  },
+  {
+    title: "Asset from Library",
+    description: "Select an image from asset library.",
+    searchTerms: ["asset", "library", "素材", "素材库"],
+    icon: <FileImage size={18} />,
+    command: ({ editor, range }) => {
+      editor.chain().focus().deleteRange(range).run();
+
+      // 触发打开素材选择器
+      if (typeof window !== 'undefined' && (window as any).openAssetPicker) {
+        (window as any).openAssetPicker(editor);
+      }
     },
   },
   {

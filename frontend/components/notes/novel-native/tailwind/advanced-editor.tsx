@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import {
   EditorCommand,
@@ -26,6 +26,9 @@ import { NodeSelector } from "./selectors/node-selector";
 import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 import { Separator } from "./ui/separator";
+import { AssetPickerModal } from "@/components/assets/AssetPickerModal";
+import type { Asset } from "@/lib/api/types";
+import { resolveMediaUrl } from "@/lib/utils/mediaUrl";
 
 const extensions = [...defaultExtensions, slashCommand];
 
@@ -42,11 +45,46 @@ const TailwindAdvancedEditor = ({
 }: TailwindAdvancedEditorProps) => {
   const [saveStatus, setSaveStatus] = useState<"Saved" | "Unsaved">("Saved");
   const [charsCount, setCharsCount] = useState<number | null>(null);
+  const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
+  const editorRef = useRef<EditorInstance | null>(null);
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
+
+  // 将打开素材选择器的函数挂载到 window 上
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).openAssetPicker = (editor: EditorInstance) => {
+        editorRef.current = editor;
+        setIsAssetPickerOpen(true);
+      };
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).openAssetPicker;
+      }
+    };
+  }, []);
+
+  const handleAssetSelect = (asset: Asset) => {
+    if (!editorRef.current) return;
+
+    const editor = editorRef.current;
+    const assetUrl = resolveMediaUrl(asset.original_url, asset.original_path) || '';
+
+    editor
+      .chain()
+      .focus()
+      .setImage({
+        src: assetUrl,
+        // @ts-ignore - 扩展属性
+        assetId: asset.id,
+      })
+      .run();
+  };
 
   const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
     const json = editor.getJSON();
@@ -60,7 +98,7 @@ const TailwindAdvancedEditor = ({
   }, 500);
 
   return (
-    <div className="relative w-full max-w-screen-lg">
+    <div className="relative w-full max-w-screen-lg editor-light-theme">
       <div className="absolute right-5 top-5 z-10 mb-5 flex gap-2">
         <div className="rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600">{saveStatus}</div>
         <div className={charsCount ? "rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600" : "hidden"}>
@@ -125,6 +163,14 @@ const TailwindAdvancedEditor = ({
           </GenerativeMenuSwitch>
         </EditorContent>
       </EditorRoot>
+
+      <AssetPickerModal
+        open={isAssetPickerOpen}
+        title="选择素材"
+        description="从素材库中选择图片插入到笔记"
+        onClose={() => setIsAssetPickerOpen(false)}
+        onSelect={handleAssetSelect}
+      />
     </div>
   );
 };

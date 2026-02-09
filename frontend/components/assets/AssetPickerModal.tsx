@@ -1,7 +1,11 @@
 'use client';
 
+import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
 import { AssetGrid } from '@/components/assets/AssetGrid';
+import { AssetFilterBar } from '@/components/assets/AssetFilterBar';
+import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
 import type { Asset } from '@/lib/api/types';
 
 export interface AssetPickerModalProps {
@@ -19,6 +23,15 @@ export function AssetPickerModal({
   onClose,
   onSelect,
 }: AssetPickerModalProps) {
+  const [filter, setFilter] = useState<AssetsFilter>({});
+
+  const { data: locations = [] } = useQuery({
+    queryKey: ['asset-locations'],
+    queryFn: () => assetsApi.getLocations(),
+    staleTime: 5 * 60 * 1000,
+    enabled: open,
+  });
+
   if (!open) return null;
 
   return (
@@ -49,8 +62,17 @@ export function AssetPickerModal({
             </button>
           </div>
 
+          <div className="px-5 pt-4 border-b border-white/10">
+            <AssetFilterBar
+              filter={filter}
+              locations={locations}
+              onChange={setFilter}
+            />
+          </div>
+
           <div className="p-5 overflow-auto">
             <AssetGrid
+              filter={filter}
               onAssetSelect={(asset) => {
                 onSelect(asset);
                 onClose();

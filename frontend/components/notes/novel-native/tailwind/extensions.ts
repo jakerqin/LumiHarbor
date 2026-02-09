@@ -137,9 +137,21 @@ const mathematics = Mathematics.configure({
   },
 });
 
+const placeholder = Placeholder.configure({
+  placeholder: ({ node }) => {
+    if (node.type.name === 'heading') {
+      return "What's the title?";
+    }
+    if (node.type.name === 'paragraph') {
+      return "Press '/' for commands";
+    }
+    return '';
+  },
+});
+
 export const defaultExtensions = [
   starterKit,
-  Placeholder,
+  placeholder,
   tiptapLink,
   tiptapImage,
   updatedImage,
