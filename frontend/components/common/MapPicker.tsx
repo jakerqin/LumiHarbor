@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import AMapLoader from '@amap/amap-jsapi-loader';
 import { X, MapPin, Loader2, Search } from 'lucide-react';
 
 export interface LocationData {
@@ -45,6 +44,9 @@ export function MapPicker({ open, defaultCenter = [31.2304, 121.4737], onConfirm
     const initMap = async () => {
       try {
         setMapLoading(true);
+
+        // 动态导入 AMapLoader（避免 SSR 错误）
+        const AMapLoader = (await import('@amap/amap-jsapi-loader')).default;
 
         // 配置安全密钥
         (window as any)._AMapSecurityConfig = {

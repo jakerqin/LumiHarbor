@@ -21,7 +21,7 @@ import { AssetMasonry } from '@/components/assets/AssetMasonry';
 import { CreateAlbumModal, type CreateAlbumData } from '@/components/albums/CreateAlbumModal';
 import { AssetPickerModal } from '@/components/common/AssetPickerModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useToast } from '@/components/common/toast/ToastProvider';
+import { toast } from 'sonner';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -31,7 +31,6 @@ export default function AlbumDetailPage() {
   const params = useParams();
   const albumId = parseInt(params.id as string);
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
   const menuRef = useRef<HTMLDivElement>(null);
 
   // UI 状态
@@ -82,11 +81,11 @@ export default function AlbumDetailPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['album', albumId] });
-      showToast({ title: '相册更新成功', tone: 'success' });
+      toast.success('相册更新成功');
       setEditModalOpen(false);
     },
     onError: (error: any) => {
-      showToast({ title: error?.message || '相册更新失败', tone: 'error' });
+      toast.error(error?.message || '相册更新失败');
     },
   });
 
@@ -94,11 +93,11 @@ export default function AlbumDetailPage() {
   const deleteMutation = useMutation({
     mutationFn: () => albumsApi.deleteAlbum(albumId),
     onSuccess: () => {
-      showToast({ title: '相册已删除', tone: 'success' });
+      toast.success('相册已删除');
       router.push('/albums');
     },
     onError: (error: any) => {
-      showToast({ title: error?.message || '删除失败', tone: 'error' });
+      toast.error(error?.message || '删除失败');
     },
   });
 
@@ -111,14 +110,11 @@ export default function AlbumDetailPage() {
       ),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ['album', albumId] });
-      showToast({
-        title: `成功添加 ${result.success_count} 项素材`,
-        tone: 'success',
-      });
+      toast.success(`成功添加 ${result.success_count} 项素材`);
       setAddAssetsModalOpen(false);
     },
     onError: (error: any) => {
-      showToast({ title: error?.message || '添加失败', tone: 'error' });
+      toast.error(error?.message || '添加失败');
     },
   });
 
@@ -190,11 +186,11 @@ export default function AlbumDetailPage() {
         )
       );
       queryClient.invalidateQueries({ queryKey: ['album', albumId] });
-      showToast({ title: `已移出 ${selectedIds.size} 项素材`, tone: 'success' });
+      toast.success(`已移出 ${selectedIds.size} 项素材`);
       handleExitBatchMode();
     } catch (error) {
       console.error(error);
-      showToast({ title: '移出失败，请稍后重试', tone: 'error' });
+      toast.error('移出失败，请稍后重试');
     } finally {
       setRemoving(false);
       setRemoveConfirmOpen(false);
@@ -216,11 +212,11 @@ export default function AlbumDetailPage() {
     try {
       await assetsApi.deleteAssets(Array.from(selectedIds));
       queryClient.invalidateQueries({ queryKey: ['album', albumId] });
-      showToast({ title: `已删除 ${selectedIds.size} 项素材`, tone: 'success' });
+      toast.success(`已删除 ${selectedIds.size} 项素材`);
       handleExitBatchMode();
     } catch (error) {
       console.error(error);
-      showToast({ title: '删除失败，请稍后重试', tone: 'error' });
+      toast.error('删除失败，请稍后重试');
     } finally {
       setDeletingAssets(false);
       setDeleteAssetsConfirmOpen(false);

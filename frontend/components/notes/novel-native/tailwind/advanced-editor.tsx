@@ -98,8 +98,8 @@ const TailwindAdvancedEditor = ({
   }, 500);
 
   return (
-    <div className="relative w-full max-w-screen-lg editor-light-theme">
-      <div className="absolute right-5 top-5 z-10 mb-5 flex gap-2">
+    <div className="relative w-full editor-light-theme">
+      <div className="absolute right-12 top-5 z-10 mb-5 flex gap-2">
         <div className="rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600">{saveStatus}</div>
         <div className={charsCount ? "rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600" : "hidden"}>
           {charsCount} Words
@@ -110,7 +110,7 @@ const TailwindAdvancedEditor = ({
         <EditorContent
           initialContent={initialContent}
           extensions={extensions}
-          className="relative min-h-[500px] w-full max-w-screen-lg border-gray-200 bg-white sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"
+          className="relative min-h-[500px] w-full pb-[calc(20vh)]"
           editorProps={{
             handleDOMEvents: {
               keydown: (_view, event) => handleCommandNavigation(event),

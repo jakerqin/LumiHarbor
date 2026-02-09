@@ -8,7 +8,7 @@ import { CreateAlbumModal, type CreateAlbumData } from '@/components/albums/Crea
 import { ImportAlbumModal, type ImportAlbumData } from '@/components/albums/ImportAlbumModal';
 import { FolderOpen, FolderPlus, FolderInput } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
-import { useToast } from '@/components/common/toast/ToastProvider';
+import { toast } from 'sonner';
 
 // 禁用静态生成，因为页面使用了浏览器 API
 export const dynamic = 'force-dynamic';
@@ -20,7 +20,6 @@ export default function AlbumsPage() {
   const [importModalOpen, setImportModalOpen] = useState(false);
   const [creating, setCreating] = useState(false);
   const [importing, setImporting] = useState(false);
-  const { showToast } = useToast();
 
   const handleCreateAlbum = async (data: CreateAlbumData) => {
     if (creating) return;
@@ -29,10 +28,10 @@ export default function AlbumsPage() {
       await albumsApi.createAlbum(data);
       queryClient.invalidateQueries({ queryKey: ['albums'] });
       setCreateModalOpen(false);
-      showToast({ title: '相册创建成功', description: '已刷新列表', tone: 'success', hideClose: true });
+      toast.success('相册创建成功');
     } catch (error) {
       console.error(error);
-      showToast({ title: '创建失败', description: '请稍后重试', tone: 'error' });
+      toast.error('创建失败，请稍后重试');
     } finally {
       setCreating(false);
     }
@@ -45,15 +44,10 @@ export default function AlbumsPage() {
       await albumsApi.importFromFolder(data);
       queryClient.invalidateQueries({ queryKey: ['albums'] });
       setImportModalOpen(false);
-      showToast({
-        title: '导入任务已启动',
-        description: '素材正在后台导入，请稍后刷新查看',
-        tone: 'success',
-        hideClose: true
-      });
+      toast.success('导入任务已启动，素材正在后台导入');
     } catch (error) {
       console.error(error);
-      showToast({ title: '导入失败', description: '请检查路径是否正确', tone: 'error' });
+      toast.error('导入失败，请检查路径是否正确');
     } finally {
       setImporting(false);
     }
