@@ -3,33 +3,29 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, FileText } from 'lucide-react';
+import { ArrowLeft, FileText, Save } from 'lucide-react';
+import { type JSONContent } from 'novel';
 import { notesApi } from '@/lib/api/notes';
-import { NoteEditor, type NoteEditorValue } from '@/components/notes/NoteEditor';
-
-const DRAFT_KEY = 'note-editor:draft:new:v1';
+import TailwindAdvancedEditor from '@/components/notes/novel-native/tailwind/advanced-editor';
 
 export default function NewNotePage() {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [content, setContent] = useState<JSONContent | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const createMutation = useMutation({
-    mutationFn: async (value: NoteEditorValue) => {
-      const trimmedTitle = value.title.trim();
+    mutationFn: async () => {
+      if (!content) {
+        throw new Error('笔记内容不能为空');
+      }
       return notesApi.createNote({
-        title: trimmedTitle ? trimmedTitle : undefined,
-        content: value.content,
-        cover_asset_id: value.cover_asset_id ?? undefined,
+        title: null,
+        content,
       });
     },
     onSuccess: async (note) => {
       setErrorMessage(null);
-      try {
-        window.localStorage.removeItem(DRAFT_KEY);
-      } catch {
-        // ignore
-      }
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['notes'] }),
@@ -43,6 +39,10 @@ export default function NewNotePage() {
     },
   });
 
+  const handleSave = () => {
+    createMutation.mutate();
+  };
+
   return (
     <div className="min-h-screen py-10 px-6 md:px-8">
       <div className="max-w-[1920px] mx-auto">
@@ -53,29 +53,44 @@ export default function NewNotePage() {
               <h1 className="text-3xl md:text-4xl font-heading font-bold">新建笔记</h1>
             </div>
             <p className="text-foreground-secondary">
-              Markdown 源码编辑 + Streamdown 实时预览，支持插入素材引用与选择封面。
+              Notion 风格编辑器，支持富文本、代码块、图片等多种内容类型。
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => router.push('/notes')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            返回列表
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleSave}
+              disabled={createMutation.isPending || !content}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Save size={16} />
+              {createMutation.isPending ? '保存中...' : '保存'}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push('/notes')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+            >
+              <ArrowLeft size={16} />
+              返回
+            </button>
+          </div>
         </div>
 
-        <NoteEditor
-          initialValue={{ title: '', content: '', cover_asset_id: null }}
-          draftKey={DRAFT_KEY}
-          submitLabel="创建"
-          submitting={createMutation.isPending}
-          errorMessage={errorMessage}
-          onCancel={() => router.push('/notes')}
-          onSubmit={(value) => createMutation.mutate(value)}
-        />
+        {errorMessage && (
+          <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400">
+            {errorMessage}
+          </div>
+        )}
+
+        <div className="flex justify-center">
+          <TailwindAdvancedEditor
+            initialContent={undefined}
+            onSave={(json) => setContent(json)}
+            autoSave={true}
+          />
+        </div>
       </div>
     </div>
   );

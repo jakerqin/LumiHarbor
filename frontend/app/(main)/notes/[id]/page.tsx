@@ -2,25 +2,37 @@
 
 import { useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, FileText, Pencil, AlertTriangle } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, FileText, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
+import { type JSONContent } from 'novel';
 import { notesApi } from '@/lib/api/notes';
-import { NoteMarkdown } from '@/components/notes/NoteMarkdown';
+import TailwindAdvancedEditor from '@/components/notes/novel-native/tailwind/advanced-editor';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 
 export default function NoteDetailPage() {
   const params = useParams<{ id?: string }>();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const noteId = useMemo(() => Number(params?.id), [params?.id]);
   const isValidId = Number.isFinite(noteId) && noteId > 0;
 
   const noteQuery = useQuery({
     queryKey: ['note', noteId],
-    queryFn: () => notesApi.getNote(noteId, { includeAssets: true }),
+    queryFn: () => notesApi.getNote(noteId),
     enabled: isValidId,
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async (content: JSONContent) => {
+      return notesApi.updateNote(noteId, { content });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['note', noteId] });
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+    },
   });
 
   if (!isValidId) {
@@ -102,24 +114,14 @@ export default function NoteDetailPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => router.push('/notes')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-            >
-              <ArrowLeft size={16} />
-              返回
-            </button>
-            <button
-              type="button"
-              onClick={() => router.push(`/notes/${noteId}/edit`)}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-colors"
-            >
-              <Pencil size={16} />
-              编辑
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => router.push('/notes')}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
+          >
+            <ArrowLeft size={16} />
+            返回
+          </button>
         </div>
 
         {coverUrl && (
@@ -128,11 +130,11 @@ export default function NoteDetailPage() {
           </div>
         )}
 
-        <div className="rounded-2xl bg-background-secondary border border-white/10 p-6 md:p-8">
-          <NoteMarkdown
-            markdown={note.content}
-            assets={note.assets ?? undefined}
-            className="space-y-4 text-foreground"
+        <div className="flex justify-center">
+          <TailwindAdvancedEditor
+            initialContent={note.content}
+            onSave={(content) => updateMutation.mutate(content)}
+            autoSave={true}
           />
         </div>
       </div>

@@ -19,6 +19,7 @@
 - **框架**: Next.js 16.1.1 (App Router) + React 19.2.0 + TypeScript
 - **样式**: Tailwind CSS + 自定义深色主题
 - **Markdown**: streamdown (安全渲染 + 流式展示)
+- **富文本编辑器实验**: Novel (Tiptap) + Slash Command + Bubble Menu + Vercel AI SDK
 - **图标**: lucide-react
 - **字体**: Space Grotesk (英文) + Noto Sans SC (中文)
 - **3D 渲染**: React Three Fiber + @react-three/drei
@@ -129,6 +130,39 @@
   - 网格视图: [NoteGrid.tsx](frontend/components/notes/NoteGrid.tsx)
   - 时间轴视图: [NoteTimeline.tsx](frontend/components/notes/NoteTimeline.tsx)
 - **备注**: tags 现阶段不做（笔记模块不包含标签筛选/编辑）
+
+#### 5.1 Novel 官方编辑器体验页（实验态）
+
+> 目标：先独立体验官方编辑器能力，再决定是否与现有 Notes 数据模型深度集成。
+
+**访问路径**: `GET /notes/novel`
+
+**入口文件**:
+- 页面入口: `frontend/app/(main)/notes/novel/page.tsx`
+- 编辑器容器: `frontend/components/notes/novel-native/NovelNativeEditor.tsx`
+- 主编辑器: `frontend/components/notes/novel-native/tailwind/advanced-editor.tsx`
+
+**已接入能力**:
+- 官方 TailwindAdvancedEditor 交互（Slash Command + Bubble Menu）
+- AI 气泡菜单（Ask AI：Improve/Fix/Shorter/Longer/Continue/Zap）
+- 本地持久化（localStorage）：`novel-native-content` / `novel-native-html`
+- 图片上传（当前为 DataURL，本地体验优先）
+
+**AI 路由与环境变量**:
+- 路由: `frontend/app/api/generate/route.ts`
+- SDK: `ai` + `@ai-sdk/openai`
+- 必需环境变量（服务端）: `OPENAI_API_KEY`
+- 模板位置: `frontend/.env.template`
+
+**目录约定（迁移后的最终结构）**:
+- `frontend/components/notes/novel-native/tailwind/generative/*`：AI 气泡菜单
+- `frontend/components/notes/novel-native/tailwind/selectors/*`：节点/颜色/链接/数学工具栏
+- `frontend/components/notes/novel-native/tailwind/ui/*`：Radix/cmdk UI 基元
+
+**当前边界（重要）**:
+- 该页面为“独立体验页”，尚未接入现有 Notes CRUD/封面/`asset://` 素材关联链路
+- `novel@1.0.2` 未导出 `MarkdownExtension`，因此扩展中未启用该扩展（避免版本不兼容）
+- 旧试验目录 `frontend/app/notes/` 已清理，统一使用 `(main)` 路由组下入口
 
 **API**:
 - `GET /notes?skip=0&limit=20`
@@ -975,6 +1009,21 @@ combined_distance = (
 - 存储空间: 每个素材增加 192 字节（3 个新哈希字段）
 - 查询性能: 无影响（仍然是内存计算汉明距离）
 
+### 9. 为何先落地 Novel 独立体验页，而不是直接替换现有 Notes 编辑器？
+
+**决策**: 先在 `/notes/novel` 搭建官方体验页，验证编辑与 AI 交互，再评估集成成本。
+
+**理由**:
+- ✅ **降低集成风险**: 避免一次性改动现有 Notes 生产链路（Markdown + `asset://` + CRUD）
+- ✅ **快速验证体验**: 先拿到“接近官方 demo”的编辑手感与气泡 AI 菜单
+- ✅ **边界清晰**: 实验代码集中在 `components/notes/novel-native`，不污染现有笔记页面
+- ✅ **便于回滚**: 若后续不采用 Novel，不影响当前主流程
+
+**后续建议路径**:
+1. 先定义 Novel JSON/Markdown 与现有 Notes 字段的映射策略
+2. 再接入现有 `/notes` 的保存、读取、素材嵌入协议
+3. 最后评估是否替换主编辑器入口
+
 ---
 
 ## 参考文档
@@ -988,14 +1037,24 @@ combined_distance = (
 **前端：**
 - **前端文档**: [frontend/README.md](frontend/README.md)
 - **Next.js 文档**: https://nextjs.org/docs
+- **Novel 文档**: https://novel.sh/docs/quickstart
 - **TanStack Query**: https://tanstack.com/query/latest
 - **Tailwind CSS**: https://tailwindcss.com/docs
 - **React Three Fiber**: https://docs.pmnd.rs/react-three-fiber
 
 ---
 
-**最后更新**: 2026-01-19
-**版本**: v0.5.0
+**最后更新**: 2026-02-08
+**版本**: v0.6.0
+
+**v0.6.0 更新内容** (2026-02-08):
+- ✅ 新增 Novel 官方编辑器体验页：`/notes/novel`（位于 `(main)` 路由组）
+- ✅ 迁移并落地 TailwindAdvancedEditor（Slash Command + Bubble Menu）
+- ✅ 恢复 AI 气泡菜单（Ask AI）并接入 `/api/generate` 流式生成
+- ✅ 引入 Novel 相关前端依赖（`novel`、`ai`、`@ai-sdk/openai`、`cmdk`、Radix 组件等）
+- ✅ 补充编辑器样式与 Tailwind Typography 插件，保证接近官方视觉行为
+- ✅ 清理旧试验目录 `frontend/app/notes/`，统一到 `frontend/app/(main)/notes/novel`
+- ✅ 新增 `OPENAI_API_KEY` 环境变量模板说明（`frontend/.env.template`）
 
 **v0.5.0 更新内容** (2026-01-19):
 - ✅ 升级感知哈希为多哈希组合策略（phash + dhash + average_hash + colorhash）

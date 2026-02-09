@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import type { Asset } from './types';
+import type { JSONContent } from 'novel';
 
 export interface Note {
   id: number;
@@ -23,9 +23,7 @@ export interface NotesResponse {
 }
 
 export interface NoteDetail extends Note {
-  content: string;
-  related_assets: number[];
-  assets?: Asset[] | null;
+  content: JSONContent;
   // 详情页专用：高清封面（原图或预览图）
   cover_original_path: string | null;
   cover_original_url: string | null;
@@ -64,17 +62,15 @@ export const notesApi = {
   },
 
   // 获取笔记详情
-  getNote: async (id: number, options?: { includeAssets?: boolean }): Promise<NoteDetail> => {
-    const response = await apiClient.get<NoteDetail>(`/notes/${id}`, {
-      params: { include_assets: options?.includeAssets ?? true },
-    });
+  getNote: async (id: number): Promise<NoteDetail> => {
+    const response = await apiClient.get<NoteDetail>(`/notes/${id}`);
     return response.data;
   },
 
   // 创建笔记
   createNote: async (payload: {
     title?: string | null;
-    content: string;
+    content: JSONContent;
     cover_asset_id?: number | null;
     shot_at?: string | null;
   }): Promise<NoteDetail> => {
@@ -87,7 +83,7 @@ export const notesApi = {
     id: number,
     payload: {
       title?: string | null;
-      content?: string;
+      content?: JSONContent;
       cover_asset_id?: number | null;
       shot_at?: string | null;
     }

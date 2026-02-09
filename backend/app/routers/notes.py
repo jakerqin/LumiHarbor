@@ -113,12 +113,7 @@ def create_note(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    cover_meta = _cover_meta_for_notes(db, [note])
-    cover_thumbnail_path, cover_thumbnail_url = (None, None)
-    if note.cover_asset_id:
-        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
-
-    related_assets = note.related_assets or []
+    cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
     excerpt = NoteService.build_excerpt(note.content)
 
     return schema.ApiResponse.success(
@@ -128,14 +123,16 @@ def create_note(
             title=note.title,
             excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
-            cover_thumbnail_path=cover_thumbnail_path,
-            cover_thumbnail_url=cover_thumbnail_url,
+            cover_thumbnail_path=cover_meta['thumbnail_path'],
+            cover_thumbnail_url=cover_meta['thumbnail_url'],
+            cover_original_path=cover_meta['original_path'],
+            cover_original_url=cover_meta['original_url'],
+            cover_preview_path=cover_meta['preview_path'],
+            cover_preview_url=cover_meta['preview_url'],
             shot_at=note.shot_at,
             created_at=note.created_at,
             updated_at=note.updated_at,
             content=note.content,
-            related_assets=related_assets,
-            assets=None,
         )
     )
 
@@ -198,7 +195,6 @@ def list_notes(
 @router.get("/{note_id}", response_model=schema.ApiResponse[schema.NoteDetailOut])
 def get_note(
     note_id: int,
-    include_assets: bool = Query(False, description="是否返回引用素材的元数据"),
     db: Session = Depends(get_db),
 ):
     """获取笔记详情"""
@@ -208,29 +204,6 @@ def get_note(
 
     # 获取封面素材的详细信息（包含原图和预览图）
     cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
-
-    related_assets: List[int] = list(note.related_assets or [])
-    assets_out: Optional[List[schema.AssetOut]] = None
-
-    if include_assets and related_assets:
-        url_provider = AssetUrlProviderFactory.create()
-        assets = (
-            db.query(model.Asset)
-            .filter(
-                and_(
-                    model.Asset.id.in_(related_assets),
-                    model.Asset.is_deleted == False,
-                )
-            )
-            .all()
-        )
-
-        assets_out = []
-        for asset in assets:
-            asset_dict = schema.AssetOut.model_validate(asset).model_dump()
-            asset_dict["original_url"] = url_provider.maybe_to_public_url(asset.original_path)
-            asset_dict["thumbnail_url"] = url_provider.maybe_to_public_url(asset.thumbnail_path)
-            assets_out.append(schema.AssetOut(**asset_dict))
 
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
@@ -249,8 +222,6 @@ def get_note(
             created_at=note.created_at,
             updated_at=note.updated_at,
             content=note.content,
-            related_assets=related_assets,
-            assets=assets_out,
         )
     )
 
@@ -270,12 +241,8 @@ def update_note(
     if not note:
         raise HTTPException(status_code=404, detail="笔记不存在")
 
-    cover_meta = _cover_meta_for_notes(db, [note])
-    cover_thumbnail_path, cover_thumbnail_url = (None, None)
-    if note.cover_asset_id:
-        cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
+    cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
 
-    related_assets = note.related_assets or []
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
             id=note.id,
@@ -283,14 +250,16 @@ def update_note(
             title=note.title,
             excerpt=NoteService.build_excerpt(note.content),
             cover_asset_id=note.cover_asset_id,
-            cover_thumbnail_path=cover_thumbnail_path,
-            cover_thumbnail_url=cover_thumbnail_url,
+            cover_thumbnail_path=cover_meta['thumbnail_path'],
+            cover_thumbnail_url=cover_meta['thumbnail_url'],
+            cover_original_path=cover_meta['original_path'],
+            cover_original_url=cover_meta['original_url'],
+            cover_preview_path=cover_meta['preview_path'],
+            cover_preview_url=cover_meta['preview_url'],
             shot_at=note.shot_at,
             created_at=note.created_at,
             updated_at=note.updated_at,
             content=note.content,
-            related_assets=related_assets,
-            assets=None,
         )
     )
 

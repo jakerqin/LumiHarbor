@@ -1,6 +1,5 @@
 "use client";
 
-import hljs from "highlight.js";
 import { useState } from "react";
 import { useDebouncedCallback } from "use-debounce";
 import {
@@ -17,7 +16,6 @@ import {
   handleImageDrop,
   handleImagePaste,
 } from "novel";
-import { defaultEditorContent } from "@/components/notes/novel-native/content";
 import { defaultExtensions } from "./extensions";
 import { uploadFn } from "./image-upload";
 import GenerativeMenuSwitch from "./generative/generative-menu-switch";
@@ -29,40 +27,19 @@ import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 import { Separator } from "./ui/separator";
 
-const STORAGE_KEYS = {
-  content: "novel-native-content",
-  html: "novel-native-html",
-};
-
 const extensions = [...defaultExtensions, slashCommand];
 
-const highlightCodeblocks = (content: string) => {
-  const doc = new DOMParser().parseFromString(content, "text/html");
-  doc.querySelectorAll("pre code").forEach((el) => {
-    hljs.highlightElement(el as HTMLElement);
-  });
-  return new XMLSerializer().serializeToString(doc);
-};
+interface TailwindAdvancedEditorProps {
+  initialContent?: JSONContent;
+  onSave?: (content: JSONContent) => void | Promise<void>;
+  autoSave?: boolean;
+}
 
-const resolveInitialContent = (): JSONContent => {
-  if (typeof window === "undefined") {
-    return defaultEditorContent as JSONContent;
-  }
-
-  const content = window.localStorage.getItem(STORAGE_KEYS.content);
-  if (!content) {
-    return defaultEditorContent as JSONContent;
-  }
-
-  try {
-    return JSON.parse(content) as JSONContent;
-  } catch {
-    return defaultEditorContent as JSONContent;
-  }
-};
-
-const TailwindAdvancedEditor = () => {
-  const [initialContent] = useState<JSONContent>(resolveInitialContent);
+const TailwindAdvancedEditor = ({
+  initialContent,
+  onSave,
+  autoSave = true,
+}: TailwindAdvancedEditorProps) => {
   const [saveStatus, setSaveStatus] = useState<"Saved" | "Unsaved">("Saved");
   const [charsCount, setCharsCount] = useState<number | null>(null);
 
@@ -71,19 +48,22 @@ const TailwindAdvancedEditor = () => {
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
 
-  const debouncedUpdates = useDebouncedCallback((editor: EditorInstance) => {
+  const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
     const json = editor.getJSON();
     setCharsCount(editor.storage.characterCount.words());
-    window.localStorage.setItem(STORAGE_KEYS.html, highlightCodeblocks(editor.getHTML()));
-    window.localStorage.setItem(STORAGE_KEYS.content, JSON.stringify(json));
+
+    if (autoSave && onSave) {
+      await onSave(json);
+    }
+
     setSaveStatus("Saved");
   }, 500);
 
   return (
     <div className="relative w-full max-w-screen-lg">
       <div className="absolute right-5 top-5 z-10 mb-5 flex gap-2">
-        <div className="rounded-lg bg-white/10 px-2 py-1 text-sm text-foreground-secondary">{saveStatus}</div>
-        <div className={charsCount ? "rounded-lg bg-white/10 px-2 py-1 text-sm text-foreground-secondary" : "hidden"}>
+        <div className="rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600">{saveStatus}</div>
+        <div className={charsCount ? "rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600" : "hidden"}>
           {charsCount} Words
         </div>
       </div>
@@ -92,7 +72,7 @@ const TailwindAdvancedEditor = () => {
         <EditorContent
           initialContent={initialContent}
           extensions={extensions}
-          className="relative min-h-[500px] w-full max-w-screen-lg border-muted bg-background sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"
+          className="relative min-h-[500px] w-full max-w-screen-lg border-gray-200 bg-white sm:mb-[calc(20vh)] sm:rounded-lg sm:border sm:shadow-lg"
           editorProps={{
             handleDOMEvents: {
               keydown: (_view, event) => handleCommandNavigation(event),
@@ -100,7 +80,7 @@ const TailwindAdvancedEditor = () => {
             handlePaste: (view, event) => handleImagePaste(view, event, uploadFn),
             handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class: "prose prose-lg prose-invert prose-headings:font-heading focus:outline-none max-w-full",
+              class: "prose prose-lg prose-gray prose-headings:font-heading focus:outline-none max-w-full text-gray-900",
             },
           }}
           onUpdate={({ editor }) => {
@@ -109,22 +89,22 @@ const TailwindAdvancedEditor = () => {
           }}
           slotAfter={<ImageResizer />}
         >
-          <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-muted bg-background px-1 py-2 shadow-md transition-all">
-            <EditorCommandEmpty className="px-2 text-foreground-secondary">No results</EditorCommandEmpty>
+          <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-gray-200 bg-white px-1 py-2 shadow-md transition-all">
+            <EditorCommandEmpty className="px-2 text-gray-500">No results</EditorCommandEmpty>
             <EditorCommandList>
               {suggestionItems.map((item) => (
                 <EditorCommandItem
                   key={item.title}
                   value={item.title}
                   onCommand={(props) => item.command?.(props)}
-                  className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm hover:bg-white/10 aria-selected:bg-white/10"
+                  className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm text-gray-900 hover:bg-gray-100 aria-selected:bg-gray-100"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-muted bg-background">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-white">
                     {item.icon}
                   </div>
                   <div>
                     <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-foreground-secondary">{item.description}</p>
+                    <p className="text-xs text-gray-500">{item.description}</p>
                   </div>
                 </EditorCommandItem>
               ))}

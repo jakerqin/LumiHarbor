@@ -3,46 +3,38 @@
 from __future__ import annotations
 
 import re
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple
 
 from sqlalchemy.orm import Session
 
 from .. import model, schema
 
 
-_ASSET_REF_PATTERN = re.compile(r"asset://(\d+)")
+def _extract_text_from_json(content: Dict[str, Any]) -> str:
+    """从 Tiptap JSONContent 递归提取纯文本"""
+    texts: List[str] = []
+
+    def traverse(node: Any) -> None:
+        """递归遍历 JSON 节点"""
+        if not isinstance(node, dict):
+            return
+
+        # 如果是文本节点，提取文本
+        if node.get("type") == "text" and "text" in node:
+            texts.append(node["text"])
+
+        # 递归处理子节点
+        if "content" in node and isinstance(node["content"], list):
+            for child in node["content"]:
+                traverse(child)
+
+    traverse(content)
+    return " ".join(texts)
 
 
-def _extract_related_asset_ids(markdown: str) -> List[int]:
-    """从 Markdown 文本中提取 asset://{id} 引用的素材 ID（去重并保持首次出现顺序）"""
-    seen = set()
-    asset_ids: List[int] = []
-    for match in _ASSET_REF_PATTERN.finditer(markdown):
-        asset_id = int(match.group(1))
-        if asset_id in seen:
-            continue
-        seen.add(asset_id)
-        asset_ids.append(asset_id)
-    return asset_ids
-
-
-def _build_excerpt(markdown: str, max_length: int = 160) -> str:
-    """从 Markdown 派生摘要文本（用于列表页）"""
-    text = markdown
-    # 移除 fenced code block
-    text = re.sub(r"```[\s\S]*?```", "", text)
-    # 移除 inline code
-    text = re.sub(r"`[^`]*`", "", text)
-    # 图片/链接：保留可读文本
-    text = re.sub(r"!\[([^\]]*)\]\([^)]*\)", r"\1", text)
-    text = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", text)
-    # 常见 Markdown 前缀（标题、引用、列表）
-    text = re.sub(r"^\s{0,3}#{1,6}\s+", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^\s{0,3}>\s?", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^\s{0,3}[-*+]\s+", "", text, flags=re.MULTILINE)
-    text = re.sub(r"^\s{0,3}\d+\.\s+", "", text, flags=re.MULTILINE)
-    # 移除素材引用协议
-    text = _ASSET_REF_PATTERN.sub("", text)
+def _build_excerpt(content: Dict[str, Any], max_length: int = 160) -> str:
+    """从 Tiptap JSONContent 派生摘要文本（用于列表页）"""
+    text = _extract_text_from_json(content)
     # 收敛空白
     text = re.sub(r"\s+", " ", text).strip()
     if not text:
@@ -110,22 +102,19 @@ class NoteService:
 
     @staticmethod
     def create_note(db: Session, note_data: schema.NoteCreate, created_by: int) -> model.Note:
-        """创建笔记（会派生 related_assets）"""
-        related_assets = _extract_related_asset_ids(note_data.content)
-
-        missing_ids = NoteService._missing_asset_ids(db, related_assets)
+        """创建笔记"""
+        # 验证封面素材是否存在
         if note_data.cover_asset_id is not None:
-            missing_ids += NoteService._missing_asset_ids(db, [note_data.cover_asset_id])
-
-        if missing_ids:
-            raise ValueError(f"引用的素材不存在或已删除: {sorted(set(missing_ids))}")
+            missing_ids = NoteService._missing_asset_ids(db, [note_data.cover_asset_id])
+            if missing_ids:
+                raise ValueError(f"封面素材不存在或已删除: {missing_ids[0]}")
 
         note = model.Note(
             created_by=created_by,
             title=note_data.title,
             content=note_data.content,
             cover_asset_id=note_data.cover_asset_id,
-            related_assets=related_assets,
+            related_assets=None,
             shot_at=note_data.shot_at,
             is_encrypted=False,
             is_deleted=False,
@@ -137,7 +126,7 @@ class NoteService:
 
     @staticmethod
     def update_note(db: Session, note_id: int, note_data: schema.NoteUpdate) -> Optional[model.Note]:
-        """更新笔记（仅更新提供的字段，content 更新会重算 related_assets）"""
+        """更新笔记（仅更新提供的字段）"""
         note = NoteService.get_note_by_id(db, note_id)
         if not note:
             return None
@@ -145,13 +134,7 @@ class NoteService:
         update_data = note_data.model_dump(exclude_unset=True)
 
         if "content" in update_data:
-            content = update_data["content"]
-            related_assets = _extract_related_asset_ids(content)
-            missing_ids = NoteService._missing_asset_ids(db, related_assets)
-            if missing_ids:
-                raise ValueError(f"引用的素材不存在或已删除: {sorted(set(missing_ids))}")
-            note.content = content
-            note.related_assets = related_assets
+            note.content = update_data["content"]
 
         if "title" in update_data:
             note.title = update_data["title"]
@@ -182,7 +165,7 @@ class NoteService:
         return True
 
     @staticmethod
-    def build_excerpt(markdown: str, max_length: int = 160) -> str:
+    def build_excerpt(content: Dict[str, Any], max_length: int = 160) -> str:
         """对外暴露摘要生成（便于路由层复用/测试）"""
-        return _build_excerpt(markdown, max_length=max_length)
+        return _build_excerpt(content, max_length=max_length)
 
