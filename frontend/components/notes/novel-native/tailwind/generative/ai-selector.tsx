@@ -59,11 +59,11 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
   };
 
   return (
-    <Command className="w-[350px]">
+    <Command className="w-[350px] bg-white text-gray-900">
       {hasCompletion && (
         <div className="flex max-h-[400px]">
           <ScrollArea>
-            <div className="prose prose-invert prose-sm p-2 px-4">
+            <div className="prose prose-sm p-2 px-4 text-gray-900">
               <Markdown>{completion}</Markdown>
             </div>
           </ScrollArea>
@@ -71,7 +71,7 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
       )}
 
       {isLoading && (
-        <div className="flex h-12 w-full items-center px-4 text-sm font-medium text-foreground-secondary text-purple-500">
+        <div className="flex h-12 w-full items-center px-4 text-sm font-medium text-purple-500">
           <Magic className="mr-2 h-4 w-4 shrink-0" />
           AI is thinking
           <div className="ml-2 mt-1">
