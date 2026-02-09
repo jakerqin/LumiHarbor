@@ -27,7 +27,7 @@ class Note(Base):
 
     # 笔记内容
     title = Column(String(255), nullable=True, comment='笔记标题')
-    content = Column(Text, nullable=False, comment='笔记内容')
+    content = Column(JSON, nullable=False, comment='笔记内容（Tiptap JSONContent）')
     cover_asset_id = Column(BIGINT, nullable=True, index=True, comment='封面素材ID')
     is_encrypted = Column(Boolean, default=False, comment='是否加密')
     related_assets = Column(JSON, nullable=True, comment='关联资源列表 (JSON 数组)')

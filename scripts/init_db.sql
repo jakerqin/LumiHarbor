@@ -121,7 +121,7 @@ CREATE TABLE IF NOT EXISTS notes (
     id BIGINT PRIMARY KEY AUTO_INCREMENT,
     created_by BIGINT NOT NULL COMMENT '创建者用户ID',
     title VARCHAR(255),
-    content TEXT NOT NULL,
+    content JSON NOT NULL COMMENT '笔记内容（Tiptap JSONContent）',
     cover_asset_id BIGINT COMMENT '封面素材ID',
     is_encrypted BOOLEAN DEFAULT '0',
     related_assets JSON COMMENT '关联资源列表 (JSON 数组)',

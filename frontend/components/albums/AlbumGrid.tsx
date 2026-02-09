@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation';
 import type { AlbumsFilter } from './AlbumFilterBar';
 import { CreateAlbumModal, type CreateAlbumData } from './CreateAlbumModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
-import { useToast } from '@/components/common/toast/ToastProvider';
+import { toast } from 'sonner';
 
 interface AlbumGridProps {
   filter?: AlbumsFilter;
@@ -19,7 +19,6 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
   const pageSize = 20;
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { showToast } = useToast();
 
   // 编辑/删除状态
   const [editingAlbum, setEditingAlbum] = useState<Album | null>(null);
@@ -66,12 +65,12 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['albums'] });
-      showToast({ title: '相册更新成功', tone: 'success' });
+      toast.success('相册更新成功');
       setEditModalOpen(false);
       setEditingAlbum(null);
     },
     onError: (error: any) => {
-      showToast({ title: error?.message || '相册更新失败', tone: 'error' });
+      toast.error(error?.message || '相册更新失败');
     },
   });
 
@@ -80,12 +79,12 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
     mutationFn: (id: number) => albumsApi.deleteAlbum(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['albums'] });
-      showToast({ title: '相册已删除', tone: 'success' });
+      toast.success('相册已删除');
       setDeleteDialogOpen(false);
       setDeletingAlbum(null);
     },
     onError: (error: any) => {
-      showToast({ title: error?.message || '删除失败', tone: 'error' });
+      toast.error(error?.message || '删除失败');
     },
   });
 
