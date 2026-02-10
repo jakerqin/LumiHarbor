@@ -83,21 +83,36 @@ const TailwindAdvancedEditor = ({
       editor
         .chain()
         .focus()
-        .setVideo({
-          src: assetUrl,
-          assetId: asset.id,
-        })
+        .insertContent([
+          {
+            type: 'video',
+            attrs: {
+              src: assetUrl,
+              assetId: asset.id,
+            },
+          },
+          {
+            type: 'paragraph',
+          },
+        ])
         .run();
     } else {
       // 图片类型
       editor
         .chain()
         .focus()
-        .setImage({
-          src: assetUrl,
-          // @ts-ignore - 扩展属性
-          assetId: asset.id,
-        })
+        .insertContent([
+          {
+            type: 'image',
+            attrs: {
+              src: assetUrl,
+              assetId: asset.id,
+            },
+          },
+          {
+            type: 'paragraph',
+          },
+        ])
         .run();
     }
   };
