@@ -114,7 +114,9 @@ def create_note(
         raise HTTPException(status_code=400, detail=str(e))
 
     cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
-    excerpt = NoteService.build_excerpt(note.content)
+
+    # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
+    excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
 
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
@@ -165,12 +167,15 @@ def list_notes(
         if note.cover_asset_id:
             cover_thumbnail_path, cover_thumbnail_url = cover_meta.get(note.cover_asset_id, (None, None))
 
+        # 始终从 content JSON 生成纯文本摘要（用于列表页预览）
+        excerpt = NoteService.build_excerpt(note.content)
+
         notes_out.append(
             schema.NoteSummaryOut(
                 id=note.id,
                 created_by=note.created_by,
                 title=note.title,
-                excerpt=NoteService.build_excerpt(note.content),
+                excerpt=excerpt,
                 cover_asset_id=note.cover_asset_id,
                 cover_thumbnail_path=cover_thumbnail_path,
                 cover_thumbnail_url=cover_thumbnail_url,
@@ -205,12 +210,15 @@ def get_note(
     # 获取封面素材的详细信息（包含原图和预览图）
     cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
 
+    # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
+    excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
+
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
             id=note.id,
             created_by=note.created_by,
             title=note.title,
-            excerpt=NoteService.build_excerpt(note.content),
+            excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
             cover_thumbnail_path=cover_meta['thumbnail_path'],
             cover_thumbnail_url=cover_meta['thumbnail_url'],
@@ -243,12 +251,15 @@ def update_note(
 
     cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
 
+    # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
+    excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
+
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
             id=note.id,
             created_by=note.created_by,
             title=note.title,
-            excerpt=NoteService.build_excerpt(note.content),
+            excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
             cover_thumbnail_path=cover_meta['thumbnail_path'],
             cover_thumbnail_url=cover_meta['thumbnail_url'],

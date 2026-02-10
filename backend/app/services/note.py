@@ -113,6 +113,7 @@ class NoteService:
             created_by=created_by,
             title=note_data.title,
             content=note_data.content,
+            content_markdown=note_data.content_markdown,
             cover_asset_id=note_data.cover_asset_id,
             related_assets=None,
             shot_at=note_data.shot_at,
@@ -135,6 +136,9 @@ class NoteService:
 
         if "content" in update_data:
             note.content = update_data["content"]
+
+        if "content_markdown" in update_data:
+            note.content_markdown = update_data["content_markdown"]
 
         if "title" in update_data:
             note.title = update_data["title"]

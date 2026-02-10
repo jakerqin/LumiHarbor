@@ -71,6 +71,7 @@ export const notesApi = {
   createNote: async (payload: {
     title?: string | null;
     content: JSONContent;
+    content_markdown?: string | null;
     cover_asset_id?: number | null;
     shot_at?: string | null;
   }): Promise<NoteDetail> => {
@@ -84,6 +85,7 @@ export const notesApi = {
     payload: {
       title?: string | null;
       content?: JSONContent;
+      content_markdown?: string | null;
       cover_asset_id?: number | null;
       shot_at?: string | null;
     }

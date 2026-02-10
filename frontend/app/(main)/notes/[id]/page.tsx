@@ -10,6 +10,7 @@ import { type JSONContent } from 'novel';
 import { notesApi } from '@/lib/api/notes';
 import TailwindAdvancedEditor from '@/components/notes/novel-native/tailwind/advanced-editor';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
+import { jsonToMarkdown } from '@/lib/utils/jsonToMarkdown';
 
 export default function NoteDetailPage() {
   const params = useParams<{ id?: string }>();
@@ -27,7 +28,11 @@ export default function NoteDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (content: JSONContent) => {
-      return notesApi.updateNote(noteId, { content });
+      const markdown = jsonToMarkdown(content);
+      return notesApi.updateNote(noteId, {
+        content,
+        content_markdown: markdown,
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['note', noteId] });

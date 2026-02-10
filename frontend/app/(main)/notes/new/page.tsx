@@ -14,6 +14,7 @@ export default function NewNotePage() {
     title: string;
     coverAssetId: number | null;
     content: JSONContent;
+    contentMarkdown: string;
   }) => {
     try {
       if (noteId) {
@@ -21,6 +22,7 @@ export default function NewNotePage() {
         await notesApi.updateNote(noteId, {
           title: data.title || '无标题',
           content: data.content,
+          content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
         });
       } else {
@@ -28,6 +30,7 @@ export default function NewNotePage() {
         const note = await notesApi.createNote({
           title: data.title || '无标题',
           content: data.content,
+          content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
         });
         setNoteId(note.id);

@@ -24,6 +24,7 @@ class NoteCreate(BaseModel):
 
     title: Optional[str] = Field(None, min_length=1, max_length=255, description="笔记标题")
     content: Dict[str, Any] = Field(..., description="笔记内容（Tiptap JSONContent）")
+    content_markdown: Optional[str] = Field(None, description="笔记内容（Markdown格式，用于预览）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可选）")
     shot_at: Optional[datetime] = Field(None, description="叙事发生时间（可选）")
 
@@ -33,6 +34,7 @@ class NoteUpdate(BaseModel):
 
     title: Optional[str] = Field(None, min_length=1, max_length=255, description="笔记标题")
     content: Optional[Dict[str, Any]] = Field(None, description="笔记内容（Tiptap JSONContent）")
+    content_markdown: Optional[str] = Field(None, description="笔记内容（Markdown格式，用于预览）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可为空表示移除封面）")
     shot_at: Optional[datetime] = Field(None, description="叙事发生时间（可选）")
 
@@ -43,7 +45,7 @@ class NoteSummaryOut(BaseModel):
     id: int
     created_by: int
     title: Optional[str]
-    excerpt: str = Field(..., description="内容摘要（从 JSON 内容派生）")
+    excerpt: str = Field("", description="内容摘要（Markdown格式，用于预览）")
     cover_asset_id: Optional[int]
     cover_thumbnail_path: Optional[str] = Field(None, description="封面素材缩略图路径")
     cover_thumbnail_url: Optional[str] = Field(None, description="封面素材缩略图 URL")
