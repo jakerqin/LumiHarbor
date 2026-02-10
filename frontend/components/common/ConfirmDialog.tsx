@@ -1,7 +1,5 @@
 'use client';
 
-import { X } from 'lucide-react';
-
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
@@ -42,22 +40,11 @@ export function ConfirmDialog({
 
       <div className="absolute inset-0 flex items-start justify-center p-4 pt-24">
         <div className="w-full max-w-md rounded-2xl bg-background border border-white/10 shadow-2xl overflow-hidden">
-          <div className="flex items-start justify-between gap-4 p-5 border-b border-white/10">
-            <div>
-              <h2 className="text-lg font-heading font-semibold">{title}</h2>
-              {description && (
-                <p className="mt-1 text-sm text-foreground-secondary">{description}</p>
-              )}
-            </div>
-            <button
-              type="button"
-              onClick={onCancel}
-              disabled={loading}
-              className="h-9 w-9 inline-flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-              aria-label="关闭"
-            >
-              <X size={18} />
-            </button>
+          <div className="p-5 border-b border-white/10">
+            <h2 className="text-lg font-heading font-semibold">{title}</h2>
+            {description && (
+              <p className="mt-1 text-sm text-foreground-secondary">{description}</p>
+            )}
           </div>
 
           <div className="flex items-center justify-end gap-3 p-5">

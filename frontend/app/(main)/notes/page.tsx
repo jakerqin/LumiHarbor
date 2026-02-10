@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   FileText,
   Plus,
@@ -10,13 +11,21 @@ import {
 } from 'lucide-react';
 import { NoteGrid } from '@/components/notes/NoteGrid';
 import { NoteTimeline } from '@/components/notes/NoteTimeline';
+import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { useGsapPressableScale } from '@/lib/hooks/useGsapPressableScale';
+import { notesApi } from '@/lib/api/notes';
+import type { Note } from '@/lib/api/notes';
+import { toast } from 'sonner';
 
 type ViewMode = 'grid' | 'timeline';
 
 export default function NotesPage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [noteToDelete, setNoteToDelete] = useState<Note | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const router = useRouter();
+  const queryClient = useQueryClient();
   const createButtonRef = useRef<HTMLButtonElement>(null);
   const createButtonHandlers = useGsapPressableScale(createButtonRef);
 
@@ -26,6 +35,34 @@ export default function NotesPage() {
 
   const handleNoteClick = (id: number) => {
     router.push(`/notes/${id}`);
+  };
+
+  const handleDeleteNote = (note: Note) => {
+    setNoteToDelete(note);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!noteToDelete) return;
+
+    setIsDeleting(true);
+    try {
+      await notesApi.deleteNote(noteToDelete.id);
+      queryClient.invalidateQueries({ queryKey: ['notes'] });
+      toast.success('笔记已删除');
+      setDeleteDialogOpen(false);
+      setNoteToDelete(null);
+    } catch (error) {
+      console.error('删除笔记失败:', error);
+      toast.error('删除失败，请重试');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleCancelDelete = () => {
+    setDeleteDialogOpen(false);
+    setNoteToDelete(null);
   };
 
   return (
@@ -86,12 +123,25 @@ export default function NotesPage() {
         {/* 内容区域 */}
         <div>
           {viewMode === 'grid' ? (
-            <NoteGrid onNoteClick={handleNoteClick} />
+            <NoteGrid onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
           ) : (
-            <NoteTimeline onNoteClick={handleNoteClick} />
+            <NoteTimeline onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
           )}
         </div>
       </div>
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        open={deleteDialogOpen}
+        title="删除笔记"
+        description={`确认删除笔记「${noteToDelete?.title || '无标题'}」吗？此操作无法撤销。`}
+        confirmText="确认删除"
+        cancelText="取消"
+        confirmTone="danger"
+        loading={isDeleting}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+      />
     </div>
   );
 }

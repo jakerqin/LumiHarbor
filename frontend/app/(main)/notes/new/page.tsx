@@ -1,18 +1,13 @@
 'use client';
 
-import { useState, useRef } from 'react';
-import { useRouter } from 'next/navigation';
-import { NoteEditor, type NoteEditorRef } from '@/components/notes/NoteEditor';
+import { useState } from 'react';
+import { NoteEditor } from '@/components/notes/NoteEditor';
 import { NoteEditorNavbar } from '@/components/notes/NoteEditorNavbar';
 import { notesApi } from '@/lib/api/notes';
 import { toast } from 'sonner';
 import type { JSONContent } from 'novel';
 
 export default function NewNotePage() {
-  const router = useRouter();
-  const editorRef = useRef<NoteEditorRef>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [noteId, setNoteId] = useState<number | null>(null);
 
   const handleSave = async (data: {
@@ -44,29 +39,16 @@ export default function NewNotePage() {
     }
   };
 
-  const handleManualSave = async () => {
-    if (editorRef.current) {
-      await editorRef.current.triggerSave();
-    }
-  };
-
   return (
     <div className="min-h-screen relative">
       {/* 导航栏 */}
-      <NoteEditorNavbar
-        isSaving={isSaving}
-        lastSaved={lastSaved}
-        onSave={handleManualSave}
-      />
+      <NoteEditorNavbar />
 
       {/* 内容区域 */}
-      <div className="relative z-10 pb-12 px-6">
+      <div className="relative z-10 pb-12 px-6 pt-20">
         <NoteEditor
-          ref={editorRef}
           onSave={handleSave}
           autoSave={true}
-          onSavingChange={setIsSaving}
-          onLastSavedChange={setLastSaved}
         />
       </div>
     </div>

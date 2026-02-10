@@ -3,13 +3,14 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { NoteCard } from './NoteCard';
-import { notesApi } from '@/lib/api/notes';
+import { notesApi, type Note } from '@/lib/api/notes';
 
 interface NoteGridProps {
   onNoteClick?: (id: number) => void;
+  onNoteDelete?: (note: Note) => void;
 }
 
-export function NoteGrid({ onNoteClick }: NoteGridProps) {
+export function NoteGrid({ onNoteClick, onNoteDelete }: NoteGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
 
@@ -57,7 +58,12 @@ export function NoteGrid({ onNoteClick }: NoteGridProps) {
       {/* 笔记网格 */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {data.notes.map((note) => (
-          <NoteCard key={note.id} note={note} onClick={() => onNoteClick?.(note.id)} />
+          <NoteCard
+            key={note.id}
+            note={note}
+            onClick={() => onNoteClick?.(note.id)}
+            onDelete={onNoteDelete}
+          />
         ))}
       </div>
 

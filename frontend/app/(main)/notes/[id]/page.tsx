@@ -98,10 +98,22 @@ export default function NoteDetailPage() {
   const shotAtText = note.shot_at ? format(new Date(note.shot_at), 'PPP', { locale: zhCN }) : null;
 
   return (
-    <div className="min-h-screen py-10 px-6 md:px-8">
-      <div className="max-w-5xl mx-auto">
-        <div className="flex items-start justify-between gap-4 mb-8">
-          <div className="min-w-0">
+    <div className="min-h-screen relative">
+      {/* 返回按钮 - 固定在页面左上角 */}
+      <div className="fixed top-0 left-0 z-50 px-8 py-6 pointer-events-none">
+        <button
+          type="button"
+          onClick={() => router.push('/notes')}
+          className="pointer-events-auto flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 transition-colors cursor-pointer shadow-lg"
+        >
+          <ArrowLeft size={20} />
+          <span className="text-sm font-medium">返回</span>
+        </button>
+      </div>
+
+      <div className="py-10 px-6 md:px-8 pt-20">
+        <div className="max-w-5xl mx-auto">
+          <div className="mb-8">
             <div className="flex items-center gap-3 mb-2">
               <FileText size={34} className="text-primary" />
               <h1 className="text-3xl md:text-4xl font-heading font-bold truncate">
@@ -113,16 +125,6 @@ export default function NoteDetailPage() {
               {shotAtText && <span>叙事时间 {shotAtText}</span>}
             </div>
           </div>
-
-          <button
-            type="button"
-            onClick={() => router.push('/notes')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-colors"
-          >
-            <ArrowLeft size={16} />
-            返回
-          </button>
-        </div>
 
         {/* 白色背景容器 */}
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
@@ -141,6 +143,7 @@ export default function NoteDetailPage() {
               autoSave={true}
             />
           </div>
+        </div>
         </div>
       </div>
     </div>

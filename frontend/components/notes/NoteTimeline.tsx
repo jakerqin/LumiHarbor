@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { gsap } from 'gsap';
-import { Calendar } from 'lucide-react';
+import { Calendar, MoreVertical, Trash2 } from 'lucide-react';
 import { notesApi, type Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
@@ -11,9 +11,12 @@ import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 
 interface NoteTimelineProps {
   onNoteClick?: (id: number) => void;
+  onNoteDelete?: (note: Note) => void;
 }
 
-export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
+export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
+  const [showMenuForNote, setShowMenuForNote] = useState<number | null>(null);
+  const menuRefs = useRef(new Map<number, HTMLDivElement>());
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const [allNotes, setAllNotes] = useState<Note[]>([]);
@@ -23,6 +26,21 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
     queryKey: ['notes-timeline', page, pageSize],
     queryFn: () => notesApi.getNotes(page, pageSize),
   });
+
+  // 点击外部关闭菜单
+  useLayoutEffect(() => {
+    if (showMenuForNote === null) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const menuEl = menuRefs.current.get(showMenuForNote);
+      if (menuEl && !menuEl.contains(e.target as Node)) {
+        setShowMenuForNote(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showMenuForNote]);
 
   // 累积分页数据（用于时间轴“加载更多”）
   useEffect(() => {
@@ -125,17 +143,61 @@ export function NoteTimeline({ onNoteClick }: NoteTimelineProps) {
                     <div className="absolute left-[-48px] top-6 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
 
                     {/* 笔记卡片 */}
-                    <div className="p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
-                      {/* 封面图（如果有） */}
-                      {coverUrl && (
-                        <div className="relative aspect-video rounded-lg overflow-hidden mb-4 bg-background-tertiary">
+                    <div className="relative p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
+                      {/* 封面图区域（始终显示） */}
+                      <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
+                        {coverUrl ? (
                           <img
                             src={coverUrl}
                             alt={note.title ?? ''}
                             className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
                           />
+                        ) : (
+                          <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-background-tertiary flex items-center justify-center">
+                            <Calendar size={48} className="text-primary/40" />
+                          </div>
+                        )}
+
+                        {/* 右上角三点菜单按钮 */}
+                        <div
+                          className="absolute top-3 right-3"
+                          ref={(el) => {
+                            if (el) {
+                              menuRefs.current.set(note.id, el);
+                              return;
+                            }
+                            menuRefs.current.delete(note.id);
+                          }}
+                        >
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowMenuForNote(showMenuForNote === note.id ? null : note.id);
+                            }}
+                            className="p-1.5 bg-black/60 backdrop-blur-sm rounded-lg hover:bg-black/80 transition-colors"
+                            aria-label="更多操作"
+                          >
+                            <MoreVertical size={16} className="text-white" />
+                          </button>
+
+                          {/* 下拉菜单 */}
+                          {showMenuForNote === note.id && (
+                            <div className="absolute top-full right-0 mt-2 w-32 rounded-lg bg-background-secondary/95 backdrop-blur-xl border border-white/10 shadow-2xl overflow-hidden z-10">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowMenuForNote(null);
+                                  onNoteDelete?.(note);
+                                }}
+                                className="w-full px-4 py-2.5 flex items-center gap-2 text-sm text-red-400 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={14} />
+                                <span>删除</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
-                      )}
+                      </div>
 
                       {/* 日期 */}
                       <div className="flex items-center gap-2 text-xs text-foreground-tertiary mb-3">

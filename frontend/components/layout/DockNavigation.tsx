@@ -176,12 +176,21 @@ export function DockNavigation() {
     });
   };
 
+  // 判断路径是否匹配（支持前缀匹配）
+  const isPathMatch = (itemHref: string | undefined, currentPath: string): boolean => {
+    if (!itemHref) return false;
+    // 首页特殊处理：精确匹配
+    if (itemHref === '/') return currentPath === '/';
+    // 其他路径：前缀匹配
+    return currentPath.startsWith(itemHref);
+  };
+
   // 活动指示器位置动画（使用屏幕绝对位置）
   useEffect(() => {
     if (!indicatorRef.current) return;
 
     // 找到匹配当前路径的 item 在 dockItems 中的索引
-    const dockItemIndex = dockItems.findIndex((item) => item.href === pathname);
+    const dockItemIndex = dockItems.findIndex((item) => isPathMatch(item.href, pathname));
     if (dockItemIndex === -1) return;
 
     // 将 dockItems 索引转换为 buttonRefs 索引（跳过 divider）
@@ -219,7 +228,7 @@ export function DockNavigation() {
         )}
         style={{
           // 只在有激活页面时显示
-          display: dockItems.some((item) => item.href === pathname) ? 'block' : 'none',
+          display: dockItems.some((item) => isPathMatch(item.href, pathname)) ? 'block' : 'none',
         }}
       />
 
@@ -244,7 +253,7 @@ export function DockNavigation() {
             }
 
             const Icon = item.icon!;
-            const isActive = pathname === item.href;
+            const isActive = isPathMatch(item.href, pathname);
             const currentItemIndex = itemIndex++;
 
             return (
