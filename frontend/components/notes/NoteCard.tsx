@@ -116,11 +116,7 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
           {note.title || '无标题'}
         </h3>
 
-        {/* 内容预览 */}
-        <p className="text-sm text-foreground-secondary line-clamp-3 mb-4">
-          {note.excerpt || ' '}
-        </p>
-
+        
         {/* 底部信息 */}
         <div className="flex items-center justify-between gap-4">
           {/* 日期 */}
