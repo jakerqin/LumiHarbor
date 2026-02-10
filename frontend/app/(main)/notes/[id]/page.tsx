@@ -124,18 +124,23 @@ export default function NoteDetailPage() {
           </button>
         </div>
 
-        {coverUrl && (
-          <div className="relative aspect-[16/7] rounded-2xl overflow-hidden border border-white/10 bg-background-secondary mb-8">
-            <img src={coverUrl} alt="" className="w-full h-full object-cover" />
-          </div>
-        )}
+        {/* 白色背景容器 */}
+        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+          {/* 封面图区域 */}
+          {coverUrl && (
+            <div className="relative aspect-[16/7] overflow-hidden">
+              <img src={coverUrl} alt="" className="w-full h-full object-cover" />
+            </div>
+          )}
 
-        <div className="flex justify-center">
-          <TailwindAdvancedEditor
-            initialContent={note.content}
-            onSave={(content) => updateMutation.mutate(content)}
-            autoSave={true}
-          />
+          {/* 编辑器区域 */}
+          <div className="px-0">
+            <TailwindAdvancedEditor
+              initialContent={note.content}
+              onSave={(content) => updateMutation.mutate(content)}
+              autoSave={true}
+            />
+          </div>
         </div>
       </div>
     </div>

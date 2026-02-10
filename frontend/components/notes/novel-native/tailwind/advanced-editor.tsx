@@ -119,7 +119,7 @@ const TailwindAdvancedEditor = ({
 
   const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
     const json = editor.getJSON();
-    setCharsCount(editor.storage.characterCount.words());
+    setCharsCount(editor.storage.characterCount.characters());
 
     if (autoSave && onSave) {
       await onSave(json);
@@ -133,7 +133,7 @@ const TailwindAdvancedEditor = ({
       <div className="absolute right-12 top-5 z-10 mb-5 flex gap-2">
         <div className="rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600">{saveStatus}</div>
         <div className={charsCount ? "rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600" : "hidden"}>
-          {charsCount} Words
+          {charsCount} 字符
         </div>
       </div>
 
