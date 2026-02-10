@@ -29,6 +29,7 @@ import { Separator } from "./ui/separator";
 import { AssetPickerModal } from "@/components/common/AssetPickerModal";
 import type { Asset } from "@/lib/api/types";
 import { resolveMediaUrl } from "@/lib/utils/mediaUrl";
+import { TableOfContents } from "../TableOfContents";
 
 const extensions = [...defaultExtensions, slashCommand];
 
@@ -47,6 +48,7 @@ const TailwindAdvancedEditor = ({
   const [charsCount, setCharsCount] = useState<number | null>(null);
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const editorRef = useRef<EditorInstance | null>(null);
+  const [editor, setEditor] = useState<EditorInstance | null>(null); // 用于目录组件
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
@@ -152,6 +154,9 @@ const TailwindAdvancedEditor = ({
               class: "prose prose-lg prose-gray prose-headings:font-heading focus:outline-none max-w-full text-gray-900",
             },
           }}
+          onCreate={({ editor }) => {
+            setEditor(editor);
+          }}
           onUpdate={({ editor }) => {
             debouncedUpdates(editor);
             setSaveStatus("Unsaved");
@@ -202,6 +207,9 @@ const TailwindAdvancedEditor = ({
         onClose={() => setIsAssetPickerOpen(false)}
         onSelect={handleAssetSelect}
       />
+
+      {/* 目录侧边栏 */}
+      <TableOfContents editor={editor} />
     </div>
   );
 };

@@ -24,6 +24,7 @@ import {
 import { cx } from "class-variance-authority";
 import { common, createLowlight } from "lowlight";
 import { Video } from "./video-extension";
+import { HeadingWithId } from "./heading-with-id";
 
 const tiptapLink = TiptapLink.configure({
   HTMLAttributes: {
@@ -104,6 +105,7 @@ const starterKit = StarterKit.configure({
     },
   },
   horizontalRule: false,
+  heading: false, // 禁用默认 Heading，使用自定义的 HeadingWithId
   dropcursor: {
     color: "#DBEAFE",
     width: 4,
@@ -152,6 +154,7 @@ const placeholder = Placeholder.configure({
 
 export const defaultExtensions = [
   starterKit,
+  HeadingWithId, // 自定义 Heading，支持 ID 属性
   placeholder,
   tiptapLink,
   tiptapImage,
