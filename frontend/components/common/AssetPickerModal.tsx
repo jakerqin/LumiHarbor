@@ -14,6 +14,7 @@ interface AssetPickerModalProps {
   onSelect?: (asset: Asset) => void;
   onMultiSelect?: (assets: Asset[]) => void;
   title?: string;
+  description?: string;
   multiSelect?: boolean;
 }
 
@@ -23,6 +24,7 @@ export function AssetPickerModal({
   onSelect,
   onMultiSelect,
   title = '选择素材',
+  description,
   multiSelect = false,
 }: AssetPickerModalProps) {
   const [filter, setFilter] = useState<AssetsFilter>({});
@@ -86,6 +88,11 @@ export function AssetPickerModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/10">
           <div>
             <h2 className="text-xl font-semibold">{title}</h2>
+            {description && (
+              <p className="text-sm text-foreground-secondary mt-1">
+                {description}
+              </p>
+            )}
             {multiSelect && selectedAssets.size > 0 && (
               <p className="text-sm text-foreground-secondary mt-1">
                 已选择 {selectedAssets.size} 项

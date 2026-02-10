@@ -26,7 +26,7 @@ import { NodeSelector } from "./selectors/node-selector";
 import { TextButtons } from "./selectors/text-buttons";
 import { slashCommand, suggestionItems } from "./slash-command";
 import { Separator } from "./ui/separator";
-import { AssetPickerModal } from "@/components/assets/AssetPickerModal";
+import { AssetPickerModal } from "@/components/common/AssetPickerModal";
 import type { Asset } from "@/lib/api/types";
 import { resolveMediaUrl } from "@/lib/utils/mediaUrl";
 
@@ -73,17 +73,33 @@ const TailwindAdvancedEditor = ({
     if (!editorRef.current) return;
 
     const editor = editorRef.current;
-    const assetUrl = resolveMediaUrl(asset.original_url, asset.original_path) || '';
+    // 优先使用 preview_url（转码后的 WebP 格式，用于 HEIC 等特殊格式）
+    // 如果不存在 preview_url，则使用 original_url（原生支持的格式如 JPG、PNG）
+    const urlToUse = asset.preview_url || asset.original_url;
+    const assetUrl = resolveMediaUrl(urlToUse, asset.original_path) || '';
 
-    editor
-      .chain()
-      .focus()
-      .setImage({
-        src: assetUrl,
-        // @ts-ignore - 扩展属性
-        assetId: asset.id,
-      })
-      .run();
+    // 根据素材类型插入不同的节点
+    if (asset.asset_type === 'video') {
+      editor
+        .chain()
+        .focus()
+        .setVideo({
+          src: assetUrl,
+          assetId: asset.id,
+        })
+        .run();
+    } else {
+      // 图片类型
+      editor
+        .chain()
+        .focus()
+        .setImage({
+          src: assetUrl,
+          // @ts-ignore - 扩展属性
+          assetId: asset.id,
+        })
+        .run();
+    }
   };
 
   const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {

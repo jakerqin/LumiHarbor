@@ -23,6 +23,7 @@ import {
 } from "novel";
 import { cx } from "class-variance-authority";
 import { common, createLowlight } from "lowlight";
+import { Video } from "./video-extension";
 
 const tiptapLink = TiptapLink.configure({
   HTMLAttributes: {
@@ -155,6 +156,11 @@ export const defaultExtensions = [
   tiptapLink,
   tiptapImage,
   updatedImage,
+  Video.configure({
+    HTMLAttributes: {
+      class: cx("rounded-lg border border-muted"),
+    },
+  }),
   taskList,
   taskItem,
   horizontalRule,

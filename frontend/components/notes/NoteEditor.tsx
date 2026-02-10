@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 're
 import { NoteTitleInput } from './NoteTitleInput';
 import { NoteCoverImage } from './NoteCoverImage';
 import TailwindAdvancedEditor from './novel-native/tailwind/advanced-editor';
-import { AssetPickerModal } from '@/components/assets/AssetPickerModal';
+import { AssetPickerModal } from '@/components/common/AssetPickerModal';
 import type { Asset } from '@/lib/api/types';
 import type { JSONContent } from 'novel';
 
@@ -39,8 +39,7 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   const [coverAsset, setCoverAsset] = useState<Asset | null>(initialCoverAsset);
   const [content, setContent] = useState<JSONContent | undefined>(initialContent);
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleAssetSelect = (asset: Asset) => {
     setCoverAsset(asset);
@@ -55,7 +54,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   const triggerAutoSave = async () => {
     if (!onSave || !autoSave) return;
 
-    setIsSaving(true);
     onSavingChange?.(true);
 
     try {
@@ -70,7 +68,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
     } catch (error) {
       console.error('自动保存失败:', error);
     } finally {
-      setIsSaving(false);
       onSavingChange?.(false);
     }
   };

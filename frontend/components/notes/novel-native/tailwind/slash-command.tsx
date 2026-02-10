@@ -123,8 +123,8 @@ export const suggestionItems = createSuggestionItems([
   },
   {
     title: "Asset from Library",
-    description: "Select an image from asset library.",
-    searchTerms: ["asset", "library", "素材", "素材库"],
+    description: "Select an image or video from asset library.",
+    searchTerms: ["asset", "library", "素材", "素材库", "image", "video", "图片", "视频"],
     icon: <FileImage size={18} />,
     command: ({ editor, range }) => {
       editor.chain().focus().deleteRange(range).run();
