@@ -33,27 +33,15 @@ export interface Location {
   }>;
 }
 
-export interface Event {
+export interface TimelineNote {
   id: number;
   title: string;
-  description: string;
-  eventType: 'travel' | 'milestone' | 'celebration';
-  startDate: string;
-  endDate: string;
   coverAsset: {
     id: number;
     thumbnailUrl: string;
     type: string;
-  };
-  relatedAssets: {
-    photoCount: number;
-    videoCount: number;
-  };
-  location?: {
-    latitude: number;
-    longitude: number;
-    name: string;
-  };
+  } | null;
+  createdAt: string;
 }
 
 export interface ApiResponse<T> {
