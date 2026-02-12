@@ -44,6 +44,55 @@ export interface TimelineNote {
   createdAt: string;
 }
 
+// ===== 地图足迹类型 =====
+
+export interface Footprint {
+  id: string;
+  latitude: number;
+  longitude: number;
+  location_city: string | null;
+  location_country: string | null;
+  location_poi: string | null;
+  asset_count: number;
+  first_shot_at: string;
+  last_shot_at: string;
+  cover_asset_id: number;
+}
+
+export interface FootprintsResponse {
+  footprints: Footprint[];
+  total: number;
+}
+
+export interface FootprintAssetBrief {
+  id: number;
+  thumbnail_url: string;
+  shot_at: string;
+  asset_type: string;
+}
+
+export interface FootprintDetail {
+  id: string;
+  latitude: number;
+  longitude: number;
+  location_city: string | null;
+  location_country: string | null;
+  location_formatted: string | null;
+  assets: FootprintAssetBrief[];
+  asset_count: number;
+  first_shot_at: string;
+  last_shot_at: string;
+}
+
+export interface MapStatistics {
+  country_count: number;
+  city_count: number;
+  total_distance_km: number;
+  first_shot_at: string | null;
+  last_shot_at: string | null;
+  total_days: number;
+}
+
 export interface ApiResponse<T> {
   code: string;
   message: string;

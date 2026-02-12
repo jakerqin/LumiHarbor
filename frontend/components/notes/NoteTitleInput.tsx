@@ -17,7 +17,7 @@ export function NoteTitleInput({
   onAddCover,
 }: NoteTitleInputProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const hideTimeoutRef = useRef<NodeJS.Timeout>();
+  const hideTimeoutRef = useRef<NodeJS.Timeout>(undefined);
 
   const handleMouseEnter = () => {
     if (hideTimeoutRef.current) {

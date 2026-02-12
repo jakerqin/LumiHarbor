@@ -18,36 +18,33 @@ CREATE TABLE IF NOT EXISTS users (
 -- ==========================================
 -- 核心资源表
 -- ==========================================
-CREATE TABLE IF NOT EXISTS assets (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '资源唯一ID',
-    -- 核心物理属性（不可变）
-    original_path VARCHAR(255) NOT NULL COMMENT 'NAS 物理相对路径',
-    thumbnail_path VARCHAR(255) COMMENT '缩略图路径',
-    preview_path VARCHAR(255) COMMENT '预览图路径（用于浏览器不支持的格式如HEIC）',
-    -- 文件基础信息
-    asset_type VARCHAR(20) NOT NULL COMMENT '资源类型: image, video, audio',
-    mime_type VARCHAR(100) COMMENT 'MIME类型: image/jpeg, video/mp4',
-    file_size BIGINT COMMENT '文件大小（字节）',
-    phash VARCHAR(64) COMMENT '感知哈希（phash，基于DCT变换，用于相似素材搜索）',
-    dhash VARCHAR(64) COMMENT '差分哈希（dhash，基于梯度，对边缘敏感）',
-    average_hash VARCHAR(64) COMMENT '均值哈希（average_hash，基于亮度，兼容旧数据）',
-    colorhash VARCHAR(64) COMMENT '颜色哈希（colorhash，基于颜色分布）',
-    file_hash VARCHAR(64) COMMENT '文件内容哈希（SHA256，用于精确去重）',
-    -- 权限控制
-    visibility VARCHAR(20) DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
-
-    created_by BIGINT NOT NULL COMMENT '创建者用户ID',
-    -- 时间戳
-    shot_at DATETIME COMMENT '拍摄时间',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-    is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
-
-    -- 索引
-    INDEX idx_file_hash (file_hash),
-    INDEX idx_original_path (original_path(255)),
-    INDEX idx_shot_at (shot_at)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源核心表';
+CREATE TABLE `assets` (
+  `id` bigint NOT NULL AUTO_INCREMENT COMMENT '资源唯一ID',
+  `original_path` varchar(255) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'NAS 物理相对路径',
+  `thumbnail_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '缩略图路径',
+  `preview_path` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '预览图路径（用于浏览器不支持的格式如HEIC）',
+  `asset_type` varchar(20) COLLATE utf8mb4_unicode_ci NOT NULL COMMENT '资源类型: image, video, audio',
+  `mime_type` varchar(100) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT 'MIME类型: image/jpeg, video/mp4',
+  `file_size` bigint DEFAULT NULL COMMENT '文件大小（字节）',
+  `phash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '感知哈希（phash，基于DCT变换，用于相似素材搜索）',
+  `dhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '差分哈希（dhash，基于梯度，对边缘敏感）',
+  `average_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '均值哈希（average_hash，基于亮度，兼容旧数据）',
+  `colorhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '颜色哈希（colorhash，基于颜色分布）',
+  `file_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件内容哈希（SHA256，用于精确去重）',
+  `visibility` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
+  `gps_latitude` decimal(10,8) DEFAULT NULL COMMENT 'GPS纬度（冗余优化）',
+  `gps_longitude` decimal(11,8) DEFAULT NULL COMMENT 'GPS经度（冗余优化）',
+  `created_by` bigint NOT NULL COMMENT '创建者用户ID',
+  `shot_at` datetime DEFAULT NULL COMMENT '拍摄时间',
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
+  PRIMARY KEY (`id`),
+  INDEX `idx_file_hash` (`file_hash`),
+  INDEX `idx_original_path` (`original_path`),
+  INDEX `idx_shot_at` (`shot_at`),
+  INDEX `idx_gps_location` (`gps_latitude`, `gps_longitude`, `shot_at`)
+) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='资源核心表';
 
 -- ==========================================
 -- 标签元数据定义表

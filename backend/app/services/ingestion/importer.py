@@ -184,6 +184,18 @@ class AssetImportService:
         else:
             data['shot_at'] = data.get('file_created_at')
 
+        # 提取 GPS 坐标（冗余优化，提升查询性能）
+        if metadata:
+            gps_lat = metadata.get('gps_latitude')
+            gps_lng = metadata.get('gps_longitude')
+            if gps_lat is not None and gps_lng is not None:
+                try:
+                    from decimal import Decimal
+                    data['gps_latitude'] = Decimal(str(gps_lat))
+                    data['gps_longitude'] = Decimal(str(gps_lng))
+                except (ValueError, TypeError):
+                    logger.warning(f"GPS 坐标格式错误: lat={gps_lat}, lng={gps_lng}")
+
         # 移除临时字段
         data.pop('file_created_at', None)
 

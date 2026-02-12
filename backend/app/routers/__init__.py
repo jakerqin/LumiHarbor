@@ -12,6 +12,7 @@ Routers Package
     home: 首页相关（精选照片、时间轴、地点地图等）
     tags: 标签定义管理
     notes: 笔记管理
+    map: 地图足迹（足迹点、详情、统计）
 """
 from fastapi import APIRouter
 from .assets import router as assets_router
@@ -22,6 +23,7 @@ from .management import router as management_router
 from .home import router as home_router
 from .tags import router as tags_router
 from .notes import router as notes_router
+from .map import router as map_router
 
 ingestion_router = APIRouter()
 ingestion_router.include_router(ingestion_scan_router)
@@ -35,4 +37,5 @@ __all__ = [
     'home_router',
     'tags_router',
     'notes_router',
+    'map_router',
 ]

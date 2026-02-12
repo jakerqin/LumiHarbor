@@ -1,5 +1,5 @@
 """资源模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Index, func
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Index, func, DECIMAL
 from ..db import Base
 
 
@@ -38,6 +38,10 @@ class Asset(Base):
     mime_type = Column(String(100), comment='MIME类型: image/jpeg, video/mp4')
     file_size = Column(BIGINT, comment='文件大小（字节）')
 
+    # GPS 坐标（冗余优化，提升查询性能）
+    gps_latitude = Column(DECIMAL(10, 8), nullable=True, comment='GPS纬度（冗余优化）')
+    gps_longitude = Column(DECIMAL(11, 8), nullable=True, comment='GPS经度（冗余优化）')
+
     # 哈希字段（用于去重和相似搜索）
     file_hash = Column(String(64), nullable=True, index=True, comment='文件内容哈希（SHA256，用于精确去重）')
     phash = Column(String(64), nullable=True, comment='感知哈希-DCT变换（权重0.5，关注图像结构）')
@@ -73,4 +77,6 @@ class Asset(Base):
               mysql_length={'original_path': 255}),
         # 基于创建者和时间查询优化
         Index('idx_created_by_shot_at', 'created_by', 'shot_at'),
+        # 基于 GPS 位置查询优化（足迹地图功能）
+        Index('idx_gps_location', 'gps_latitude', 'gps_longitude', 'shot_at'),
     )
