@@ -1,26 +1,31 @@
-# PersonalLifeFlow / LumiHarbor — Codex 协作指南（AGENTS.md）
+# LumiHarbor — Agent 协作指南（AGENTS.md）
 
-本文件面向 **Codex CLI** 的日常协作，内容从 `CLAUDE.md` 提炼并补充“可执行的工程约定”。目标是：**稳定、可维护、少走弯路**。
+给 Codex / Cursor Agent 用的**短约定**。目标：少走弯路、改对地方、别踩契约坑。  
+模块设计细节去读 `docs/design`，不要把本文或过时长文当规格书。
 
-## 0. 总体原则（必须遵守）
+---
 
-- **先读后写**：改代码前先用 `rg`/打开文件确认现状与调用链，避免凭猜测改动。
-- **KISS / DRY / YAGNI / SOLID**：只实现当下明确需求；抽象只在出现重复/扩展点时引入。
-- **最小改动面**：不要顺手重构无关代码；不要随意改目录结构、命名风格。
-- **不要主动 git 操作**：除非用户明确要求，否则不要执行 `git commit/push/reset` 等。
+## 0. 总体原则
 
-## 1. ⚠️ 危险操作确认机制
+- **先读后写**：改前用搜索/打开文件确认调用链；禁止凭猜测改。
+- **KISS / DRY / YAGNI / SOLID**：只实现当前明确需求；最小改动面。
+- **设计文档优先**：模块边界与 why → `backend/docs/design/` 或 `frontend/docs/design/`；冲突时 **源码 > design > CLAUDE.md**。
+- **不要主动 git 操作**：除非用户明确要求，不做 commit / push / reset。
+- **注释中文**；不顺手重构无关代码。
 
-执行以下操作前必须获得用户明确确认：
+---
 
-- 删除文件/目录、批量修改、移动重要文件
-- `git commit` / `git push` / `git reset --hard`
-- 修改系统环境变量、权限变更、系统设置
-- 数据库删除/结构变更/批量更新
-- 包管理：全局安装/卸载、升级核心依赖
-- 需要网络访问的安装/拉取（当前环境可能需要审批）
+## 1. 危险操作确认（必须）
 
-确认格式（必须原样输出并等待用户回答）：
+以下操作前必须获得用户明确确认：
+
+- 删除/批量移动重要文件或目录
+- `git commit` / `git push` / `git reset --hard` 等
+- 数据库删除、结构变更、批量更新
+- 全局装包/卸包、升级核心依赖
+- 改系统环境变量或权限
+
+确认格式（原样输出并等待回答）：
 
 ```
 ⚠️ 危险操作检测！
@@ -31,73 +36,123 @@
 请确认是否继续？[需要明确的"是"、"确认"、"继续"]
 ```
 
-## 2. 仓库结构与边界
+---
 
-- `backend/`：FastAPI + SQLAlchemy + Pydantic（统一 `ApiResponse` 响应壳）
-- `frontend/`：Next.js App Router（Next 16.1.1 / React 19.2.0 / TS / Tailwind / TanStack Query）
-- `scripts/`：初始化 SQL 等
-- `plans/`：方案/架构文档
+## 2. 仓库边界
 
-## 3. 关键工程约定（高频踩坑点）
+| 路径 | 内容 |
+|---|---|
+| `backend/` | FastAPI API、Service、Model、Taskiq 任务 |
+| `frontend/` | Next.js App Router UI |
+| `backend/docs/design/` | 后端内部设计（序号 `00`–`16`） |
+| `frontend/docs/design/` | 前端内部设计（序号 `00`–`13`） |
+| `scripts/init_db.sql` | 表结构权威之一；**改表必同步** |
+| `CLAUDE.md` | 人类/AI 协作入口（非模块规格） |
 
-### 3.1 API 响应约定（前后端必须一致）
+入口：
 
-后端统一响应格式：
+- [backend/docs/design/00-架构总览.md](backend/docs/design/00-架构总览.md)
+- [frontend/docs/design/00-架构总览.md](frontend/docs/design/00-架构总览.md)
+
+---
+
+## 3. 高频踩坑约定
+
+### 3.1 ApiResponse
 
 ```json
-{ "code": "0", "message": "", "result": "T" }
+{ "code": "0", "message": "success", "result": {} }
 ```
 
-前端 `frontend/lib/api/client.ts` 会自动解包：
-- `code === "0"` → 业务代码直接读 `response.data`（已经是 `result`）
-- `code !== "0"` → 抛出 `ApiError`
+- 后端默认包这层；前端拦截器在 `code === "0"` 时把 `data` 解成 `result`。
+- 业务代码：`const res = await apiClient.get<T>(...);` → 用 **`res.data`**。
+- **禁止** `response.data.result` / `response.data.data`。
+- **例外**：`GET /home/featured` 无壳；改时前后端一起查。
 
-因此：前端不要写 `response.data.result`；新增后端接口也不要绕开 `ApiResponse`，除非非常明确且在文档中说明。
+### 3.2 URL
 
-### 3.2 API baseURL / 路由前缀
+- 前端 `NEXT_PUBLIC_API_URL`，默认 `http://localhost:8000`。
+- 后端无全局 `/api` 前缀。
 
-- 前端通过 `NEXT_PUBLIC_API_URL`（见 `frontend/.env.local`）配置 baseURL，默认 `http://localhost:8000`。
-- 后端当前无全局 `/api` 前缀，路由形如：`/assets`、`/albums`、`/tags`、`/notes`、`/home/*`。
+### 3.3 数据库
 
-### 3.3 Notes（Markdown + 实时预览 + 正文关联素材）
+- **无外键**；应用层维护一致性。
+- 业务表 `is_deleted`；查询默认过滤未删除（`users` / `task_logs` 例外见后端 design）。
+- 改表 → 同步 `scripts/init_db.sql`。
 
-- 渲染组件：`frontend/components/markdown/MarkdownRenderer.tsx`（Streamdown wrapper）
-- Notes Markdown 渲染：`frontend/components/notes/NoteMarkdown.tsx`
-- **素材嵌入协议（存储）**：Markdown 内使用 `asset://{id}`（例如：`![](asset://123)`）
-- **渲染期安全改写**：渲染前将 `asset://{id}` 重写为 `/__asset__/{id}`，以绕过 Streamdown/rehype-harden 对自定义协议的阻断；渲染层同时兼容两种形式（见 `frontend/lib/markdown/assetProtocol.ts`）。
-- 后端 Notes：`GET /notes/{id}?include_assets=true` 可聚合返回引用素材元数据，减少前端 N+1。
+### 3.4 用户
 
-### 3.4 Tags（标签元数据）
+- 无完整登录；接口多用 `user_id=1`。新接口继续显式传，别假装已鉴权。
 
-- 后端标签元数据：`GET /tags/definitions`，可选 `template_type=image|video|audio`
-- 前端缓存 Hook：`frontend/lib/hooks/useTagDefinitions.ts`（localStorage + 长 TTL）
-- UI 展示优先使用 `tag_name`，不要在前端做 `tag_key -> name` 的硬编码映射。
+### 3.5 笔记
 
-### 3.5 瀑布流（素材库/相册详情复用）
+- 主存 **Tiptap / Novel JSON**，不是 Markdown 主链路。
+- `asset://` + Streamdown 为遗留；主笔记流不要按旧 Markdown 协议改。
+- 无独立 `/notes/novel` 页。
 
-- `frontend/components/assets/AssetMasonry.tsx` 采用“最短列优先分配”（基于 `aspect_ratio` 估算高度）。
-- 任何新增素材列表页，优先复用 `AssetMasonry` / `AssetGrid`，不要重复造轮子。
+### 3.6 前端状态与列表
 
-### 3.6 TanStack Query 缓存策略
+- 服务端状态：TanStack Query；全局 `staleTime=0`（见 `app/providers.tsx`）。长缓存在单个 query 上覆写并说明原因。
+- Zustand：依赖在，业务基本未用；不要无故引入全局 store。
+- 素材瀑布流：复用 `AssetMasonry` / `AssetGrid`。
+- 标签展示名：用 `useTagDefinitions` 的 `tag_name`，勿硬编码 `tag_key → 中文`。
 
-- 全局默认：`staleTime=0`（见 `frontend/app/providers.tsx`），导航回页优先拉新。
-- 如需更长缓存（例如标签定义），在单个 query 上覆写 `staleTime/gcTime`，并说明原因。
+### 3.7 复杂度门槛
 
-## 4. 常用命令（本地开发/验证）
+- 方法 ≤ 50 行；类 ≤ 300 行；嵌套 ≤ 3；参数 ≤ 5。超了就拆。
 
-### Frontend
+### 3.8 改完要不要改文档
 
-- 开发：`npm --prefix "frontend" run dev`
-- Lint：`npm --prefix "frontend" run lint`
-- 构建（含 TS 检查）：`npm --prefix "frontend" run build`
+- 动了模块边界、主数据流、契约、已知限制 → **更新对应 `docs/design` 篇**。
+- 不要把大段模块说明塞回 `CLAUDE.md`。
 
-### Backend
+---
 
-- 启动（开发）：`python "backend/run.py"`（如需也可用 `uvicorn backend.app.main:app --reload`）
-- 测试：`pytest "backend/tests"`
+## 4. 不要再按旧记忆实现
 
-## 5. 提交前自检（建议）
+| 错误假设 | 现状 |
+|---|---|
+| Bento 精选墙 | Dome Gallery |
+| Spotlight Cmd+K | UI 已移除 |
+| Notes = Markdown + asset:// | Novel JSON 主链路 |
+| 地图未做 | `/map` + 后端 map 已接通 |
+| 首页地点 = `/map` 数据 | 首页地球仍可能走 Mock；独立地图页走 `mapApi` |
 
-- 前端改动：至少跑一次 `npm --prefix "frontend" run build`
-- 后端改动：与改动范围相关的接口做一次最小链路验证；涉及 schema/路由时补充/更新文档（优先写在 `CLAUDE.md`）
+接线真伪总表见 [前端 04-类型与API层](frontend/docs/design/04-类型与API层.md)。
 
+---
+
+## 5. 常用命令
+
+```bash
+# 前端
+npm --prefix frontend run dev
+npm --prefix frontend run lint
+npm --prefix frontend run build
+
+# 后端
+python backend/run.py
+pytest backend/tests
+```
+
+---
+
+## 6. 提交前自检
+
+- 前端：相关改动至少 `npm --prefix frontend run build` 能过。
+- 后端：相关接口做最小链路验证；改 schema/路由/表 → 更新 design，必要时改 `init_db.sql`。
+- 未要求则不 commit。
+
+---
+
+## 7. 找文档速查
+
+| 想改… | 先看 |
+|---|---|
+| 导入 / 去重 / NAS | 后端 `06` → `14` → `15` |
+| 素材列表/相似/收藏 | 后端 `07` + 前端 `07` |
+| 相册 | 后端 `08` + 前端 `08` |
+| 笔记 / 编辑器 / AI | 前端 `09`→`10`；后端 `09` |
+| 地图足迹 | 前端 `12` + 后端 `12` |
+| ApiResponse / 软删 / 无 FK | 后端 `02`；前端 `02` |
+| 启动与环境变量 | 后端 `03`；前端 `03` |
