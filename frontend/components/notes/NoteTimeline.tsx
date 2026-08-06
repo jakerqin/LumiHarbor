@@ -9,6 +9,7 @@ import { notesApi, type Note } from '@/lib/api/notes';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
+import { EmptyState } from '@/components/common/EmptyState';
 
 interface NoteTimelineProps {
   onNoteClick?: (id: number) => void;
@@ -75,22 +76,21 @@ export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载笔记中...</p>
-        </div>
+      <div className="space-y-4 py-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="h-24 rounded-xl bg-background-secondary animate-pulse" />
+        ))}
       </div>
     );
   }
 
   if (!data || allNotes.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-foreground-secondary">暂无笔记</p>
-        </div>
-      </div>
+      <EmptyState
+        title="还没有笔记"
+        description="从一次旅行或某段日常写起，正文里可插入素材库照片。"
+        action={{ label: '写第一篇', href: '/notes/new' }}
+      />
     );
   }
 

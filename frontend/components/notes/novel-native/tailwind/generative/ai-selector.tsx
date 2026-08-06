@@ -59,11 +59,11 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
   };
 
   return (
-    <Command className="w-[350px] bg-white text-gray-900">
+    <Command className="w-[350px] bg-background-secondary text-foreground">
       {hasCompletion && (
         <div className="flex max-h-[400px]">
           <ScrollArea>
-            <div className="prose prose-sm p-2 px-4 text-gray-900">
+            <div className="prose prose-sm p-2 px-4 text-foreground">
               <Markdown>{completion}</Markdown>
             </div>
           </ScrollArea>
@@ -71,7 +71,7 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
       )}
 
       {isLoading && (
-        <div className="flex h-12 w-full items-center px-4 text-sm font-medium text-purple-500">
+        <div className="flex h-12 w-full items-center px-4 text-sm font-medium text-primary">
           <Magic className="mr-2 h-4 w-4 shrink-0" />
           AI is thinking
           <div className="ml-2 mt-1">
@@ -92,7 +92,7 @@ export function AISelector({ onOpenChange }: AISelectorProps) {
             />
             <Button
               size="icon"
-              className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-purple-500 hover:bg-purple-900"
+              className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 rounded-full bg-primary hover:bg-primary-hover"
               onClick={() => {
                 if (hasCompletion) {
                   void runCommand(completion, "zap", inputValue);

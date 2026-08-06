@@ -378,7 +378,7 @@ export function MapPicker({ open, defaultCenter = [31.2304, 121.4737], onConfirm
                 type="button"
                 onClick={handleConfirm}
                 disabled={!locationData || loading}
-                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 确认选择
               </button>

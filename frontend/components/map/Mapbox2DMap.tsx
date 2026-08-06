@@ -18,7 +18,7 @@ const lineLayer: LayerProps = {
   id: 'footprint-line',
   type: 'line',
   paint: {
-    'line-color': '#3b82f6',
+    'line-color': '#d4b483',
     'line-width': 2.5,
     'line-opacity': 0.7,
   },
@@ -84,7 +84,7 @@ export function Mapbox2DMap({ footprints, onFootprintClick }: Mapbox2DMapProps) 
           }}
         >
           <div
-            className="w-3 h-3 rounded-full bg-blue-500 border-2 border-white shadow-lg cursor-pointer hover:scale-150 transition-transform"
+            className="w-3 h-3 rounded-full bg-primary border-2 border-background shadow-lg cursor-pointer hover:scale-150 transition-transform"
             title={fp.location_city || fp.location_country || ''}
           />
         </Marker>

@@ -48,7 +48,7 @@ export function LocationMarker({ location, onClick }: LocationMarkerProps) {
       >
         <sphereGeometry args={[0.02, 16, 16]} />
         <meshBasicMaterial
-          color={hovered ? '#ffffff' : '#3b82f6'}
+          color={hovered ? '#ffffff' : '#d4b483'}
           toneMapped={false}
         />
       </mesh>
@@ -56,7 +56,7 @@ export function LocationMarker({ location, onClick }: LocationMarkerProps) {
       <pointLight
         intensity={hovered ? 2 : 1}
         distance={0.5}
-        color="#3b82f6"
+        color="#d4b483"
       />
     </group>
   );

@@ -34,14 +34,14 @@ export function FootprintMarker3D({ footprint, onClick }: FootprintMarker3DProps
       >
         <sphereGeometry args={[0.025, 16, 16]} />
         <meshBasicMaterial
-          color={hovered ? '#ffffff' : '#3b82f6'}
+          color={hovered ? '#ffffff' : '#d4b483'}
           toneMapped={false}
         />
       </mesh>
       <pointLight
         intensity={hovered ? 2 : 1}
         distance={0.5}
-        color="#3b82f6"
+        color="#d4b483"
       />
     </group>
   );

@@ -8,13 +8,16 @@ import { useRouter } from 'next/navigation';
 import type { AlbumsFilter } from './AlbumFilterBar';
 import { CreateAlbumModal, type CreateAlbumData } from './CreateAlbumModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { EmptyState } from '@/components/common/EmptyState';
+import { MasonrySkeleton } from '@/components/common/MasonrySkeleton';
 import { toast } from 'sonner';
 
 interface AlbumGridProps {
   filter?: AlbumsFilter;
+  onCreateClick?: () => void;
 }
 
-export function AlbumGrid({ filter = {} }: AlbumGridProps) {
+export function AlbumGrid({ filter = {}, onCreateClick }: AlbumGridProps) {
   const [page, setPage] = useState(1);
   const pageSize = 20;
   const router = useRouter();
@@ -101,34 +104,31 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载相册中...</p>
-        </div>
-      </div>
-    );
+    return <MasonrySkeleton count={9} />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-red-500 mb-2">加载失败</p>
-          <p className="text-foreground-secondary">请刷新页面重试</p>
-        </div>
-      </div>
+      <EmptyState
+        title="加载失败"
+        description="请检查网络后刷新页面重试。"
+        action={{ label: '刷新', onClick: () => window.location.reload() }}
+      />
     );
   }
 
   if (!data || data.albums.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-foreground-secondary">暂无相册</p>
-        </div>
-      </div>
+      <EmptyState
+        title="还没有相册"
+        description="先建一个旅行或主题相册，再把素材放进去。"
+        action={
+          onCreateClick
+            ? { label: '新建相册', onClick: onCreateClick }
+            : { label: '去素材库', href: '/assets' }
+        }
+        secondaryAction={{ label: '手机快传', href: '/mobile-upload' }}
+      />
     );
   }
 
@@ -174,7 +174,7 @@ export function AlbumGrid({ filter = {} }: AlbumGridProps) {
                   onClick={() => setPage(pageNum)}
                   className={`w-10 h-10 rounded-lg transition-colors ${
                     page === pageNum
-                      ? 'bg-primary text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-background-secondary hover:bg-background-tertiary'
                   }`}
                 >

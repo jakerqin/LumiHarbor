@@ -32,12 +32,12 @@ const GenerativeMenuSwitch = ({ children, open, onOpenChange }: GenerativeMenuSw
           editor.chain().unsetHighlight().run();
         },
       }}
-      className="flex w-fit max-w-[90vw] overflow-hidden rounded-md border border-gray-200 bg-white text-gray-900 shadow-xl"
+      className="flex w-fit max-w-[90vw] overflow-hidden rounded-md border border-white/10 bg-background-secondary text-foreground shadow-xl"
     >
       {open ? <AISelector open={open} onOpenChange={onOpenChange} /> : null}
       {!open ? (
         <Fragment>
-          <Button className="gap-1 rounded-none text-purple-500" variant="ghost" size="sm" onClick={() => onOpenChange(true)}>
+          <Button className="gap-1 rounded-none text-primary" variant="ghost" size="sm" onClick={() => onOpenChange(true)}>
             <Magic className="h-5 w-5" />
             Ask AI
           </Button>

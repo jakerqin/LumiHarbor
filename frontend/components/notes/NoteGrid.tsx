@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { NoteCard } from './NoteCard';
 import { notesApi, type Note } from '@/lib/api/notes';
+import { EmptyState } from '@/components/common/EmptyState';
+import { MasonrySkeleton } from '@/components/common/MasonrySkeleton';
 
 interface NoteGridProps {
   onNoteClick?: (id: number) => void;
@@ -20,34 +22,26 @@ export function NoteGrid({ onNoteClick, onNoteDelete }: NoteGridProps) {
   });
 
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载笔记中...</p>
-        </div>
-      </div>
-    );
+    return <MasonrySkeleton count={6} variant="grid" />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-red-500 mb-2">加载失败</p>
-          <p className="text-foreground-secondary">请刷新页面重试</p>
-        </div>
-      </div>
+      <EmptyState
+        title="加载失败"
+        description="请检查网络后刷新页面重试。"
+        action={{ label: '刷新', onClick: () => window.location.reload() }}
+      />
     );
   }
 
   if (!data || data.notes.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-foreground-secondary">暂无笔记</p>
-        </div>
-      </div>
+      <EmptyState
+        title="还没有笔记"
+        description="从一次旅行或某段日常写起，正文里可插入素材库照片。"
+        action={{ label: '写第一篇', href: '/notes/new' }}
+      />
     );
   }
 
@@ -97,7 +91,7 @@ export function NoteGrid({ onNoteClick, onNoteDelete }: NoteGridProps) {
                   onClick={() => setPage(pageNum)}
                   className={`w-10 h-10 rounded-lg transition-colors ${
                     page === pageNum
-                      ? 'bg-primary text-white'
+                      ? 'bg-primary text-primary-foreground'
                       : 'bg-background-secondary hover:bg-background-tertiary'
                   }`}
                 >

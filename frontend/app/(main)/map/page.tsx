@@ -63,7 +63,7 @@ export default function MapPage() {
             onClick={() => setViewMode('3d')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
               viewMode === '3d'
-                ? 'bg-blue-500/20 text-blue-400'
+                ? 'bg-primary/20 text-primary'
                 : 'text-foreground-secondary hover:text-foreground'
             }`}
           >
@@ -74,7 +74,7 @@ export default function MapPage() {
             onClick={() => setViewMode('2d')}
             className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
               viewMode === '2d'
-                ? 'bg-blue-500/20 text-blue-400'
+                ? 'bg-primary/20 text-primary'
                 : 'text-foreground-secondary hover:text-foreground'
             }`}
           >

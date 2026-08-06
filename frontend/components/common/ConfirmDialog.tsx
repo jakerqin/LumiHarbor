@@ -27,7 +27,7 @@ export function ConfirmDialog({
 
   const confirmClassName = confirmTone === 'danger'
     ? 'bg-red-500/10 text-red-400 hover:bg-red-500/20'
-    : 'bg-primary hover:bg-primary-hover text-white';
+    : 'bg-primary hover:bg-primary-hover text-primary-foreground';
 
   return (
     <div className="fixed inset-0 z-50">

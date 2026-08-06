@@ -157,7 +157,7 @@ export function AssetCard({
   const assetTypeMeta = (() => {
     switch (asset.asset_type) {
       case 'video':
-        return { Icon: Video, label: '视频', className: 'text-accent-purple' };
+        return { Icon: Video, label: '视频', className: 'text-primary' };
       case 'audio':
         return { Icon: Music, label: '音频', className: 'text-accent-green' };
       case 'image':
@@ -230,11 +230,11 @@ export function AssetCard({
             <div
               className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${
                 isSelected
-                  ? 'bg-primary border-primary text-white'
+                  ? 'bg-primary border-primary text-primary-foreground'
                   : 'bg-black/30 border-white/40 text-transparent'
               }`}
             >
-              <Check size={14} className={isSelected ? 'text-white' : 'text-transparent'} />
+              <Check size={14} className={isSelected ? 'text-primary-foreground' : 'text-transparent'} />
             </div>
           </div>
         )}

@@ -47,7 +47,7 @@ components/notes/novel-native/
     └── ui/                        # Radix/cmdk 基元
 ```
 
-样式：`app/globals.css` 引入 `styles/prosemirror.css` + KaTeX；编辑区使用 `editor-light-theme`（白底），与全站深色壳形成对比。
+样式：`app/globals.css` 引入 `styles/prosemirror.css` + KaTeX；编辑区使用 `editor-dark-theme` + `prose-invert`，气泡/斜杠菜单与全站深色壳对齐（不再白底灰字撕裂）。
 
 ## 编辑器行为
 

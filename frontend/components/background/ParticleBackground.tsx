@@ -33,11 +33,11 @@ interface ParticleBackgroundProps {
   pixelRatio?: number;
 }
 
-// 深色主题适配的默认粒子颜色（低饱和度冷色调）
+// 暖琥珀氛围（与品牌同色相，压低饱和）
 const defaultColors: string[] = [
-  '#4a5568', // 深灰蓝
-  '#2d3748', // 更深的灰蓝
-  '#1a202c', // 接近黑色的深蓝
+  '#3a3328',
+  '#5c4e3a',
+  '#2a241c',
 ];
 
 /**

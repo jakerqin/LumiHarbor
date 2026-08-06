@@ -1,6 +1,7 @@
 'use client';
 
 import { DockNavigation } from '@/components/layout/DockNavigation';
+import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 
 export default function MainLayout({
   children,
@@ -11,6 +12,7 @@ export default function MainLayout({
     <div className="relative min-h-screen">
       {children}
       <DockNavigation />
+      <MobileBottomNav />
     </div>
   );
 }

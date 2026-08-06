@@ -1,35 +1,22 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-// import { BentoGrid } from '@/components/home/BentoGrid'; // 已替换为 DomeGalleryContainer
+import Link from 'next/link';
 import { DomeGalleryContainer } from '@/components/home/DomeGalleryContainer';
 import BlurText from '@/components/animations/BlurText';
 import TextType from '@/components/animations/TextType';
-
-// 动态导入重量级组件，提升首屏加载速度
-const MapView3D = dynamic(
-  () => import('@/components/home/MapView3D').then((mod) => mod.MapView3D),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex items-center justify-center h-[600px]">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载 3D 地图中...</p>
-        </div>
-      </div>
-    ),
-  }
-);
+import ParticleBackground from '@/components/background/ParticleBackground';
 
 const Timeline = dynamic(
   () => import('@/components/home/Timeline').then((mod) => mod.Timeline),
   {
     loading: () => (
-      <div className="flex items-center justify-center h-[400px]">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载时间轴中...</p>
+      <div className="max-w-[1400px] mx-auto px-4 sm:px-8 py-12">
+        <div className="h-8 w-40 rounded bg-background-tertiary animate-pulse mb-8" />
+        <div className="space-y-6">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="h-28 rounded-xl bg-background-secondary animate-pulse" />
+          ))}
         </div>
       </div>
     ),
@@ -38,45 +25,53 @@ const Timeline = dynamic(
 
 export default function HomePage() {
   return (
-    <main className="w-full">
-      {/* 精选照片墙区域 */}
-      <section className="min-h-screen w-full py-20 px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12">
+    <main className="w-full pb-24 md:pb-0">
+      {/* 粒子仅首页，降低其它页首屏成本 */}
+      <ParticleBackground particleCount={90} speed={0.08} particleBaseSize={80} />
+
+      <section className="w-full pt-16 pb-12 px-4 sm:px-8 min-h-[85vh]">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="mb-10 max-w-xl">
             <BlurText
               text="拾光坞"
-              className="text-5xl font-heading font-bold mb-4 text-primary"
+              className="text-page font-heading mb-3 text-primary"
               delay={80}
               animateBy="letters"
               direction="top"
               stepDuration={0.5}
             />
-            <p >
-              
-            </p>
             <TextType
-                text={["光影流转，岁月留痕", "那些走过的路，都藏在这里", "每一刻，都值得珍藏"]}
-                className="text-xl text-foreground-secondary"
-                typingSpeed={75}
-                showCursor={true}
-                cursorCharacter="_"
-              />
+              text={[
+                '光影流转，岁月留痕',
+                '那些走过的路，都藏在这里',
+                '每一刻，都值得珍藏',
+              ]}
+              className="text-lg text-foreground-secondary"
+              typingSpeed={75}
+              showCursor={true}
+              cursorCharacter="_"
+            />
           </div>
           <DomeGalleryContainer />
         </div>
       </section>
 
-      {/* 3D 足迹地图区域 */}
-      <section className="min-h-screen w-full py-20 px-8 bg-background-secondary">
-        <div className="max-w-7xl mx-auto mb-12">
-          <h2 className="text-4xl font-heading font-bold mb-2">足迹地图</h2>
-          <p className="text-foreground-secondary">探索你走过的每一个角落</p>
+      <section className="w-full py-14 px-4 sm:px-8 bg-background-secondary">
+        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
+          <div className="max-w-md">
+            <h2 className="text-section font-heading mb-2">足迹地图</h2>
+            <p className="text-foreground-secondary">探索你走过的每一个角落</p>
+          </div>
+          <Link
+            href="/map"
+            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover text-sm transition-colors self-start sm:self-auto"
+          >
+            打开地图
+          </Link>
         </div>
-        <MapView3D />
       </section>
 
-      {/* 大事记时间轴区域 */}
-      <section className="min-h-screen w-full py-20">
+      <section className="w-full py-14">
         <Timeline />
       </section>
     </main>

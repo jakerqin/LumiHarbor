@@ -116,7 +116,7 @@
 | Spotlight Cmd+K | UI 已移除 |
 | Notes = Markdown + asset:// | Novel JSON 主链路 |
 | 地图未做 | `/map` + 后端 map 已接通 |
-| 首页地点 = `/map` 数据 | 首页地球仍可能走 Mock；独立地图页走 `mapApi` |
+| 首页地点 = `/map` 数据 | 首页只链到 `/map`；独立地图页走 `mapApi` |
 
 接线真伪总表见 [前端 04-类型与API层](frontend/docs/design/04-类型与API层.md)。
 

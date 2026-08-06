@@ -3,15 +3,12 @@
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQueryClient } from '@tanstack/react-query';
-import {
-  FileText,
-  Plus,
-  LayoutGrid,
-  History,
-} from 'lucide-react';
+import { Plus, LayoutGrid, History } from 'lucide-react';
 import { NoteGrid } from '@/components/notes/NoteGrid';
 import { NoteTimeline } from '@/components/notes/NoteTimeline';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
+import { PageShell } from '@/components/layout/PageShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 import { useGsapPressableScale } from '@/lib/hooks/useGsapPressableScale';
 import { notesApi } from '@/lib/api/notes';
 import type { Note } from '@/lib/api/notes';
@@ -66,71 +63,58 @@ export default function NotesPage() {
   };
 
   return (
-    <div className="min-h-screen py-12 px-8">
-      <div className="max-w-[1920px] mx-auto">
-        {/* 页面头部 */}
-        <div className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-                <FileText size={40} className="text-primary" />
-                笔记
-              </h1>
-              <p className="text-foreground-secondary">记录生活中的点点滴滴</p>
-            </div>
-
-            <div className="flex items-center gap-3">
-              {/* 视图切换 */}
-              <div className="flex items-center gap-1 p-1 bg-background-secondary rounded-xl">
-                <button
-                  onClick={() => setViewMode('grid')}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-white/5 text-foreground-secondary'
-                  }`}
-                >
-                  <LayoutGrid size={20} />
-                  <span className="text-sm font-medium">网格</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('timeline')}
-                  className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
-                    viewMode === 'timeline'
-                      ? 'bg-primary text-white'
-                      : 'hover:bg-white/5 text-foreground-secondary'
-                  }`}
-                >
-                  <History size={20} />
-                  <span className="text-sm font-medium">时间轴</span>
-                </button>
-              </div>
-
-              {/* 创建按钮 */}
+    <PageShell>
+      <PageHeader
+        title="笔记"
+        description="记录生活中的点点滴滴"
+        actions={
+          <>
+            <div className="flex items-center gap-1 p-1 bg-background-secondary rounded-xl">
               <button
-                ref={createButtonRef}
-                onClick={handleCreateNote}
-                {...createButtonHandlers}
-                className="px-6 py-3 bg-primary hover:bg-primary-hover rounded-xl flex items-center gap-2 transition-colors"
+                type="button"
+                onClick={() => setViewMode('grid')}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                  viewMode === 'grid'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-white/5 text-foreground-secondary'
+                }`}
               >
-                <Plus size={20} />
-                <span className="font-medium">写笔记</span>
+                <LayoutGrid size={18} />
+                <span className="text-sm font-medium">网格</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('timeline')}
+                className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                  viewMode === 'timeline'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'hover:bg-white/5 text-foreground-secondary'
+                }`}
+              >
+                <History size={18} />
+                <span className="text-sm font-medium">时间轴</span>
               </button>
             </div>
-          </div>
-        </div>
+            <button
+              ref={createButtonRef}
+              type="button"
+              onClick={handleCreateNote}
+              {...createButtonHandlers}
+              className="px-5 py-2.5 bg-primary hover:bg-primary-hover text-primary-foreground rounded-xl flex items-center gap-2 transition-colors"
+            >
+              <Plus size={18} />
+              <span className="font-medium">写笔记</span>
+            </button>
+          </>
+        }
+      />
 
-        {/* 内容区域 */}
-        <div>
-          {viewMode === 'grid' ? (
-            <NoteGrid onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
-          ) : (
-            <NoteTimeline onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
-          )}
-        </div>
-      </div>
+      {viewMode === 'grid' ? (
+        <NoteGrid onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
+      ) : (
+        <NoteTimeline onNoteClick={handleNoteClick} onNoteDelete={handleDeleteNote} />
+      )}
 
-      {/* 删除确认对话框 */}
       <ConfirmDialog
         open={deleteDialogOpen}
         title="删除笔记"
@@ -142,6 +126,6 @@ export default function NotesPage() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
       />
-    </div>
+    </PageShell>
   );
 }

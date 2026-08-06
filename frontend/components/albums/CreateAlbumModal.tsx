@@ -7,6 +7,7 @@ import { SingleDatePicker, type ActiveDatePicker } from '@/components/common/Sin
 import type { Asset } from '@/lib/api/types';
 import type { Album } from '@/lib/api/albums';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface CreateAlbumModalProps {
   open: boolean;
@@ -73,7 +74,7 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
     e.preventDefault();
 
     if (!name.trim()) {
-      window.alert('请输入相册名称');
+      toast.error('请输入相册名称');
       return;
     }
 
@@ -257,7 +258,7 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
               <button
                 type="submit"
                 disabled={loading || !name.trim()}
-                className="px-6 py-2.5 rounded-xl text-sm bg-primary hover:bg-primary-hover text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 rounded-xl text-sm bg-primary hover:bg-primary-hover text-primary-foreground transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? submitButtonLoadingText : submitButtonText}
               </button>

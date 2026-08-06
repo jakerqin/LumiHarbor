@@ -4,6 +4,8 @@ import { useState, useCallback, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { homeApi } from '@/lib/api/home';
 import DomeGallery from './DomeGallery';
+import { EmptyState } from '@/components/common/EmptyState';
+import { MasonrySkeleton } from '@/components/common/MasonrySkeleton';
 
 /**
  * DomeGalleryContainer - 容器组件
@@ -42,54 +44,40 @@ export function DomeGalleryContainer() {
     });
   }, [data?.assets]);
 
-  // 加载中状态
   if (isLoading) {
     return (
-      <div className="h-[600px] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载精选时光中...</p>
-        </div>
+      <div className="min-h-[320px]">
+        <div className="h-8 w-36 rounded bg-background-tertiary animate-pulse mb-8" />
+        <MasonrySkeleton count={8} />
       </div>
     );
   }
 
-  // 错误状态
   if (error) {
     return (
-      <div className="h-[600px] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-red-500 mb-2">加载失败</p>
-          <p className="text-sm text-foreground-tertiary">
-            {error instanceof Error ? error.message : '未知错误'}
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        title="精选加载失败"
+        description={error instanceof Error ? error.message : '请稍后重试'}
+        action={{ label: '刷新', onClick: () => window.location.reload() }}
+      />
     );
   }
 
-  // 空状态
   if (!data || uniqueAssets.length === 0) {
     return (
-      <div className="h-[600px] flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-xl text-foreground-secondary">暂无精选内容</p>
-          <p className="text-sm text-foreground-tertiary mt-2">
-            去素材库收藏你喜欢的照片吧 ❤️
-          </p>
-        </div>
-      </div>
+      <EmptyState
+        title="还没有精选"
+        description="在素材库收藏喜欢的照片，它们会出现在这里。"
+        action={{ label: '去素材库', href: '/assets' }}
+        secondaryAction={{ label: '手机快传', href: '/mobile-upload' }}
+      />
     );
   }
 
   return (
     <>
-      {/* 标题区域 */}
-      <div className="mb-12">
-        <h2 className="text-4xl font-heading font-bold mb-2">
-          精选时光
-        </h2>
-        
+      <div className="mb-8">
+        <h2 className="text-section font-heading">精选时光</h2>
       </div>
 
       {/* Dome Gallery 3D 球形画廊 */}
@@ -98,7 +86,7 @@ export function DomeGalleryContainer() {
           images={uniqueAssets}
           onLoadMore={handleLoadMore}
           grayscale={false}
-          overlayBlurColor="rgba(6, 0, 16, 0.8)"
+          overlayBlurColor="rgba(22, 20, 15, 0.88)"
           imageBorderRadius="16px"
           openedImageBorderRadius="24px"
           openedImageWidth="auto"

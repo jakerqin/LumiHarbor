@@ -131,10 +131,18 @@ const TailwindAdvancedEditor = ({
   }, 500);
 
   return (
-    <div className="relative w-full editor-light-theme">
+    <div className="relative w-full editor-dark-theme">
       <div className="absolute right-12 top-5 z-10 mb-5 flex gap-2">
-        <div className="rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600">{saveStatus}</div>
-        <div className={charsCount ? "rounded-lg bg-gray-100 px-2 py-1 text-sm text-gray-600" : "hidden"}>
+        <div className="rounded-lg bg-background-tertiary px-2 py-1 text-sm text-foreground-secondary">
+          {saveStatus === "Saved" ? "已保存" : "未保存"}
+        </div>
+        <div
+          className={
+            charsCount
+              ? "rounded-lg bg-background-tertiary px-2 py-1 text-sm text-foreground-secondary tabular-nums"
+              : "hidden"
+          }
+        >
           {charsCount} 字符
         </div>
       </div>
@@ -151,7 +159,8 @@ const TailwindAdvancedEditor = ({
             handlePaste: (view, event) => handleImagePaste(view, event, uploadFn),
             handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class: "prose prose-lg prose-gray prose-headings:font-heading focus:outline-none max-w-full text-gray-900",
+              class:
+                "prose prose-lg prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-foreground/90 prose-a:text-primary focus:outline-none max-w-full",
             },
           }}
           onCreate={({ editor }) => {
@@ -163,22 +172,22 @@ const TailwindAdvancedEditor = ({
           }}
           slotAfter={<ImageResizer />}
         >
-          <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-gray-200 bg-white px-1 py-2 shadow-md transition-all">
-            <EditorCommandEmpty className="px-2 text-gray-500">No results</EditorCommandEmpty>
+          <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-white/10 bg-background-secondary px-1 py-2 shadow-lg transition-all">
+            <EditorCommandEmpty className="px-2 text-foreground-tertiary">无结果</EditorCommandEmpty>
             <EditorCommandList>
               {suggestionItems.map((item) => (
                 <EditorCommandItem
                   key={item.title}
                   value={item.title}
                   onCommand={(props) => item.command?.(props)}
-                  className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm text-gray-900 hover:bg-gray-100 aria-selected:bg-gray-100"
+                  className="flex w-full items-center space-x-2 rounded-md px-2 py-1 text-left text-sm text-foreground hover:bg-white/5 aria-selected:bg-white/10"
                 >
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-gray-200 bg-white">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-md border border-white/10 bg-background-tertiary">
                     {item.icon}
                   </div>
                   <div>
                     <p className="font-medium">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.description}</p>
+                    <p className="text-xs text-foreground-tertiary">{item.description}</p>
                   </div>
                 </EditorCommandItem>
               ))}

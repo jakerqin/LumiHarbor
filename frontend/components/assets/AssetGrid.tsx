@@ -6,6 +6,8 @@ import { AssetMasonry } from './AssetMasonry';
 import { assetsApi, type AssetsFilter, type AssetsResponse } from '@/lib/api/assets';
 import { useInfiniteScroll } from '@/lib/hooks/useInfiniteScroll';
 import type { Asset } from '@/lib/api/types';
+import { EmptyState } from '@/components/common/EmptyState';
+import { MasonrySkeleton } from '@/components/common/MasonrySkeleton';
 
 interface AssetGridProps {
   filter?: AssetsFilter;
@@ -14,6 +16,7 @@ interface AssetGridProps {
   selectionMode?: boolean;
   selectedAssetIds?: Set<number>;
   onSelectionToggle?: (asset: Asset) => void;
+  onUploadClick?: () => void;
 }
 
 export function AssetGrid({
@@ -23,6 +26,7 @@ export function AssetGrid({
   selectionMode = false,
   selectedAssetIds,
   onSelectionToggle,
+  onUploadClick,
 }: AssetGridProps) {
   const [page, setPage] = useState(1);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
@@ -79,34 +83,33 @@ export function AssetGrid({
   );
 
   if ((isLoading || isFetching) && page === 1 && allAssets.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4 mx-auto" />
-          <p className="text-foreground-secondary">加载素材中...</p>
-        </div>
-      </div>
-    );
+    return <MasonrySkeleton count={12} />;
   }
 
   if (error) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-red-500 mb-2">加载失败</p>
-          <p className="text-foreground-secondary">请刷新页面重试</p>
-        </div>
-      </div>
+      <EmptyState
+        title="加载失败"
+        description="请检查网络后刷新页面重试。"
+        action={{ label: '刷新', onClick: () => window.location.reload() }}
+      />
     );
   }
 
   if (allAssets.length === 0 && !isLoading && !isFetching) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="text-center">
-          <p className="text-xl text-foreground-secondary">暂无素材</p>
-        </div>
-      </div>
+      <EmptyState
+        title="还没有素材"
+        description="手机连上家里 Wi‑Fi 后用快传入库，或在桌面直接上传。"
+        action={
+          onUploadClick
+            ? { label: '上传素材', onClick: onUploadClick }
+            : { label: '手机快传', href: '/mobile-upload' }
+        }
+        secondaryAction={
+          onUploadClick ? { label: '手机快传', href: '/mobile-upload' } : undefined
+        }
+      />
     );
   }
 
@@ -125,11 +128,8 @@ export function AssetGrid({
 
       {/* 加载更多提示 */}
       {isFetching && page > 1 && (
-        <div className="flex items-center justify-center py-8">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-2 mx-auto" />
-            <p className="text-sm text-foreground-secondary">加载更多...</p>
-          </div>
+        <div className="py-6">
+          <MasonrySkeleton count={4} />
         </div>
       )}
 

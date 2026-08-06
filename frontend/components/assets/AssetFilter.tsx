@@ -119,7 +119,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
         onMouseUp={handleButtonMouseUp}
         className={`px-4 py-2 rounded-xl flex items-center gap-2 transition-colors ${
           hasActiveFilter
-            ? 'bg-primary text-white'
+            ? 'bg-primary text-primary-foreground'
             : 'bg-background-secondary hover:bg-background-tertiary text-foreground'
         }`}
       >
@@ -160,7 +160,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleTypeChange(undefined)}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                 !filter.asset_type
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -170,7 +170,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleTypeChange('image')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${
                 filter.asset_type === 'image'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -181,7 +181,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleTypeChange('video')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-1 ${
                 filter.asset_type === 'video'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -202,7 +202,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleLocationChange(undefined)}
               className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                 !filter.location
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -214,7 +214,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
                 onClick={() => handleLocationChange(location)}
                 className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
                   filter.location === location
-                    ? 'bg-primary text-white'
+                    ? 'bg-primary text-primary-foreground'
                     : 'bg-background-tertiary hover:bg-white/5'
                 }`}
               >
@@ -235,7 +235,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleSortChange('shot_at')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                 filter.sort_by === 'shot_at' || !filter.sort_by
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -245,7 +245,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
               onClick={() => handleSortChange('created_at')}
               className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                 filter.sort_by === 'created_at'
-                  ? 'bg-primary text-white'
+                  ? 'bg-primary text-primary-foreground'
                   : 'bg-background-tertiary hover:bg-white/5'
               }`}
             >
@@ -265,7 +265,7 @@ export function AssetFilter({ filter, onChange, locations }: AssetFilterProps) {
           </button>
           <button
             onClick={() => setIsOpen(false)}
-            className="flex-1 px-4 py-2 bg-primary hover:bg-primary-hover rounded-lg transition-colors"
+            className="flex-1 px-4 py-2 bg-primary hover:bg-primary-hover text-primary-foreground rounded-lg transition-colors"
           >
             应用
           </button>

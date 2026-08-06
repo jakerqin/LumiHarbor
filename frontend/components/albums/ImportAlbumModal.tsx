@@ -272,7 +272,7 @@ export function ImportAlbumModal({ open, onClose, onSubmit, loading }: ImportAlb
               <button
                 type="submit"
                 disabled={loading || !formData.album_name || !formData.source_path}
-                className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '导入中...' : '开始导入'}
               </button>

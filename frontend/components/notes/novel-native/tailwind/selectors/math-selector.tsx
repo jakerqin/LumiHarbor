@@ -32,7 +32,7 @@ export const MathSelector = () => {
     >
       <SigmaIcon
         className={cn("size-4", {
-          "text-blue-500": editor.isActive("math"),
+          "text-primary": editor.isActive("math"),
         })}
         strokeWidth={2.3}
       />

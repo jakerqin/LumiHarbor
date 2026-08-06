@@ -9,8 +9,11 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
 import { ingestionApi } from '@/lib/api/ingestion';
 import type { Asset } from '@/lib/api/types';
-import { Image, ListChecks, Upload, Trash2, X } from 'lucide-react';
+import { ListChecks, Upload, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { toast } from 'sonner';
+import { PageShell } from '@/components/layout/PageShell';
+import { PageHeader } from '@/components/layout/PageHeader';
 
 // 禁用静态生成，因为页面使用了浏览器 API
 export const dynamic = 'force-dynamic';
@@ -77,7 +80,7 @@ export default function AssetsPage() {
       handleExitBatchMode();
     } catch (error) {
       console.error(error);
-      window.alert('删除失败，请稍后重试');
+      toast.error('删除失败，请稍后重试');
     } finally {
       setDeleting(false);
       setDeleteConfirmOpen(false);
@@ -112,76 +115,64 @@ export default function AssetsPage() {
       setPendingFiles([]);
     } catch (error) {
       console.error(error);
-      window.alert('上传失败，请稍后重试');
+      toast.error('上传失败，请稍后重试');
     } finally {
       setUploading(false);
     }
   };
 
   return (
-    <div className="min-h-screen py-12 px-8">
-      <div className="max-w-[1920px] mx-auto">
-        {/* 页面头部 */}
-        <div className="mb-8">
-          <div>
-            <h1 className="text-4xl font-heading font-bold mb-2 flex items-center gap-3">
-              <Image size={40} className="text-primary" />
-              素材库
-            </h1>
-            <p className="text-foreground-secondary">浏览和管理所有照片、视频素材</p>
-          </div>
-        </div>
+    <PageShell>
+      <PageHeader
+        title="素材库"
+        description="浏览和管理所有照片、视频素材"
+      />
 
-        {/* 筛选栏和操作按钮 */}
-        <div className="flex items-center justify-between gap-4">
-          <AssetFilterBar
-            filter={filter}
-            locations={locations}
-            onChange={setFilter}
-          />
-
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* 批量编辑按钮 */}
-            <button
-              type="button"
-              onClick={() => setIsBatchMode(!isBatchMode)}
-              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
-              aria-label="批量编辑"
-            >
-              <ListChecks size={20} className={isBatchMode ? 'text-primary' : ''} />
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                批量编辑
-              </span>
-            </button>
-
-            {/* 上传按钮 */}
-            <button
-              type="button"
-              onClick={handleUploadPick}
-              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
-              aria-label="上传素材"
-            >
-              <Upload size={20} />
-              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                上传素材
-              </span>
-            </button>
-          </div>
-        </div>
-
-        {/* 素材网格 */}
-        <AssetGrid
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <AssetFilterBar
           filter={filter}
-          onAssetClick={handleAssetClick}
-          selectionMode={isBatchMode}
-          selectedAssetIds={selectedIds}
-          onSelectionToggle={handleSelectionToggle}
+          locations={locations}
+          onChange={setFilter}
         />
+
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setIsBatchMode(!isBatchMode)}
+            className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+            aria-label="批量编辑"
+          >
+            <ListChecks size={20} className={isBatchMode ? 'text-primary' : ''} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              批量编辑
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleUploadPick}
+            className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+            aria-label="上传素材"
+          >
+            <Upload size={20} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              上传素材
+            </span>
+          </button>
+        </div>
       </div>
 
-      {/* 批量编辑浮动操作栏 */}
+      <AssetGrid
+        filter={filter}
+        onAssetClick={handleAssetClick}
+        selectionMode={isBatchMode}
+        selectedAssetIds={selectedIds}
+        onSelectionToggle={handleSelectionToggle}
+        onUploadClick={handleUploadPick}
+      />
+
       {isBatchMode && (
-        <div className="fixed left-1/2 bottom-32 -translate-x-1/2 z-50">
+        <div className="fixed left-1/2 bottom-24 md:bottom-10 -translate-x-1/2 z-50">
           <div className="flex items-center gap-3 px-6 py-4 rounded-2xl bg-background-secondary/80 backdrop-blur-lg border border-white/10 shadow-2xl">
             {/* 选中数量 */}
             <div className="text-sm text-foreground-secondary px-3">
@@ -250,6 +241,6 @@ export default function AssetsPage() {
         onChange={handleUploadFilesChange}
         className="hidden"
       />
-    </div>
+    </PageShell>
   );
 }

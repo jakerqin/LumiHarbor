@@ -52,7 +52,7 @@ export default function NoteDetailPage() {
           <button
             type="button"
             onClick={() => router.push('/notes')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground transition-colors"
           >
             返回笔记列表
           </button>
@@ -85,7 +85,7 @@ export default function NoteDetailPage() {
           <button
             type="button"
             onClick={() => router.push('/notes')}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground transition-colors"
           >
             返回笔记列表
           </button>

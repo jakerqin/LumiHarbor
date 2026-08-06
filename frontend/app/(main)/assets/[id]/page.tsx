@@ -36,7 +36,7 @@ function formatFileSize(bytes: number): string {
 function getAssetTypeMeta(assetType: Asset['asset_type']) {
   switch (assetType) {
     case 'video':
-      return { Icon: Video, label: '视频', className: 'text-accent-purple' };
+      return { Icon: Video, label: '视频', className: 'text-primary' };
     case 'audio':
       return { Icon: Music, label: '音频', className: 'text-accent-green' };
     case 'image':
@@ -239,7 +239,7 @@ export default function AssetDetailPage() {
             <button
               type="button"
               onClick={() => router.push('/assets')}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               返回素材库
             </button>
@@ -275,7 +275,7 @@ export default function AssetDetailPage() {
             <button
               type="button"
               onClick={() => assetQuery.refetch()}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               <RefreshCw size={16} />
               重试

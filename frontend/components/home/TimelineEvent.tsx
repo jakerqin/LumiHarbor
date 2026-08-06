@@ -11,11 +11,11 @@ interface TimelineEventProps {
   index: number;
 }
 
+/** 仅渲染笔记卡片；日期与轴线节点由 Timeline 统一排布 */
 export function TimelineEvent({ note, index }: TimelineEventProps) {
   const router = useRouter();
   const noteRef = useRef<HTMLDivElement>(null);
 
-  // 滚动触发进入动画
   useEffect(() => {
     if (!noteRef.current) return;
 
@@ -44,20 +44,7 @@ export function TimelineEvent({ note, index }: TimelineEventProps) {
   }, [index]);
 
   return (
-    <div
-      ref={noteRef}
-      className="relative ml-44 mb-16"
-      style={{ opacity: 0 }}
-    >
-      <div className="absolute -left-32 top-2 text-right">
-        <span className="font-heading text-lg font-semibold text-white/60">
-          {new Date(note.createdAt).toLocaleDateString('zh-CN', {
-            month: '2-digit',
-            day: '2-digit',
-          })}
-        </span>
-      </div>
-
+    <div ref={noteRef} className="mb-16" style={{ opacity: 0 }}>
       <div
         onClick={() => router.push(`/notes/${note.id}`)}
         className="glass rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
@@ -82,9 +69,7 @@ export function TimelineEvent({ note, index }: TimelineEventProps) {
 
         {!note.coverAsset && (
           <div className="p-4">
-            <h3 className="font-heading text-xl font-semibold">
-              {note.title}
-            </h3>
+            <h3 className="font-heading text-xl font-semibold">{note.title}</h3>
           </div>
         )}
       </div>

@@ -211,10 +211,11 @@ mark[style] > strong {
   color: inherit;
 }
 
-/* Light theme overrides for editor */
+/* Dark theme overrides for editor（与全站壳对齐） */
+.editor-dark-theme ul[data-type="taskList"] li > label input[type="checkbox"],
 .editor-light-theme ul[data-type="taskList"] li > label input[type="checkbox"] {
-  background-color: white;
-  border: 2px solid #d1d5db;
+  background-color: #1f1c16;
+  border: 2px solid rgba(243, 238, 230, 0.25);
 
   &:hover {
     background-color: #f3f4f6;
@@ -229,6 +230,7 @@ mark[style] > strong {
   }
 }
 
+.editor-dark-theme ul[data-type="taskList"] li[data-checked="true"] > div > p,
 .editor-light-theme ul[data-type="taskList"] li[data-checked="true"] > div > p {
-  color: #6b7280;
+  color: #7a7268;
 }

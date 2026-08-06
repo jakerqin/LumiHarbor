@@ -37,7 +37,7 @@ export function FootprintLine3D({ footprints }: FootprintLine3DProps) {
 
   const geometry = new THREE.BufferGeometry().setFromPoints(linePoints);
   const material = new THREE.LineBasicMaterial({
-    color: '#3b82f6',
+    color: '#d4b483',
     transparent: true,
     opacity: 0.6,
   });

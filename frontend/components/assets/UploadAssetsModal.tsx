@@ -159,7 +159,7 @@ export function UploadAssetsModal({
                   })
                 }
                 disabled={files.length === 0 || uploading}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={16} />
                 {uploading ? '上传中...' : '开始上传'}
