@@ -17,8 +17,10 @@ exifread
 ffmpeg-python
 requests
 taskiq
-taskiq-redis
-redis
+taskiq-redis>=1.2.0,<2
+# redis-py 客户端：与 taskiq-redis 约束对齐（>=8,<9）。服务端可用 Redis 7.x（RESP 兼容）。
+# 注意：redis-py 8 默认 socket_timeout=5，Broker 侧必须对 BRPOP 设 socket_timeout=None（见 app/tasks/broker.py）。
+redis>=8.0.0,<9
 # AI 相关 (按需启用)
 # insightface
 # onnxruntime
