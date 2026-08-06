@@ -23,6 +23,7 @@ class ImportConfig:
     import_to_album: bool = False  # 是否导入到相册
     album_id: Optional[int] = None  # 现有相册ID
     album_name: Optional[str] = None  # 新建相册名称
+    album_description: Optional[str] = None  # 相册描述（仅创建新相册时使用）
     album_start_time: Optional[datetime] = None  # 相册开始时间（仅创建新相册时使用）
     album_end_time: Optional[datetime] = None  # 相册结束时间（仅创建新相册时使用）
 

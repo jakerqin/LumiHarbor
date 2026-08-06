@@ -88,7 +88,8 @@ class AlbumService:
         created_by: int = 1,
         visibility: str = "general",
         start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None
+        end_time: Optional[datetime] = None,
+        description: Optional[str] = None
     ) -> Tuple[Optional[model.Album], str]:
         """获取或创建相册（用于素材导入）
 
@@ -100,6 +101,7 @@ class AlbumService:
             visibility: 可见性
             start_time: 相册开始时间（仅创建新相册时使用）
             end_time: 相册结束时间（仅创建新相册时使用）
+            description: 相册描述（仅创建新相册时使用）
 
         Returns:
             (相册对象, 操作类型: "found"/"created"/"failed")
@@ -116,7 +118,7 @@ class AlbumService:
         if album_name:
             album = model.Album(
                 name=album_name,
-                description="",
+                description=description or "",
                 visibility=visibility,
                 created_by=created_by,
                 start_time=start_time,

@@ -11,6 +11,7 @@ import {
   FolderOpen,
   Search,
   Settings,
+  UploadCloud,
 } from 'lucide-react';
 import { cn } from '@/lib/utils/cn';
 import type { LucideIcon } from 'lucide-react';
@@ -30,6 +31,7 @@ const dockItems: DockItem[] = [
   { icon: FolderOpen, label: '相册', href: '/albums', shortcut: 'L' },
   { icon: FileText, label: '笔记', href: '/notes', shortcut: 'N' },
   { icon: Map, label: '地图', href: '/map', shortcut: 'M' },
+  { icon: UploadCloud, label: '手机快传', href: '/mobile-upload', shortcut: 'U' },
   // { type: 'divider' } as DockItem,
 ];
 

@@ -2,7 +2,7 @@
 
 核心协调类，负责编排整个素材导入流程。
 """
-from typing import List, Dict
+from typing import List, Dict, Optional
 from sqlalchemy.orm import Session
 from ...model import Asset
 from ...config import settings
@@ -44,6 +44,7 @@ class AssetImportService:
         self.processor = AssetProcessor(config.db, str(self.storage.processing_root), config.default_gps)
         self.statistics = ImportStatistics()
         self.imported_asset_ids = []  # 记录成功导入的素材ID列表
+        self.album_result: Optional[Dict] = None  # 相册关联结果（供调用方展示）
 
     def import_assets(self) -> ImportStatistics:
         """执行导入流程
@@ -223,7 +224,8 @@ class AssetImportService:
                 created_by=self.config.created_by,
                 visibility=self.config.visibility,
                 start_time=self.config.album_start_time,
-                end_time=self.config.album_end_time
+                end_time=self.config.album_end_time,
+                description=self.config.album_description
             )
 
             if not album:
@@ -234,6 +236,12 @@ class AssetImportService:
                 logger.info(f"使用现有相册: {album.name} (ID={album.id})")
             elif action == "created":
                 logger.info(f"创建新相册: {album.name} (ID={album.id})")
+
+            self.album_result = {
+                "album_id": album.id,
+                "album_name": album.name,
+                "action": action
+            }
 
             # 2. 批量关联素材到相册
             success_count, failed_ids = AlbumService.add_assets_to_album_batch(
