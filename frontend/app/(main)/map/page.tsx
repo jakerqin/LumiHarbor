@@ -1,27 +1,22 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Globe as GlobeIcon, Map as MapIcon } from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import { mapApi } from '@/lib/api/map';
-import { Footprint } from '@/lib/api/types';
-import { Globe3DMap } from '@/components/map/Globe3DMap';
-import { Mapbox2DMap } from '@/components/map/Mapbox2DMap';
+import type { Footprint } from '@/lib/api/types';
+import { Amap2DMap } from '@/components/map/Amap2DMap';
 import { FootprintDetail } from '@/components/map/FootprintDetail';
 import { MapStatistics } from '@/components/map/MapStatistics';
 
 export default function MapPage() {
-  const [viewMode, setViewMode] = useState<'3d' | '2d'>('3d');
   const [selectedFootprintId, setSelectedFootprintId] = useState<string | null>(null);
 
-  // 获取足迹点数据
   const { data: footprintsData, isLoading: footprintsLoading } = useQuery({
     queryKey: ['footprints'],
     queryFn: () => mapApi.getFootprints(),
   });
 
-  // 获取统计数据（1小时缓存）
   const { data: statistics, isLoading: statsLoading } = useQuery({
     queryKey: ['map-statistics'],
     queryFn: () => mapApi.getStatistics(),
@@ -35,105 +30,47 @@ export default function MapPage() {
   };
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
-      {/* 顶部工具栏 */}
-      <div className="absolute top-6 left-6 right-6 z-10 flex items-center justify-between">
-        {/* 统计面板 */}
-        <div
-          className="rounded-2xl px-5 py-3"
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
+    <div className="relative w-full h-screen overflow-hidden bg-background">
+      <div className="absolute top-6 left-6 right-6 z-10 flex items-start justify-between gap-4 pointer-events-none">
+        <div className="pointer-events-auto max-w-full">
           <MapStatistics statistics={statistics} isLoading={statsLoading} />
         </div>
-
-        {/* 视图切换 */}
-        <div
-          className="flex items-center rounded-xl overflow-hidden"
-          style={{
-            background: 'rgba(255, 255, 255, 0.05)',
-            backdropFilter: 'blur(20px)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-          }}
-        >
-          <button
-            onClick={() => setViewMode('3d')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-              viewMode === '3d'
-                ? 'bg-primary/20 text-primary'
-                : 'text-foreground-secondary hover:text-foreground'
-            }`}
-          >
-            <GlobeIcon className="w-4 h-4" />
-            3D 地球
-          </button>
-          <button
-            onClick={() => setViewMode('2d')}
-            className={`flex items-center gap-2 px-4 py-2.5 text-sm transition-colors cursor-pointer ${
-              viewMode === '2d'
-                ? 'bg-primary/20 text-primary'
-                : 'text-foreground-secondary hover:text-foreground'
-            }`}
-          >
-            <MapIcon className="w-4 h-4" />
-            2D 地图
-          </button>
-        </div>
       </div>
 
-      {/* 地图容器 */}
       <div className="w-full h-full">
-        {viewMode === '3d' ? (
-          <Canvas
-            camera={{ position: [0, 0, 5], fov: 45 }}
-            style={{ width: '100%', height: '100%' }}
-          >
-            <Suspense fallback={null}>
-              <Globe3DMap
-                footprints={footprints}
-                onFootprintClick={handleFootprintClick}
-              />
-            </Suspense>
-          </Canvas>
-        ) : (
-          <Mapbox2DMap
-            footprints={footprints}
-            onFootprintClick={handleFootprintClick}
-          />
-        )}
+        <Amap2DMap
+          footprints={footprints}
+          selectedFootprintId={selectedFootprintId}
+          onFootprintClick={handleFootprintClick}
+        />
       </div>
 
-      {/* 加载提示 */}
       {footprintsLoading && (
         <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-          <div
-            className="rounded-2xl px-6 py-4 text-sm text-foreground-secondary"
-            style={{
-              background: 'rgba(0, 0, 0, 0.6)',
-              backdropFilter: 'blur(10px)',
-            }}
-          >
+          <div className="rounded-2xl px-6 py-4 text-sm text-foreground-secondary bg-black/60 backdrop-blur-md">
             加载足迹数据中...
           </div>
         </div>
       )}
 
-      {/* 操作提示 */}
-      <div
-        className="absolute bottom-6 right-6 z-10 rounded-xl px-4 py-3 text-sm text-foreground-secondary"
-        style={{
-          background: 'rgba(255, 255, 255, 0.05)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-        }}
-      >
-        <p>拖拽旋转 · 滚轮缩放 · 点击光点查看详情</p>
-      </div>
+      {!footprintsLoading && footprints.length === 0 && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none px-6">
+          <div className="max-w-sm pointer-events-auto rounded-2xl border border-[#e4d4bc] bg-[#fffaf3]/95 px-6 py-8 text-center shadow-lg shadow-stone-900/12 backdrop-blur-md">
+            <MapPin className="mx-auto mb-3 h-8 w-8 text-[#a67c4a]" />
+            <p className="mb-2 font-heading text-card-title text-[#3d3428]">还没有足迹</p>
+            <p className="text-pretty text-sm text-[#8a7a66]">
+              导入带 GPS 定位的照片后，会按地点自动聚合到这里。
+            </p>
+          </div>
+        </div>
+      )}
 
-      {/* 足迹点详情弹窗 */}
+      {!selectedFootprintId && footprints.length > 0 && (
+        <div className="absolute bottom-6 right-6 z-10 rounded-xl border border-[#e4d4bc] bg-[#fffaf3]/95 px-4 py-3 text-sm text-[#5c5246] shadow-md shadow-stone-900/10 backdrop-blur-md">
+          <p>拖拽平移 · 滚轮缩放 · 点击足迹点查看照片</p>
+        </div>
+      )}
+
       <FootprintDetail
         footprintId={selectedFootprintId}
         onClose={() => setSelectedFootprintId(null)}

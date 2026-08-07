@@ -115,7 +115,7 @@
 | Bento 精选墙 | Dome Gallery |
 | Spotlight Cmd+K | UI 已移除 |
 | Notes = Markdown + asset:// | Novel JSON 主链路 |
-| 地图未做 | `/map` + 后端 map 已接通 |
+| 地图未做 / Mapbox+3D | `/map` 为高德中文 2D + 后端 map API |
 | 首页地点 = `/map` 数据 | 首页只链到 `/map`；独立地图页走 `mapApi` |
 
 接线真伪总表见 [前端 04-类型与API层](frontend/docs/design/04-类型与API层.md)。

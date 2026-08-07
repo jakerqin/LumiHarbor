@@ -57,8 +57,8 @@ export function Timeline() {
   return (
     <div className="max-w-[1400px] mx-auto px-4 sm:px-8">
       <div className="mb-10 max-w-md">
-        <h2 className="text-section font-heading mb-2">笔记时间轴</h2>
-        <p className="text-foreground-secondary">记录生活中的点点滴滴</p>
+        <h2 className="text-section font-heading mb-2">岁月札记</h2>
+        <p className="text-foreground-secondary">把路过的风景，收进文字里</p>
       </div>
 
       <div className="relative">
