@@ -1,100 +1,147 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { X, MapPin, Calendar, Image as ImageIcon } from 'lucide-react';
 import { mapApi } from '@/lib/api/map';
+import { cn } from '@/lib/utils/cn';
 
 interface FootprintDetailProps {
   footprintId: string | null;
   onClose: () => void;
 }
 
+const ANIMATION_MS = 300;
+
+/** 浅色底图上的详情抽屉：不透明暖色底，保证标题与元信息可读 */
 export function FootprintDetail({ footprintId, onClose }: FootprintDetailProps) {
   const router = useRouter();
+  const [renderedId, setRenderedId] = useState<string | null>(null);
+  const [exiting, setExiting] = useState(false);
+
+  useEffect(() => {
+    if (footprintId) {
+      setRenderedId(footprintId);
+      setExiting(false);
+      return;
+    }
+    if (renderedId) {
+      setExiting(true);
+    }
+  }, [footprintId, renderedId]);
+
+  useEffect(() => {
+    if (!exiting) return;
+    const timer = window.setTimeout(() => {
+      setRenderedId(null);
+      setExiting(false);
+    }, ANIMATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [exiting]);
+
   const { data: detail, isLoading } = useQuery({
-    queryKey: ['footprint-detail', footprintId],
-    queryFn: () => mapApi.getFootprintDetail(footprintId!),
-    enabled: !!footprintId,
+    queryKey: ['footprint-detail', renderedId],
+    queryFn: () => mapApi.getFootprintDetail(renderedId!),
+    enabled: !!renderedId,
   });
 
-  if (!footprintId) return null;
+  if (!renderedId) return null;
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 z-20 animate-in slide-in-from-bottom duration-300 pb-16 md:pb-4">
-      <div className="mx-4 mb-4 rounded-2xl overflow-hidden glass">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10">
-          <div className="flex items-center gap-3 min-w-0">
-            <MapPin className="w-5 h-5 text-primary shrink-0" />
+    <div
+      className="absolute inset-0 z-20"
+      onClick={exiting ? undefined : onClose}
+      role="presentation"
+    >
+      <div
+        className={cn(
+          'absolute inset-x-0 bottom-0 flex h-[90dvh] flex-col pb-16 md:pb-4 pointer-events-none duration-300',
+          exiting
+            ? 'animate-out slide-out-to-bottom fill-mode-forwards'
+            : 'animate-in slide-in-from-bottom'
+        )}
+      >
+        <div
+          className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e4d4bc] bg-[#fffaf3]/96 shadow-lg shadow-stone-900/15 backdrop-blur-md pointer-events-auto"
+          onClick={(e) => e.stopPropagation()}
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-[#e4d4bc] px-5 py-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <MapPin className="h-5 w-5 shrink-0 text-[#a67c4a]" />
+              {isLoading ? (
+                <div className="h-5 w-32 animate-pulse rounded bg-[#e4d4bc]/80" />
+              ) : (
+                <div className="min-w-0">
+                  <h3 className="truncate font-heading font-semibold text-[#3d3428]">
+                    {detail?.location_city || detail?.location_country || '未知地点'}
+                  </h3>
+                  {detail?.location_formatted && (
+                    <p className="mt-0.5 truncate text-xs text-[#8a7a66]">
+                      {detail.location_formatted}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={exiting}
+              className="shrink-0 rounded-lg p-1.5 text-[#8a7a66] transition-colors hover:bg-[#f0e4d0] hover:text-[#3d3428] disabled:pointer-events-none"
+              aria-label="关闭"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
             {isLoading ? (
-              <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
-            ) : (
-              <div className="min-w-0">
-                <h3 className="font-heading font-semibold text-foreground truncate">
-                  {detail?.location_city || detail?.location_country || '未知地点'}
-                </h3>
-                {detail?.location_formatted && (
-                  <p className="text-xs text-foreground-secondary mt-0.5 truncate">
-                    {detail.location_formatted}
-                  </p>
-                )}
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <div key={i} className="aspect-square animate-pulse rounded-lg bg-[#e4d4bc]/80" />
+                ))}
               </div>
+            ) : detail?.assets && detail.assets.length > 0 ? (
+              <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
+                {detail.assets.map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    onClick={() => router.push(`/assets/${asset.id}`)}
+                    className="aspect-square overflow-hidden rounded-lg transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#a67c4a]/50"
+                  >
+                    <img
+                      src={asset.thumbnail_url}
+                      alt=""
+                      className="h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <p className="py-4 text-center text-sm text-[#8a7a66]">暂无照片</p>
             )}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/10 transition-colors shrink-0"
-            aria-label="关闭"
-          >
-            <X className="w-4 h-4 text-foreground-secondary" />
-          </button>
-        </div>
 
-        <div className="px-5 py-4 max-h-[35vh] overflow-y-auto">
-          {isLoading ? (
-            <div className="grid grid-cols-4 gap-2">
-              {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="aspect-square bg-white/10 rounded-lg animate-pulse" />
-              ))}
+          {detail && (
+            <div className="flex shrink-0 items-center gap-4 border-t border-[#e4d4bc] px-5 py-3 text-xs text-[#8a7a66]">
+              <span className="flex items-center gap-1 tabular-nums">
+                <ImageIcon className="h-3.5 w-3.5" />
+                {detail.asset_count} 张
+              </span>
+              <span className="flex items-center gap-1 tabular-nums">
+                <Calendar className="h-3.5 w-3.5" />
+                {new Date(detail.first_shot_at).toLocaleDateString('zh-CN')}
+                {detail.first_shot_at !== detail.last_shot_at &&
+                  ` - ${new Date(detail.last_shot_at).toLocaleDateString('zh-CN')}`}
+              </span>
             </div>
-          ) : detail?.assets && detail.assets.length > 0 ? (
-            <div className="grid grid-cols-4 gap-2">
-              {detail.assets.map((asset) => (
-                <button
-                  key={asset.id}
-                  type="button"
-                  onClick={() => router.push(`/assets/${asset.id}`)}
-                  className="aspect-square rounded-lg overflow-hidden hover:opacity-80 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                >
-                  <img
-                    src={asset.thumbnail_url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                    loading="lazy"
-                  />
-                </button>
-              ))}
-            </div>
-          ) : (
-            <p className="text-sm text-foreground-secondary text-center py-4">暂无照片</p>
           )}
         </div>
-
-        {detail && (
-          <div className="flex items-center gap-4 px-5 py-3 border-t border-white/10 text-xs text-foreground-secondary">
-            <span className="flex items-center gap-1 tabular-nums">
-              <ImageIcon className="w-3.5 h-3.5" />
-              {detail.asset_count} 张
-            </span>
-            <span className="flex items-center gap-1 tabular-nums">
-              <Calendar className="w-3.5 h-3.5" />
-              {new Date(detail.first_shot_at).toLocaleDateString('zh-CN')}
-              {detail.first_shot_at !== detail.last_shot_at &&
-                ` - ${new Date(detail.last_shot_at).toLocaleDateString('zh-CN')}`}
-            </span>
-          </div>
-        )}
       </div>
     </div>
   );
