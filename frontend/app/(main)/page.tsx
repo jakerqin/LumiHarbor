@@ -1,11 +1,27 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import Link from 'next/link';
 import { DomeGalleryContainer } from '@/components/home/DomeGalleryContainer';
 import BlurText from '@/components/animations/BlurText';
 import TextType from '@/components/animations/TextType';
 import ParticleBackground from '@/components/background/ParticleBackground';
+
+const HomeFootprintPreview = dynamic(
+  () =>
+    import('@/components/home/HomeFootprintPreview').then(
+      (mod) => mod.HomeFootprintPreview
+    ),
+  {
+    loading: () => (
+      <section className="w-full py-16 sm:py-20 px-4 sm:px-8 bg-background-secondary">
+        <div className="max-w-[1400px] mx-auto">
+          <div className="mb-8 h-16 max-w-md rounded bg-background-tertiary/50 animate-pulse" />
+          <div className="h-[min(68vh,640px)] min-h-[420px] rounded-2xl bg-background-tertiary/40 animate-pulse" />
+        </div>
+      </section>
+    ),
+  }
+);
 
 const Timeline = dynamic(
   () => import('@/components/home/Timeline').then((mod) => mod.Timeline),
@@ -56,20 +72,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="w-full py-14 px-4 sm:px-8 bg-background-secondary">
-        <div className="max-w-[1400px] mx-auto flex flex-col sm:flex-row sm:items-end sm:justify-between gap-6">
-          <div className="max-w-md">
-            <h2 className="text-section font-heading mb-2">足迹地图</h2>
-            <p className="text-foreground-secondary">探索你走过的每一个角落</p>
-          </div>
-          <Link
-            href="/map"
-            className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary-hover text-sm transition-colors self-start sm:self-auto"
-          >
-            打开地图
-          </Link>
-        </div>
-      </section>
+      <HomeFootprintPreview />
 
       <section className="w-full py-14">
         <Timeline />

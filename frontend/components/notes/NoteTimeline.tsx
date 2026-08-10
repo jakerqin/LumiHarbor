@@ -154,6 +154,9 @@ export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
                               src={coverUrl}
                               alt={note.title ?? ''}
                               className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                              style={{
+                                objectPosition: `${note.cover_position_x ?? 50}% ${note.cover_position_y ?? 50}%`,
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full bg-gradient-to-br from-primary/20 via-primary/10 to-background-tertiary flex items-center justify-center">

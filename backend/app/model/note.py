@@ -1,5 +1,5 @@
 """叙事笔记模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, JSON, Text, func
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, JSON, Text, Float, func
 from ..db import Base
 
 
@@ -12,6 +12,8 @@ class Note(Base):
         title: 笔记标题
         content: 笔记内容
         cover_asset_id: 封面素材ID（从素材库选择）
+        cover_position_x: 封面水平焦点百分比 0-100（object-position）
+        cover_position_y: 封面垂直焦点百分比 0-100（object-position）
         is_encrypted: 是否加密
         related_assets: 关联的资源列表（JSON数组）
         shot_at: 叙事发生时间
@@ -30,6 +32,8 @@ class Note(Base):
     content = Column(JSON, nullable=False, comment='笔记内容（Tiptap JSONContent）')
     content_markdown = Column(Text, nullable=True, comment='笔记内容（Markdown格式，用于预览）')
     cover_asset_id = Column(BIGINT, nullable=True, index=True, comment='封面素材ID')
+    cover_position_x = Column(Float, nullable=False, default=50.0, comment='封面水平焦点百分比 0-100')
+    cover_position_y = Column(Float, nullable=False, default=50.0, comment='封面垂直焦点百分比 0-100')
     is_encrypted = Column(Boolean, default=False, comment='是否加密')
     related_assets = Column(JSON, nullable=True, comment='关联资源列表 (JSON 数组)')
 

@@ -46,6 +46,13 @@ class NoteService:
     """笔记服务类（业务逻辑层）"""
 
     @staticmethod
+    def _clamp_cover_position(value: Optional[float], default: float = 50.0) -> float:
+        """封面焦点限制在 0–100"""
+        if value is None:
+            return default
+        return max(0.0, min(100.0, float(value)))
+
+    @staticmethod
     def list_notes(
         db: Session,
         skip: int = 0,
@@ -115,6 +122,8 @@ class NoteService:
             content=note_data.content,
             content_markdown=note_data.content_markdown,
             cover_asset_id=note_data.cover_asset_id,
+            cover_position_x=NoteService._clamp_cover_position(note_data.cover_position_x),
+            cover_position_y=NoteService._clamp_cover_position(note_data.cover_position_y),
             related_assets=None,
             shot_at=note_data.shot_at,
             is_encrypted=False,
@@ -153,6 +162,15 @@ class NoteService:
                 if missing_ids:
                     raise ValueError(f"封面素材不存在或已删除: {missing_ids[0]}")
             note.cover_asset_id = cover_asset_id
+
+        if "cover_position_x" in update_data:
+            note.cover_position_x = NoteService._clamp_cover_position(
+                update_data["cover_position_x"]
+            )
+        if "cover_position_y" in update_data:
+            note.cover_position_y = NoteService._clamp_cover_position(
+                update_data["cover_position_y"]
+            )
 
         db.commit()
         db.refresh(note)

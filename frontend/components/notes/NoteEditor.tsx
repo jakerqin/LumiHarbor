@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { NoteTitleInput } from './NoteTitleInput';
 import { NoteCoverImage } from './NoteCoverImage';
+import { NotePaperShell } from './NotePaperShell';
 import TailwindAdvancedEditor from './novel-native/tailwind/advanced-editor';
 import { AssetPickerModal } from '@/components/common/AssetPickerModal';
 import { jsonToMarkdown } from '@/lib/utils/jsonToMarkdown';
@@ -12,10 +13,14 @@ import type { JSONContent } from 'novel';
 interface NoteEditorProps {
   initialTitle?: string;
   initialCoverAsset?: Asset | null;
+  initialCoverPositionX?: number;
+  initialCoverPositionY?: number;
   initialContent?: JSONContent;
   onSave?: (data: {
     title: string;
     coverAssetId: number | null;
+    coverPositionX: number;
+    coverPositionY: number;
     content: JSONContent;
     contentMarkdown: string;
   }) => void | Promise<void>;
@@ -31,6 +36,8 @@ export interface NoteEditorRef {
 export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   initialTitle = '',
   initialCoverAsset = null,
+  initialCoverPositionX = 50,
+  initialCoverPositionY = 50,
   initialContent,
   onSave,
   autoSave = true,
@@ -39,38 +46,66 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
 }, ref) => {
   const [title, setTitle] = useState(initialTitle);
   const [coverAsset, setCoverAsset] = useState<Asset | null>(initialCoverAsset);
+  const [coverPositionX, setCoverPositionX] = useState(initialCoverPositionX);
+  const [coverPositionY, setCoverPositionY] = useState(initialCoverPositionY);
   const [content, setContent] = useState<JSONContent | undefined>(initialContent);
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const skipMetaSaveRef = useRef(true);
+  const latestRef = useRef<{
+    title: string;
+    coverAssetId: number | null;
+    coverPositionX: number;
+    coverPositionY: number;
+    content: JSONContent | undefined;
+  }>({
+    title: initialTitle,
+    coverAssetId: initialCoverAsset?.id ?? null,
+    coverPositionX: initialCoverPositionX,
+    coverPositionY: initialCoverPositionY,
+    content: initialContent,
+  });
+  latestRef.current = {
+    title,
+    coverAssetId: coverAsset?.id ?? null,
+    coverPositionX,
+    coverPositionY,
+    content,
+  };
 
   const handleAssetSelect = (asset: Asset) => {
     setCoverAsset(asset);
+    setCoverPositionX(50);
+    setCoverPositionY(50);
     setIsAssetPickerOpen(false);
   };
 
   const handleRemoveCover = () => {
     setCoverAsset(null);
+    setCoverPositionX(50);
+    setCoverPositionY(50);
   };
 
-  // 自动保存逻辑
   const triggerAutoSave = async () => {
     if (!onSave || !autoSave) return;
 
     onSavingChange?.(true);
 
     try {
-      const currentContent = content || { type: 'doc', content: [] };
+      const latest = latestRef.current;
+      const currentContent = latest.content || { type: 'doc', content: [] };
       const markdown = jsonToMarkdown(currentContent);
 
       await onSave({
-        title,
-        coverAssetId: coverAsset?.id || null,
+        title: latest.title,
+        coverAssetId: latest.coverAssetId,
+        coverPositionX: latest.coverPositionX,
+        coverPositionY: latest.coverPositionY,
         content: currentContent,
         contentMarkdown: markdown,
       });
 
-      const now = new Date();
-      onLastSavedChange?.(now);
+      onLastSavedChange?.(new Date());
     } catch (error) {
       console.error('自动保存失败:', error);
     } finally {
@@ -78,24 +113,43 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
     }
   };
 
-  const handleContentSave = async (newContent: JSONContent) => {
-    setContent(newContent);
-
-    if (autoSave) {
-      // 防抖：延迟 2 秒后保存
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      saveTimeoutRef.current = setTimeout(() => {
-        triggerAutoSave();
-      }, 2000);
+  const scheduleSave = () => {
+    if (!autoSave) return;
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
     }
+    saveTimeoutRef.current = setTimeout(() => {
+      void triggerAutoSave();
+    }, 2000);
   };
 
-  // 暴露手动保存方法给父组件
+  const handleContentSave = async (newContent: JSONContent) => {
+    latestRef.current.content = newContent;
+    setContent(newContent);
+    scheduleSave();
+  };
+
+  const handleTitleChange = (value: string) => {
+    setTitle(value);
+  };
+
+  const handlePositionChange = (x: number, y: number) => {
+    setCoverPositionX(x);
+    setCoverPositionY(y);
+  };
+
+  // 标题 / 封面 / 焦点变化后防抖保存（跳过首帧挂载）
+  useEffect(() => {
+    if (skipMetaSaveRef.current) {
+      skipMetaSaveRef.current = false;
+      return;
+    }
+    scheduleSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [title, coverAsset?.id, coverPositionX, coverPositionY]);
+
   useImperativeHandle(ref, () => ({
     triggerSave: async () => {
-      // 清除防抖定时器，立即保存
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
@@ -103,7 +157,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
     },
   }));
 
-  // 清理定时器
   useEffect(() => {
     return () => {
       if (saveTimeoutRef.current) {
@@ -113,37 +166,33 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
   }, []);
 
   return (
-    <div className="mx-auto max-w-screen-lg">
-      {/* 统一的白色容器 */}
-      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
-          {/* 封面图区域 */}
-          <NoteCoverImage
-            asset={coverAsset}
-            onRemove={handleRemoveCover}
-            onReplace={() => setIsAssetPickerOpen(true)}
+    <div className="mx-auto max-w-3xl lg:max-w-4xl">
+      <NotePaperShell>
+        <NoteCoverImage
+          asset={coverAsset}
+          positionX={coverPositionX}
+          positionY={coverPositionY}
+          onPositionChange={handlePositionChange}
+          onRemove={handleRemoveCover}
+          onReplace={() => setIsAssetPickerOpen(true)}
+        />
+
+        <div className="px-8 sm:px-12 pt-10 pb-2">
+          <NoteTitleInput
+            value={title}
+            onChange={handleTitleChange}
+            showAddCover={!coverAsset}
+            onAddCover={() => setIsAssetPickerOpen(true)}
           />
+        </div>
 
-          {/* 标题区域 */}
-          <div className="px-12 pt-2 pb-4">
-            <NoteTitleInput
-              value={title}
-              onChange={setTitle}
-              showAddCover={!coverAsset}
-              onAddCover={() => setIsAssetPickerOpen(true)}
-            />
-          </div>
+        <TailwindAdvancedEditor
+          initialContent={content}
+          onSave={handleContentSave}
+          autoSave={autoSave}
+        />
+      </NotePaperShell>
 
-          {/* 编辑器区域 */}
-          <div className="px-0">
-            <TailwindAdvancedEditor
-              initialContent={content}
-              onSave={handleContentSave}
-              autoSave={autoSave}
-            />
-          </div>
-      </div>
-
-      {/* 素材选择器 Modal */}
       <AssetPickerModal
         open={isAssetPickerOpen}
         title="选择封面图"

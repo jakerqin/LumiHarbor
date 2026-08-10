@@ -5,7 +5,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from ..db import get_db
 from .. import model, schema
@@ -44,6 +44,13 @@ def _cover_meta_for_notes(db: Session, notes: List[model.Note]) -> dict:
             url_provider.maybe_to_public_url(asset.thumbnail_path),
         )
     return mapping
+
+
+def _cover_positions(note: model.Note) -> Tuple[float, float]:
+    """读取封面焦点，缺省居中"""
+    x = note.cover_position_x if note.cover_position_x is not None else 50.0
+    y = note.cover_position_y if note.cover_position_y is not None else 50.0
+    return float(x), float(y)
 
 
 def _cover_detail_meta_for_note(db: Session, cover_asset_id: int) -> dict:
@@ -114,6 +121,7 @@ def create_note(
         raise HTTPException(status_code=400, detail=str(e))
 
     cover_meta = _cover_detail_meta_for_note(db, note.cover_asset_id)
+    pos_x, pos_y = _cover_positions(note)
 
     # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
     excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
@@ -125,6 +133,8 @@ def create_note(
             title=note.title,
             excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
+            cover_position_x=pos_x,
+            cover_position_y=pos_y,
             cover_thumbnail_path=cover_meta['thumbnail_path'],
             cover_thumbnail_url=cover_meta['thumbnail_url'],
             cover_original_path=cover_meta['original_path'],
@@ -170,6 +180,7 @@ def list_notes(
         # 始终从 content JSON 生成纯文本摘要（用于列表页预览）
         excerpt = NoteService.build_excerpt(note.content)
 
+        pos_x, pos_y = _cover_positions(note)
         notes_out.append(
             schema.NoteSummaryOut(
                 id=note.id,
@@ -177,6 +188,8 @@ def list_notes(
                 title=note.title,
                 excerpt=excerpt,
                 cover_asset_id=note.cover_asset_id,
+                cover_position_x=pos_x,
+                cover_position_y=pos_y,
                 cover_thumbnail_path=cover_thumbnail_path,
                 cover_thumbnail_url=cover_thumbnail_url,
                 shot_at=note.shot_at,
@@ -213,6 +226,7 @@ def get_note(
     # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
     excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
 
+    pos_x, pos_y = _cover_positions(note)
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
             id=note.id,
@@ -220,6 +234,8 @@ def get_note(
             title=note.title,
             excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
+            cover_position_x=pos_x,
+            cover_position_y=pos_y,
             cover_thumbnail_path=cover_meta['thumbnail_path'],
             cover_thumbnail_url=cover_meta['thumbnail_url'],
             cover_original_path=cover_meta['original_path'],
@@ -254,6 +270,7 @@ def update_note(
     # 优先使用 content_markdown，如果为空则从 content JSON 生成纯文本摘要
     excerpt = note.content_markdown or NoteService.build_excerpt(note.content)
 
+    pos_x, pos_y = _cover_positions(note)
     return schema.ApiResponse.success(
         data=schema.NoteDetailOut(
             id=note.id,
@@ -261,6 +278,8 @@ def update_note(
             title=note.title,
             excerpt=excerpt,
             cover_asset_id=note.cover_asset_id,
+            cover_position_x=pos_x,
+            cover_position_y=pos_y,
             cover_thumbnail_path=cover_meta['thumbnail_path'],
             cover_thumbnail_url=cover_meta['thumbnail_url'],
             cover_original_path=cover_meta['original_path'],

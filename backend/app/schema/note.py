@@ -8,8 +8,6 @@ from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
-from .asset import AssetOut
-
 
 class NoteSortBy(str, Enum):
     """笔记排序字段枚举"""
@@ -26,6 +24,8 @@ class NoteCreate(BaseModel):
     content: Dict[str, Any] = Field(..., description="笔记内容（Tiptap JSONContent）")
     content_markdown: Optional[str] = Field(None, description="笔记内容（Markdown格式，用于预览）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可选）")
+    cover_position_x: Optional[float] = Field(50, ge=0, le=100, description="封面水平焦点 0-100")
+    cover_position_y: Optional[float] = Field(50, ge=0, le=100, description="封面垂直焦点 0-100")
     shot_at: Optional[datetime] = Field(None, description="叙事发生时间（可选）")
 
 
@@ -36,6 +36,8 @@ class NoteUpdate(BaseModel):
     content: Optional[Dict[str, Any]] = Field(None, description="笔记内容（Tiptap JSONContent）")
     content_markdown: Optional[str] = Field(None, description="笔记内容（Markdown格式，用于预览）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可为空表示移除封面）")
+    cover_position_x: Optional[float] = Field(None, ge=0, le=100, description="封面水平焦点 0-100")
+    cover_position_y: Optional[float] = Field(None, ge=0, le=100, description="封面垂直焦点 0-100")
     shot_at: Optional[datetime] = Field(None, description="叙事发生时间（可选）")
 
 
@@ -47,6 +49,8 @@ class NoteSummaryOut(BaseModel):
     title: Optional[str]
     excerpt: str = Field("", description="内容摘要（Markdown格式，用于预览）")
     cover_asset_id: Optional[int]
+    cover_position_x: float = 50
+    cover_position_y: float = 50
     cover_thumbnail_path: Optional[str] = Field(None, description="封面素材缩略图路径")
     cover_thumbnail_url: Optional[str] = Field(None, description="封面素材缩略图 URL")
     shot_at: Optional[datetime]
@@ -73,4 +77,3 @@ class NotesPageResponse(BaseModel):
     skip: int
     limit: int
     has_more: bool
-

@@ -4,10 +4,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { Footprint } from '@/lib/api/types';
 import { wgs84ToGcj02 } from '@/lib/utils/coord';
 
+export type Amap2DMapVariant = 'full' | 'preview';
+
 interface Amap2DMapProps {
   footprints: Footprint[];
   selectedFootprintId: string | null;
   onFootprintClick: (footprint: Footprint) => void;
+  /** full：完整交互+标签；preview：首页概览，无标签且禁用滚轮缩放（避免抢页面滚动） */
+  variant?: Amap2DMapVariant;
 }
 
 const PRIMARY = '#e23d6b';
@@ -63,7 +67,11 @@ function markerColors(role: MarkerRole, selected: boolean) {
   };
 }
 
-function markerSize(role: MarkerRole, selected: boolean) {
+function markerSize(role: MarkerRole, selected: boolean, preview: boolean) {
+  if (preview) {
+    if (role === 'start') return selected ? 16 : 13;
+    return selected ? 12 : 9;
+  }
   if (role === 'start') return selected ? 20 : 16;
   return selected ? 14 : 10;
 }
@@ -74,22 +82,25 @@ function buildMarkerContent(opts: {
   size: number;
   dateLabel: string;
   placeName: string;
+  showLabels: boolean;
 }): string {
-  const { role, selected, size, dateLabel, placeName } = opts;
+  const { role, selected, size, dateLabel, placeName, showLabels } = opts;
   const colors = markerColors(role, selected);
   const roleTag =
-    role === 'start'
+    role === 'start' && showLabels
       ? `<div style="color:${START};font-weight:700;font-size:10px;letter-spacing:0.04em;">起点</div>`
       : '';
-  const lines = [
-    roleTag,
-    dateLabel
-      ? `<div style="font-variant-numeric:tabular-nums;color:${colors.dateColor};font-weight:${selected || role === 'start' ? 600 : 500};">${escapeHtml(dateLabel)}</div>`
-      : '',
-    placeName
-      ? `<div style="color:#5c5246;font-weight:500;max-width:7.5em;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(placeName)}</div>`
-      : '',
-  ].filter(Boolean);
+  const lines = showLabels
+    ? [
+        roleTag,
+        dateLabel
+          ? `<div style="font-variant-numeric:tabular-nums;color:${colors.dateColor};font-weight:${selected || role === 'start' ? 600 : 500};">${escapeHtml(dateLabel)}</div>`
+          : '',
+        placeName
+          ? `<div style="color:#5c5246;font-weight:500;max-width:7.5em;overflow:hidden;text-overflow:ellipsis;">${escapeHtml(placeName)}</div>`
+          : '',
+      ].filter(Boolean)
+    : [];
   // 外层固定为圆点尺寸，offset 才能对准地理坐标；标签绝对定位溢出，不拉偏锚点
   const label = lines.length
     ? `<div style="
@@ -115,14 +126,18 @@ export function Amap2DMap({
   footprints,
   selectedFootprintId,
   onFootprintClick,
+  variant = 'full',
 }: Amap2DMapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const markersRef = useRef<any[]>([]);
   const polylineRef = useRef<any>(null);
   const clickRef = useRef(onFootprintClick);
+  const variantRef = useRef(variant);
   const [mapReady, setMapReady] = useState(false);
   clickRef.current = onFootprintClick;
+  variantRef.current = variant;
+  const isPreview = variant === 'preview';
 
   useEffect(() => {
     if (!containerRef.current || !hasAmapKey()) return;
@@ -143,11 +158,15 @@ export function Amap2DMap({
 
         if (cancelled || !containerRef.current) return;
 
+        const preview = variantRef.current === 'preview';
         const map = new AMap.Map(containerRef.current, {
           zoom: 4,
           center: [116.4, 35.0],
           viewMode: '2D',
           mapStyle: 'amap://styles/macaron',
+          // 首页预览禁用滚轮，避免抢走页面纵向滚动
+          scrollWheel: !preview,
+          doubleClickZoom: !preview,
         });
         mapRef.current = map;
         setMapReady(true);
@@ -188,6 +207,7 @@ export function Amap2DMap({
 
     if (footprints.length === 0) return;
 
+    const showLabels = !isPreview;
     const gcjPoints = footprints.map((fp) => {
       const [lng, lat] = wgs84ToGcj02(fp.longitude, fp.latitude);
       return { fp, lng, lat };
@@ -196,7 +216,7 @@ export function Amap2DMap({
     const markers = gcjPoints.map(({ fp, lng, lat }, index) => {
       const selected = fp.id === selectedFootprintId;
       const role: MarkerRole = index === 0 ? 'start' : 'mid';
-      const size = markerSize(role, selected);
+      const size = markerSize(role, selected, isPreview);
       const dateLabel = formatFirstShotDate(fp.first_shot_at);
       const placeName = footprintPlaceName(fp);
       const marker = new AMap.Marker({
@@ -206,7 +226,14 @@ export function Amap2DMap({
         title: [role === 'start' ? '起点' : '', placeName, dateLabel]
           .filter(Boolean)
           .join(' · '),
-        content: buildMarkerContent({ role, selected, size, dateLabel, placeName }),
+        content: buildMarkerContent({
+          role,
+          selected,
+          size,
+          dateLabel,
+          placeName,
+          showLabels,
+        }),
       });
       marker.on('click', () => clickRef.current(fp));
       marker.setMap(map);
@@ -220,7 +247,7 @@ export function Amap2DMap({
         path,
         strokeColor: PRIMARY,
         strokeOpacity: 0.85,
-        strokeWeight: 7,
+        strokeWeight: isPreview ? 5 : 7,
         lineJoin: 'round',
         showDir: true,
         dirColor: '#fffaf3',
@@ -228,19 +255,20 @@ export function Amap2DMap({
       line.setMap(map);
       polylineRef.current = line;
     }
-  }, [footprints, selectedFootprintId, mapReady]);
+  }, [footprints, selectedFootprintId, mapReady, isPreview]);
 
   // 仅足迹列表变化时自适应视野，避免选中时反复 setFitView
   useEffect(() => {
     const map = mapRef.current;
     if (!mapReady || !map || footprints.length === 0 || markersRef.current.length === 0) return;
+    const pad = isPreview ? 36 : 80;
     map.setFitView(
       markersRef.current,
       false,
-      [80, 80, 80, 80],
+      [pad, pad, pad, pad],
       footprints.length === 1 ? 12 : undefined
     );
-  }, [footprints, mapReady]);
+  }, [footprints, mapReady, isPreview]);
 
   if (!hasAmapKey()) {
     return (

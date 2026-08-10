@@ -121,6 +121,8 @@ CREATE TABLE IF NOT EXISTS notes (
     content JSON NOT NULL COMMENT '笔记内容（Tiptap JSONContent）',
     content_markdown TEXT COMMENT '笔记内容（Markdown格式，用于预览）',
     cover_asset_id BIGINT COMMENT '封面素材ID',
+    cover_position_x FLOAT NOT NULL DEFAULT 50 COMMENT '封面水平焦点百分比 0-100',
+    cover_position_y FLOAT NOT NULL DEFAULT 50 COMMENT '封面垂直焦点百分比 0-100',
     is_encrypted BOOLEAN DEFAULT '0',
     related_assets JSON COMMENT '关联资源列表 (JSON 数组)',
     shot_at DATETIME COMMENT '叙事发生时间',

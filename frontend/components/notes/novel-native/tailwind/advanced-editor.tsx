@@ -33,6 +33,21 @@ import { TableOfContents } from "../TableOfContents";
 
 const extensions = [...defaultExtensions, slashCommand];
 
+/** 深色编辑面：正文用不透明近白，避免米色+透明度看起来发灰发虚 */
+const EDITOR_PROSE_CLASS = [
+  "prose prose-lg max-w-none focus:outline-none",
+  "prose-headings:font-heading prose-headings:font-semibold prose-headings:tracking-tight",
+  "prose-headings:text-white",
+  "prose-p:text-white prose-p:leading-[1.75]",
+  "prose-li:text-white prose-strong:text-white",
+  "prose-a:text-primary prose-a:no-underline hover:prose-a:underline",
+  "prose-blockquote:border-white/25 prose-blockquote:text-white/70",
+  "prose-code:text-white prose-code:bg-white/10 prose-code:px-1 prose-code:py-0.5 prose-code:rounded",
+  "prose-pre:bg-black/40 prose-pre:text-white",
+  "prose-hr:border-white/15",
+  "prose-img:rounded-xl",
+].join(" ");
+
 interface TailwindAdvancedEditorProps {
   initialContent?: JSONContent;
   onSave?: (content: JSONContent) => void | Promise<void>;
@@ -48,24 +63,23 @@ const TailwindAdvancedEditor = ({
   const [charsCount, setCharsCount] = useState<number | null>(null);
   const [isAssetPickerOpen, setIsAssetPickerOpen] = useState(false);
   const editorRef = useRef<EditorInstance | null>(null);
-  const [editor, setEditor] = useState<EditorInstance | null>(null); // 用于目录组件
+  const [editor, setEditor] = useState<EditorInstance | null>(null);
 
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
   const [openAI, setOpenAI] = useState(false);
 
-  // 将打开素材选择器的函数挂载到 window 上
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      (window as any).openAssetPicker = (editor: EditorInstance) => {
-        editorRef.current = editor;
+    if (typeof window !== "undefined") {
+      (window as any).openAssetPicker = (ed: EditorInstance) => {
+        editorRef.current = ed;
         setIsAssetPickerOpen(true);
       };
     }
 
     return () => {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== "undefined") {
         delete (window as any).openAssetPicker;
       }
     };
@@ -74,54 +88,38 @@ const TailwindAdvancedEditor = ({
   const handleAssetSelect = (asset: Asset) => {
     if (!editorRef.current) return;
 
-    const editor = editorRef.current;
-    // 优先使用 preview_url（转码后的 WebP 格式，用于 HEIC 等特殊格式）
-    // 如果不存在 preview_url，则使用 original_url（原生支持的格式如 JPG、PNG）
+    const ed = editorRef.current;
     const urlToUse = asset.preview_url || asset.original_url;
-    const assetUrl = resolveMediaUrl(urlToUse, asset.original_path) || '';
+    const assetUrl = resolveMediaUrl(urlToUse, asset.original_path) || "";
 
-    // 根据素材类型插入不同的节点
-    if (asset.asset_type === 'video') {
-      editor
-        .chain()
+    if (asset.asset_type === "video") {
+      ed.chain()
         .focus()
         .insertContent([
           {
-            type: 'video',
-            attrs: {
-              src: assetUrl,
-              assetId: asset.id,
-            },
+            type: "video",
+            attrs: { src: assetUrl, assetId: asset.id },
           },
-          {
-            type: 'paragraph',
-          },
+          { type: "paragraph" },
         ])
         .run();
     } else {
-      // 图片类型
-      editor
-        .chain()
+      ed.chain()
         .focus()
         .insertContent([
           {
-            type: 'image',
-            attrs: {
-              src: assetUrl,
-              assetId: asset.id,
-            },
+            type: "image",
+            attrs: { src: assetUrl, assetId: asset.id },
           },
-          {
-            type: 'paragraph',
-          },
+          { type: "paragraph" },
         ])
         .run();
     }
   };
 
-  const debouncedUpdates = useDebouncedCallback(async (editor: EditorInstance) => {
-    const json = editor.getJSON();
-    setCharsCount(editor.storage.characterCount.characters());
+  const debouncedUpdates = useDebouncedCallback(async (ed: EditorInstance) => {
+    const json = ed.getJSON();
+    setCharsCount(ed.storage.characterCount.characters());
 
     if (autoSave && onSave) {
       await onSave(json);
@@ -132,14 +130,14 @@ const TailwindAdvancedEditor = ({
 
   return (
     <div className="relative w-full editor-dark-theme">
-      <div className="absolute right-12 top-5 z-10 mb-5 flex gap-2">
-        <div className="rounded-lg bg-background-tertiary px-2 py-1 text-sm text-foreground-secondary">
+      <div className="absolute right-4 top-4 z-10 flex flex-wrap justify-end gap-2 sm:right-8 sm:top-5">
+        <div className="rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1 text-sm text-white/55 backdrop-blur-sm">
           {saveStatus === "Saved" ? "已保存" : "未保存"}
         </div>
         <div
           className={
             charsCount
-              ? "rounded-lg bg-background-tertiary px-2 py-1 text-sm text-foreground-secondary tabular-nums"
+              ? "rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1 text-sm text-white/55 backdrop-blur-sm tabular-nums"
               : "hidden"
           }
         >
@@ -151,29 +149,31 @@ const TailwindAdvancedEditor = ({
         <EditorContent
           initialContent={initialContent}
           extensions={extensions}
-          className="relative min-h-[500px] w-full pb-[calc(20vh)]"
+          className="relative min-h-[560px] w-full pb-[calc(18vh)]"
           editorProps={{
             handleDOMEvents: {
               keydown: (_view, event) => handleCommandNavigation(event),
             },
             handlePaste: (view, event) => handleImagePaste(view, event, uploadFn),
-            handleDrop: (view, event, _slice, moved) => handleImageDrop(view, event, moved, uploadFn),
+            handleDrop: (view, event, _slice, moved) =>
+              handleImageDrop(view, event, moved, uploadFn),
             attributes: {
-              class:
-                "prose prose-lg prose-invert prose-headings:font-heading prose-headings:text-foreground prose-p:text-foreground/90 prose-a:text-primary focus:outline-none max-w-full",
+              class: EDITOR_PROSE_CLASS,
             },
           }}
-          onCreate={({ editor }) => {
-            setEditor(editor);
+          onCreate={({ editor: ed }) => {
+            setEditor(ed);
           }}
-          onUpdate={({ editor }) => {
-            debouncedUpdates(editor);
+          onUpdate={({ editor: ed }) => {
+            debouncedUpdates(ed);
             setSaveStatus("Unsaved");
           }}
           slotAfter={<ImageResizer />}
         >
           <EditorCommand className="z-50 h-auto max-h-[330px] overflow-y-auto rounded-md border border-white/10 bg-background-secondary px-1 py-2 shadow-lg transition-all">
-            <EditorCommandEmpty className="px-2 text-foreground-tertiary">无结果</EditorCommandEmpty>
+            <EditorCommandEmpty className="px-2 text-foreground-tertiary">
+              无结果
+            </EditorCommandEmpty>
             <EditorCommandList>
               {suggestionItems.map((item) => (
                 <EditorCommandItem
@@ -217,7 +217,6 @@ const TailwindAdvancedEditor = ({
         onSelect={handleAssetSelect}
       />
 
-      {/* 目录侧边栏 */}
       <TableOfContents editor={editor} />
     </div>
   );

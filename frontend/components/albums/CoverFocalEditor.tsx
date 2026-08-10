@@ -25,7 +25,7 @@ export function CoverFocalEditor({
   positionY,
   onChange,
   disabled,
-  className = 'h-48',
+  className = 'h-48 rounded-xl',
 }: CoverFocalEditorProps) {
   const draggingRef = useRef(false);
   const lastRef = useRef({ x: 0, y: 0 });
@@ -64,7 +64,7 @@ export function CoverFocalEditor({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl bg-background-tertiary touch-none ${className} ${
+      className={`relative overflow-hidden bg-background-tertiary touch-none ${className} ${
         disabled ? 'cursor-default' : 'cursor-grab active:cursor-grabbing'
       }`}
       onPointerDown={handlePointerDown}

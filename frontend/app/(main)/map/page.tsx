@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MapPin } from 'lucide-react';
 import { mapApi } from '@/lib/api/map';
@@ -11,6 +11,7 @@ import { MapStatistics } from '@/components/map/MapStatistics';
 
 export default function MapPage() {
   const [selectedFootprintId, setSelectedFootprintId] = useState<string | null>(null);
+  const [deepLinkApplied, setDeepLinkApplied] = useState(false);
 
   const { data: footprintsData, isLoading: footprintsLoading } = useQuery({
     queryKey: ['footprints'],
@@ -24,6 +25,16 @@ export default function MapPage() {
   });
 
   const footprints = footprintsData?.footprints ?? [];
+
+  // 首页预览点进 /map?fp= 时自动打开对应足迹（只应用一次）
+  useEffect(() => {
+    if (deepLinkApplied || footprints.length === 0) return;
+    const fp = new URLSearchParams(window.location.search).get('fp');
+    if (fp && footprints.some((item) => item.id === fp)) {
+      setSelectedFootprintId(fp);
+    }
+    setDeepLinkApplied(true);
+  }, [footprints, deepLinkApplied]);
 
   const handleFootprintClick = (fp: Footprint) => {
     setSelectedFootprintId(fp.id);

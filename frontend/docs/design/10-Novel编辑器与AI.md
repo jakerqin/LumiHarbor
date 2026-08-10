@@ -47,7 +47,10 @@ components/notes/novel-native/
     └── ui/                        # Radix/cmdk 基元
 ```
 
-样式：`app/globals.css` 引入 `styles/prosemirror.css` + KaTeX；编辑区使用 `editor-dark-theme` + `prose-invert`，气泡/斜杠菜单与全站深色壳对齐（不再白底灰字撕裂）。
+样式：`app/globals.css` 引入 `styles/prosemirror.css` + KaTeX。
+
+- **正文编辑面**：`editor-dark-theme` + 深底 `#141210`、浅字 `#f3eee6`（黑底白字；正文用显式浅色 class，不依赖暖色纸面）
+- **浮层 UI**（Slash / Bubble / Ask AI）：深色壳 token，与全站对齐
 
 ## 编辑器行为
 
@@ -60,7 +63,7 @@ EditorRoot / EditorContent
   Bubble: GenerativeMenuSwitch + Node/Link/Math/Text/Color
   Slash: suggestionItems（含打开素材选择器）
   slotAfter: ImageResizer
-  侧栏: TableOfContents
+  侧栏: TableOfContents（仅当编辑面右侧留白 ≥ 目录宽+边距时显示，否则隐藏以免盖正文）
 ```
 
 ### 插入素材库资源

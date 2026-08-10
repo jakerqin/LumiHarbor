@@ -7,6 +7,8 @@ export interface Note {
   title: string | null;
   excerpt: string;
   cover_asset_id: number | null;
+  cover_position_x: number;
+  cover_position_y: number;
   cover_thumbnail_path: string | null;
   cover_thumbnail_url: string | null;
   shot_at: string | null;
@@ -73,6 +75,8 @@ export const notesApi = {
     content: JSONContent;
     content_markdown?: string | null;
     cover_asset_id?: number | null;
+    cover_position_x?: number;
+    cover_position_y?: number;
     shot_at?: string | null;
   }): Promise<NoteDetail> => {
     const response = await apiClient.post<NoteDetail>('/notes', payload);
@@ -87,6 +91,8 @@ export const notesApi = {
       content?: JSONContent;
       content_markdown?: string | null;
       cover_asset_id?: number | null;
+      cover_position_x?: number;
+      cover_position_y?: number;
       shot_at?: string | null;
     }
   ): Promise<NoteDetail> => {

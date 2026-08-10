@@ -13,25 +13,29 @@ export default function NewNotePage() {
   const handleSave = async (data: {
     title: string;
     coverAssetId: number | null;
+    coverPositionX: number;
+    coverPositionY: number;
     content: JSONContent;
     contentMarkdown: string;
   }) => {
     try {
       if (noteId) {
-        // 更新已存在的笔记
         await notesApi.updateNote(noteId, {
           title: data.title || '无标题',
           content: data.content,
           content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
+          cover_position_x: data.coverPositionX,
+          cover_position_y: data.coverPositionY,
         });
       } else {
-        // 创建新笔记
         const note = await notesApi.createNote({
           title: data.title || '无标题',
           content: data.content,
           content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
+          cover_position_x: data.coverPositionX,
+          cover_position_y: data.coverPositionY,
         });
         setNoteId(note.id);
       }
@@ -43,16 +47,10 @@ export default function NewNotePage() {
   };
 
   return (
-    <div className="min-h-screen relative">
-      {/* 导航栏 */}
+    <div className="relative min-h-dvh bg-background">
       <NoteEditorNavbar />
-
-      {/* 内容区域 */}
-      <div className="relative z-10 pb-12 px-6 pt-20">
-        <NoteEditor
-          onSave={handleSave}
-          autoSave={true}
-        />
+      <div className="relative z-10 px-4 sm:px-6 pb-16 pt-20">
+        <NoteEditor onSave={handleSave} autoSave={true} />
       </div>
     </div>
   );

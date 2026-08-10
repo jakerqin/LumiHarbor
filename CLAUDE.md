@@ -55,7 +55,7 @@
 ### 前端已具备
 
 - 导航：桌面右侧 Dock（边缘唤出）；移动端底栏常驻；项为首页 · 素材 · 相册 · 笔记 · 地图 · 快传
-- 首页：Dome Gallery（精选）、足迹入口链到 `/map`、笔记时间轴；粒子仅首页；不再内嵌 Mock 地球
+- 首页：Dome Gallery（精选）、足迹地图预览（高德 preview，点进 `/map`）、笔记时间轴；粒子仅首页；不再内嵌 Mock 地球
 - 素材库：瀑布流、筛选、上传、收藏、详情与相似；列表壳 `PageShell` + 空态引导
 - 相册：列表/详情、创建、文件夹导入
 - 笔记：列表/新建/详情，主编辑器为 **Novel（Tiptap）** 暗色对齐
@@ -71,7 +71,7 @@
 | Notes = Markdown + `asset://` 主链路 | 主链路是 Novel JSON；`asset://` / Streamdown 属遗留 |
 | `/notes/novel` 独立实验页 | 路由已不存在，Novel 接在主笔记上 |
 | 地图 API 未实现 | `/map` 与后端 map 路由已接通 |
-| 首页内嵌 Mock 地球 | 首页改为链到 `/map`；`getLocations` Mock 若残留勿当现网 |
+| 首页内嵌 Mock 地球 | 首页为真实足迹预览 + 链到 `/map`；`getLocations` Mock 若残留勿当现网 |
 | Zustand 在广泛使用 | 依赖在，但业务代码基本未用 |
 
 ---
