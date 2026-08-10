@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { resolveApiBaseUrl } from './baseUrl';
 
 export class ApiError extends Error {
   code?: string;
@@ -24,7 +25,6 @@ function isStandardApiResponse(value: unknown): value is { code: string; message
 }
 
 export const apiClient = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -34,11 +34,20 @@ export const apiClient = axios.create({
 // 请求拦截器
 apiClient.interceptors.request.use(
   (config) => {
+    // 每次请求按当前访问主机解析，避免局域网手机仍打 localhost
+    config.baseURL = resolveApiBaseUrl();
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('token');
       if (token) {
         config.headers = config.headers ?? {};
         config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+    // FormData 必须由浏览器自动带 multipart boundary，不能沿用默认 application/json
+    if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
+      if (config.headers) {
+        delete (config.headers as Record<string, unknown>)['Content-Type'];
+        delete (config.headers as Record<string, unknown>)['content-type'];
       }
     }
     return config;

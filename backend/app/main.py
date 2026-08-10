@@ -23,14 +23,11 @@ logger = get_logger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
 
-# 允许前端本地开发域名跨域访问
+# 局域网私有部署：放开跨域。allow_origins=["*"] 时不能同时 allow_credentials=True
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

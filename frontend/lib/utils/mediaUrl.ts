@@ -1,3 +1,5 @@
+import { resolveApiBaseUrl } from '@/lib/api/baseUrl';
+
 export function resolveMediaUrl(url?: string | null, path?: string | null): string | null {
   const cleanedUrl = url?.trim();
   if (cleanedUrl) return cleanedUrl;
@@ -6,7 +8,7 @@ export function resolveMediaUrl(url?: string | null, path?: string | null): stri
   if (!cleanedPath) return null;
   if (/^https?:\/\//i.test(cleanedPath)) return cleanedPath;
 
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
+  const baseUrl = resolveApiBaseUrl().replace(/\/$/, '');
   const normalizedPath = cleanedPath.startsWith('/') ? cleanedPath : `/${cleanedPath}`;
   return `${baseUrl}${normalizedPath}`;
 }

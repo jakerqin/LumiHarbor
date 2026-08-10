@@ -138,7 +138,8 @@ export function SingleDatePicker({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50 p-4">
+        // 固定舒适宽度并相对触发框居中，避免半宽栅格里挤扁或单边溢出
+        <div className="absolute left-1/2 top-full z-50 mt-2 w-[18.5rem] -translate-x-1/2 rounded-2xl border border-white/10 bg-background-secondary/95 p-4 shadow-2xl backdrop-blur-2xl">
           <DayPicker
             mode="single"
             selected={value}
@@ -155,21 +156,24 @@ export function SingleDatePicker({
               root: 'date-picker-root',
               months: 'flex gap-4',
               month: 'space-y-3',
-              month_caption: 'flex justify-center items-center gap-2 h-8 relative',
+              month_caption: 'relative flex h-8 items-center justify-center gap-2',
               caption_label: 'hidden',
               dropdowns: 'flex items-center gap-2',
               nav: 'flex items-center gap-1',
-              button_previous: 'p-1.5 rounded-lg hover:bg-white/10 transition-colors absolute left-0 top-0',
-              button_next: 'p-1.5 rounded-lg hover:bg-white/10 transition-colors absolute right-0 top-0',
+              button_previous:
+                'absolute left-0 top-0 rounded-lg p-1.5 transition-colors hover:bg-white/10',
+              button_next:
+                'absolute right-0 top-0 rounded-lg p-1.5 transition-colors hover:bg-white/10',
               weekdays: 'flex',
-              weekday: 'w-9 h-9 flex items-center justify-center text-xs text-foreground-secondary font-medium',
+              weekday:
+                'flex h-9 w-9 items-center justify-center text-xs font-medium text-foreground-secondary',
               week: 'flex',
-              day: 'w-9 h-9 flex items-center justify-center text-sm rounded-lg transition-colors hover:bg-white/10',
-              day_button: 'w-full h-full flex items-center justify-center',
-              selected: 'bg-primary/20 text-primary font-medium',
+              day: 'flex h-9 w-9 items-center justify-center rounded-lg text-sm transition-colors hover:bg-white/10',
+              day_button: 'flex h-full w-full items-center justify-center',
+              selected: 'bg-primary/20 font-medium text-primary',
               today: 'ring-1 ring-primary/50',
               outside: 'text-foreground-secondary/40',
-              disabled: 'text-foreground-secondary/30 cursor-not-allowed',
+              disabled: 'cursor-not-allowed text-foreground-secondary/30',
             }}
             components={{
               Chevron: ({ orientation }) =>
@@ -182,11 +186,11 @@ export function SingleDatePicker({
             }}
           />
 
-          <div className="mt-3 pt-3 border-t border-white/5 flex justify-end">
+          <div className="mt-3 flex justify-end border-t border-white/5 pt-3">
             <button
               type="button"
               onClick={() => onChange(undefined)}
-              className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/5 transition-colors"
+              className="rounded-lg px-3 py-1.5 text-sm text-foreground-secondary transition-colors hover:bg-white/5 hover:text-foreground"
               disabled={disabled}
             >
               清除

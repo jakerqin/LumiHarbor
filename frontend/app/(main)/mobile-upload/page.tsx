@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, Wifi, Copy, Check, FolderOpen, RotateCcw, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
+import { ShootLocationField } from '@/components/common/ShootLocationField';
+import type { LocationData } from '@/components/common/MapPicker';
 import { MobileAssetPicker } from '@/components/upload/MobileAssetPicker';
 import { AlbumTargetSection } from '@/components/upload/AlbumTargetSection';
 import { useMobileUploadQueue } from '@/lib/hooks/useMobileUploadQueue';
@@ -25,19 +27,31 @@ export default function MobileUploadPage() {
     retryFailed,
   } = useMobileUploadQueue();
   const [albumTarget, setAlbumTarget] = useState<AlbumTarget>({ mode: 'none' });
+  const [locationData, setLocationData] = useState<LocationData | null>(null);
 
-  // 一旦有文件真正进入过上传流程（而不仅仅是被判定为“已传过”），相册目标就锁定，
+  // 一旦有文件真正进入过上传流程（而不仅仅是被判定为“已传过”），相册/地点就锁定，
   // 避免和 useMobileUploadQueue 内部已解析的 albumId 产生歧义
   const hasStarted = items.some((item) => item.status === 'uploading' || item.status === 'success' || item.status === 'failed');
   const allSettled = items.length > 0 && summary.pending === 0 && !isUploading;
 
   const handleStartUpload = () => {
     if (summary.pending === 0 || isUploading) return;
-    startUpload(albumTarget);
+    startUpload(albumTarget, locationData || undefined);
+  };
+
+  const handleReset = () => {
+    reset();
+    setLocationData(null);
   };
 
   return (
-    <div className="min-h-screen pb-32">
+    <div
+      className={
+        summary.pending > 0
+          ? 'min-h-screen pb-[calc(3.5rem+5.5rem+env(safe-area-inset-bottom))] md:pb-28'
+          : 'min-h-screen pb-[calc(3.5rem+env(safe-area-inset-bottom)+1.5rem)] md:pb-28'
+      }
+    >
       <header className="sticky top-0 z-10 backdrop-blur-xl bg-background/80 border-b border-white/10 px-4 py-3 flex items-center gap-3">
         <Link
           href="/assets"
@@ -61,23 +75,30 @@ export default function MobileUploadPage() {
 
         <AlbumTargetSection disabled={hasStarted} onChange={setAlbumTarget} />
 
+        <ShootLocationField
+          value={locationData}
+          onChange={setLocationData}
+          disabled={hasStarted}
+        />
+
         {allSettled && (
           <ResultPanel
             summary={summary}
             albumResult={albumResult}
             onRetryFailed={retryFailed}
-            onReset={reset}
+            onReset={handleReset}
           />
         )}
       </div>
 
       {summary.pending > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-10 backdrop-blur-xl bg-background/90 border-t border-white/10 p-4">
+        // 移动端抬到底栏（h-14 + safe-area）之上；桌面无底栏，贴底
+        <div className="fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t border-white/10 bg-background/90 p-4 backdrop-blur-xl md:bottom-0">
           <button
             type="button"
             onClick={handleStartUpload}
             disabled={isUploading}
-            className="w-full py-3.5 rounded-xl bg-primary hover:bg-primary-hover disabled:opacity-50 transition-colors font-medium inline-flex items-center justify-center gap-2"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3.5 font-medium transition-colors hover:bg-primary-hover disabled:opacity-50"
           >
             <UploadCloud size={18} />
             {isUploading ? '上传中...' : `开始上传（${summary.pending}）`}
@@ -90,10 +111,13 @@ export default function MobileUploadPage() {
 
 function WifiHint() {
   const [origin, setOrigin] = useState('');
+  const [isLoopback, setIsLoopback] = useState(false);
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setOrigin(window.location.origin + '/mobile-upload');
+    const { hostname, origin: pageOrigin } = window.location;
+    setOrigin(`${pageOrigin}/mobile-upload`);
+    setIsLoopback(hostname === 'localhost' || hostname === '127.0.0.1');
   }, []);
 
   const handleCopy = async () => {
@@ -112,6 +136,11 @@ function WifiHint() {
       <Wifi size={18} className="text-primary flex-shrink-0 mt-0.5" />
       <div className="flex-1 min-w-0">
         <p className="text-foreground-secondary">确保手机和主机连接同一个 Wi‑Fi</p>
+        {isLoopback && (
+          <p className="mt-1 text-xs text-amber-300/90">
+            当前是 localhost。请用电脑局域网 IP 在手机打开（本机可先执行 ipconfig getifaddr en0）
+          </p>
+        )}
         {origin && <p className="mt-1 text-xs text-foreground-tertiary truncate">{origin}</p>}
       </div>
       {origin && (

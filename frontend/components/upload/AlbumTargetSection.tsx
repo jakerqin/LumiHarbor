@@ -2,9 +2,21 @@
 
 import { useEffect, useState } from 'react';
 import { useDebouncedCallback } from 'use-debounce';
-import { FolderPlus, FolderOpen, Ban, Search, type LucideIcon } from 'lucide-react';
+import { format, isValid, parseISO } from 'date-fns';
+import { FolderPlus, FolderOpen, Ban, Search, Calendar, type LucideIcon } from 'lucide-react';
 import { albumsApi, type Album } from '@/lib/api/albums';
 import type { AlbumTarget } from '@/lib/api/ingestion';
+import { SingleDatePicker, type ActiveDatePicker } from '@/components/common/SingleDatePicker';
+
+function parseDateValue(value: string): Date | undefined {
+  if (!value) return undefined;
+  const date = parseISO(value);
+  return isValid(date) ? date : undefined;
+}
+
+function formatDateValue(date?: Date): string {
+  return date ? format(date, 'yyyy-MM-dd') : '';
+}
 
 export type AlbumMode = 'none' | 'existing' | 'new';
 
@@ -132,15 +144,17 @@ function NewAlbumFields({
   onStartTimeChange,
   onEndTimeChange,
 }: NewAlbumFieldsProps) {
+  const [activePicker, setActivePicker] = useState<ActiveDatePicker>(null);
+
   return (
-    <div className="space-y-2 p-3 rounded-xl bg-white/5 border border-white/10">
+    <div className="space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
       <input
         type="text"
         value={name}
         onChange={(e) => onNameChange(e.target.value)}
         placeholder="相册名称，例如：2026 暑假旅行"
         disabled={disabled}
-        className="w-full px-3 py-2.5 rounded-lg bg-background-tertiary border border-white/10 text-sm disabled:opacity-50"
+        className="w-full rounded-lg border border-white/10 bg-background-tertiary px-3 py-2.5 text-sm disabled:opacity-50"
       />
       <textarea
         value={description}
@@ -148,23 +162,37 @@ function NewAlbumFields({
         placeholder="描述（可选）"
         rows={2}
         disabled={disabled}
-        className="w-full px-3 py-2 rounded-lg bg-background-tertiary border border-white/10 text-sm resize-none disabled:opacity-50"
+        className="w-full resize-none rounded-lg border border-white/10 bg-background-tertiary px-3 py-2 text-sm disabled:opacity-50"
       />
-      <div className="grid grid-cols-2 gap-2">
-        <input
-          type="date"
-          value={startTime}
-          onChange={(e) => onStartTimeChange(e.target.value)}
-          disabled={disabled}
-          className="px-3 py-2 rounded-lg bg-background-tertiary border border-white/10 text-sm disabled:opacity-50"
-        />
-        <input
-          type="date"
-          value={endTime}
-          onChange={(e) => onEndTimeChange(e.target.value)}
-          disabled={disabled}
-          className="px-3 py-2 rounded-lg bg-background-tertiary border border-white/10 text-sm disabled:opacity-50"
-        />
+      <div>
+        <label className="mb-2 flex items-center gap-1.5 text-xs text-foreground-secondary">
+          <Calendar size={12} />
+          拍摄时间范围
+        </label>
+        <div className="grid grid-cols-1 gap-3">
+          <div>
+            <label className="mb-1.5 block text-xs text-foreground-tertiary">开始时间</label>
+            <SingleDatePicker
+              pickerKey="start"
+              value={parseDateValue(startTime)}
+              activeKey={activePicker}
+              onActiveChange={setActivePicker}
+              onChange={(date) => onStartTimeChange(formatDateValue(date))}
+              disabled={disabled}
+            />
+          </div>
+          <div>
+            <label className="mb-1.5 block text-xs text-foreground-tertiary">结束时间</label>
+            <SingleDatePicker
+              pickerKey="end"
+              value={parseDateValue(endTime)}
+              activeKey={activePicker}
+              onActiveChange={setActivePicker}
+              onChange={(date) => onEndTimeChange(formatDateValue(date))}
+              disabled={disabled}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );

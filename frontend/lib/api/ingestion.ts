@@ -51,6 +51,15 @@ function appendAlbumTarget(formData: FormData, album?: AlbumTarget): void {
   if (album.endTime) formData.append('album_end_time', album.endTime);
 }
 
+function appendLocationData(formData: FormData, locationData?: LocationData): void {
+  if (!locationData) return;
+  formData.append('default_gps', `${locationData.longitude},${locationData.latitude}`);
+  const locationPoi = locationData.poi || locationData.city || locationData.district;
+  if (locationPoi) {
+    formData.append('location_poi', locationPoi);
+  }
+}
+
 export const ingestionApi = {
   uploadAssets: async (files: File[], locationData?: LocationData): Promise<UploadAssetsResponse> => {
     const formData = new FormData();
@@ -58,28 +67,9 @@ export const ingestionApi = {
       formData.append('files', file);
     });
 
-    // 添加位置数据
-    if (locationData) {
-      // 传递经纬度（格式：'经度,纬度'）
-      const defaultGps = `${locationData.longitude},${locationData.latitude}`;
-      formData.append('default_gps', defaultGps);
+    appendLocationData(formData, locationData);
 
-      // 传递地标名称（优先使用 poi，其次使用 city）
-      const locationPoi = locationData.poi || locationData.city || locationData.district;
-      if (locationPoi) {
-        formData.append('location_poi', locationPoi);
-      }
-    }
-
-    const response = await apiClient.post<UploadAssetsResponse>(
-      '/ingestion/upload/batch',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      }
-    );
+    const response = await apiClient.post<UploadAssetsResponse>('/ingestion/upload/batch', formData);
     return response.data;
   },
 
@@ -91,6 +81,7 @@ export const ingestionApi = {
     file: File,
     options?: {
       album?: AlbumTarget;
+      locationData?: LocationData;
       onProgress?: (percent: number) => void;
       signal?: AbortSignal;
     }
@@ -98,22 +89,16 @@ export const ingestionApi = {
     const formData = new FormData();
     formData.append('file', file);
     appendAlbumTarget(formData, options?.album);
+    appendLocationData(formData, options?.locationData);
 
-    const response = await apiClient.post<UploadSingleAssetResponse>(
-      '/ingestion/upload',
-      formData,
-      {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-        timeout: SINGLE_UPLOAD_TIMEOUT_MS,
-        signal: options?.signal,
-        onUploadProgress: (event) => {
-          if (!options?.onProgress || !event.total) return;
-          options.onProgress(Math.round((event.loaded / event.total) * 100));
-        },
-      }
-    );
+    const response = await apiClient.post<UploadSingleAssetResponse>('/ingestion/upload', formData, {
+      timeout: SINGLE_UPLOAD_TIMEOUT_MS,
+      signal: options?.signal,
+      onUploadProgress: (event) => {
+        if (!options?.onProgress || !event.total) return;
+        options.onProgress(Math.round((event.loaded / event.total) * 100));
+      },
+    });
     return response.data;
   },
 };

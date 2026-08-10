@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useState } from 'react';
+import type { LocationData } from '@/components/common/MapPicker';
 import { ingestionApi, type AlbumAssociationResult, type AlbumTarget } from '@/lib/api/ingestion';
 
 const SIGNATURE_STORAGE_KEY = 'lumiharbor:uploaded-signatures';
@@ -61,6 +62,7 @@ export function useMobileUploadQueue() {
   const [isUploading, setIsUploading] = useState(false);
   const [albumResult, setAlbumResult] = useState<AlbumAssociationResult | null>(null);
   const resolvedAlbumTargetRef = useRef<AlbumTarget | null>(null);
+  const locationDataRef = useRef<LocationData | undefined>(undefined);
 
   const updateItem = useCallback((id: string, patch: Partial<UploadItem>) => {
     setItems((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
@@ -90,6 +92,7 @@ export function useMobileUploadQueue() {
     setItems([]);
     setAlbumResult(null);
     resolvedAlbumTargetRef.current = null;
+    locationDataRef.current = undefined;
   }, []);
 
   const uploadOne = useCallback(async (item: UploadItem, albumTarget: AlbumTarget) => {
@@ -97,6 +100,7 @@ export function useMobileUploadQueue() {
     try {
       const response = await ingestionApi.uploadSingleAsset(item.file, {
         album: albumTarget,
+        locationData: locationDataRef.current,
         onProgress: (percent) => updateItem(item.id, { progress: percent }),
       });
       if (response.album) {
@@ -127,7 +131,8 @@ export function useMobileUploadQueue() {
     }
   }, [isUploading, uploadOne]);
 
-  const startUpload = useCallback((albumTarget: AlbumTarget) => {
+  const startUpload = useCallback((albumTarget: AlbumTarget, locationData?: LocationData) => {
+    locationDataRef.current = locationData;
     const pendingItems = items.filter((item) => item.status === 'pending');
     return runQueue(pendingItems, albumTarget);
   }, [items, runQueue]);
