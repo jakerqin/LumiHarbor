@@ -40,6 +40,13 @@ class AlbumService:
             raise ValueError(f"封面素材不存在或已删除: {cover_asset_id}")
 
     @staticmethod
+    def _clamp_cover_position(value: Optional[float], default: float = 50.0) -> float:
+        """封面焦点限制在 0–100"""
+        if value is None:
+            return default
+        return max(0.0, min(100.0, float(value)))
+
+    @staticmethod
     def create_album(
         db: Session,
         album_data: schema.AlbumCreate,
@@ -74,6 +81,8 @@ class AlbumService:
             start_time=start_dt,
             end_time=end_dt,
             cover_asset_id=album_data.cover_asset_id,
+            cover_position_x=AlbumService._clamp_cover_position(album_data.cover_position_x),
+            cover_position_y=AlbumService._clamp_cover_position(album_data.cover_position_y),
         )
         db.add(album)
         db.commit()
@@ -260,6 +269,14 @@ class AlbumService:
 
         if "cover_asset_id" in update_data:
             AlbumService._validate_cover_asset(db, update_data["cover_asset_id"])
+        if "cover_position_x" in update_data:
+            update_data["cover_position_x"] = AlbumService._clamp_cover_position(
+                update_data["cover_position_x"]
+            )
+        if "cover_position_y" in update_data:
+            update_data["cover_position_y"] = AlbumService._clamp_cover_position(
+                update_data["cover_position_y"]
+            )
 
         start_dt = update_data.get("start_time", album.start_time)
         end_dt = update_data.get("end_time", album.end_time)

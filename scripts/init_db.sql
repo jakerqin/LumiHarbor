@@ -150,6 +150,8 @@ CREATE TABLE IF NOT EXISTS albums (
 
     -- 封面设置
     cover_asset_id BIGINT COMMENT '封面素材ID（自动选择或手动指定）',
+    cover_position_x FLOAT NOT NULL DEFAULT 50 COMMENT '封面水平焦点百分比 0-100',
+    cover_position_y FLOAT NOT NULL DEFAULT 50 COMMENT '封面垂直焦点百分比 0-100',
 
     -- 权限控制
     visibility VARCHAR(20) DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',

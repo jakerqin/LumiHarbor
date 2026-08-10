@@ -99,6 +99,9 @@ export function AlbumCard({ album, onClick, onEdit, onDelete, disableEntryAnimat
           src={album.coverUrl}
           alt={album.name}
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          style={{
+            objectPosition: `${album.coverPositionX ?? 50}% ${album.coverPositionY ?? 50}%`,
+          }}
         />
 
         {/* 右上角标识区 */}

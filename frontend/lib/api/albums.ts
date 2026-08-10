@@ -8,6 +8,11 @@ export interface Album {
   coverUrl: string;
   coverPreviewUrl?: string;
   coverOriginalUrl?: string;
+  coverAssetId?: number | null;
+  /** 封面水平焦点 0–100，对应 CSS object-position */
+  coverPositionX: number;
+  /** 封面垂直焦点 0–100 */
+  coverPositionY: number;
   assetCount: number;
   createdAt: string;
   startTime?: string;
@@ -32,6 +37,8 @@ interface BackendAlbum {
   start_time: string | null;
   end_time: string | null;
   cover_asset_id: number | null;
+  cover_position_x?: number | null;
+  cover_position_y?: number | null;
   visibility: string;
   created_by: number;
   created_at: string;
@@ -58,6 +65,9 @@ function toAlbum(dto: BackendAlbum): Album {
     coverUrl: dto.cover_thumbnail_url || '/icon.svg',
     coverPreviewUrl: dto.cover_preview_url ?? undefined,
     coverOriginalUrl: dto.cover_original_url ?? undefined,
+    coverAssetId: dto.cover_asset_id,
+    coverPositionX: dto.cover_position_x ?? 50,
+    coverPositionY: dto.cover_position_y ?? 50,
     assetCount: dto.asset_count ?? 0,
     createdAt: dto.created_at,
     startTime: dto.start_time ?? undefined,
@@ -116,6 +126,8 @@ export const albumsApi = {
     start_time?: string;
     end_time?: string;
     cover_asset_id?: number;
+    cover_position_x?: number;
+    cover_position_y?: number;
   }): Promise<Album> => {
     const response = await apiClient.post<BackendAlbum>('/albums', {
       name: data.name,
@@ -123,6 +135,8 @@ export const albumsApi = {
       start_time: data.start_time || null,
       end_time: data.end_time || null,
       cover_asset_id: data.cover_asset_id || null,
+      cover_position_x: data.cover_position_x ?? 50,
+      cover_position_y: data.cover_position_y ?? 50,
       visibility: 'general',
     });
     return toAlbum(response.data);
@@ -136,7 +150,9 @@ export const albumsApi = {
       description?: string;
       start_time?: string;
       end_time?: string;
-      cover_asset_id?: number;
+      cover_asset_id?: number | null;
+      cover_position_x?: number;
+      cover_position_y?: number;
     }
   ): Promise<Album> => {
     const response = await apiClient.put<BackendAlbum>(`/albums/${id}`, {
@@ -144,7 +160,9 @@ export const albumsApi = {
       description: data.description,
       start_time: data.start_time || null,
       end_time: data.end_time || null,
-      cover_asset_id: data.cover_asset_id || null,
+      cover_asset_id: data.cover_asset_id ?? null,
+      cover_position_x: data.cover_position_x,
+      cover_position_y: data.cover_position_y,
     });
     return toAlbum(response.data);
   },

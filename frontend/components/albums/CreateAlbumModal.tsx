@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { X, Calendar, Image as ImageIcon } from 'lucide-react';
 import { AssetPickerModal } from '@/components/common/AssetPickerModal';
 import { SingleDatePicker, type ActiveDatePicker } from '@/components/common/SingleDatePicker';
+import { CoverFocalEditor } from '@/components/albums/CoverFocalEditor';
 import type { Asset } from '@/lib/api/types';
 import type { Album } from '@/lib/api/albums';
 import { format } from 'date-fns';
@@ -23,7 +24,9 @@ export interface CreateAlbumData {
   description: string;
   start_time?: string;
   end_time?: string;
-  cover_asset_id?: number;
+  cover_asset_id?: number | null;
+  cover_position_x?: number;
+  cover_position_y?: number;
 }
 
 function formatDate(date?: Date): string | undefined {
@@ -38,6 +41,8 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [activePicker, setActivePicker] = useState<ActiveDatePicker>(null);
   const [coverAsset, setCoverAsset] = useState<Asset | null>(null);
+  const [coverPositionX, setCoverPositionX] = useState(50);
+  const [coverPositionY, setCoverPositionY] = useState(50);
   const [assetPickerOpen, setAssetPickerOpen] = useState(false);
 
   // 编辑模式下回显数据
@@ -47,11 +52,12 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
       setDescription(initialData.description || '');
       setStartDate(initialData.startTime ? new Date(initialData.startTime) : undefined);
       setEndDate(initialData.endTime ? new Date(initialData.endTime) : undefined);
+      setCoverPositionX(initialData.coverPositionX ?? 50);
+      setCoverPositionY(initialData.coverPositionY ?? 50);
 
-      // 封面回显：如果有 coverUrl，创建一个临时 Asset 对象
-      if (initialData.coverUrl) {
+      if (initialData.coverUrl && initialData.coverUrl !== '/icon.svg') {
         setCoverAsset({
-          id: 0, // 临时 ID，后端会使用 cover_asset_id
+          id: initialData.coverAssetId ?? 0,
           thumbnail_url: initialData.coverUrl,
           preview_url: initialData.coverPreviewUrl,
           original_url: initialData.coverOriginalUrl,
@@ -61,12 +67,13 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
         setCoverAsset(null);
       }
     } else if (mode === 'create' && open) {
-      // 创建模式下重置表单
       setName('');
       setDescription('');
       setStartDate(undefined);
       setEndDate(undefined);
       setCoverAsset(null);
+      setCoverPositionX(50);
+      setCoverPositionY(50);
     }
   }, [mode, initialData, open]);
 
@@ -78,12 +85,15 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
       return;
     }
 
+    const coverId = coverAsset?.id && coverAsset.id > 0 ? coverAsset.id : null;
     onSubmit({
       name: name.trim(),
       description: description.trim(),
       start_time: formatDate(startDate),
       end_time: formatDate(endDate),
-      cover_asset_id: coverAsset?.id,
+      cover_asset_id: coverId,
+      cover_position_x: coverPositionX,
+      cover_position_y: coverPositionY,
     });
   };
 
@@ -95,11 +105,15 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
     setEndDate(undefined);
     setActivePicker(null);
     setCoverAsset(null);
+    setCoverPositionX(50);
+    setCoverPositionY(50);
     onClose();
   };
 
   const handleSelectCover = (asset: Asset) => {
     setCoverAsset(asset);
+    setCoverPositionX(50);
+    setCoverPositionY(50);
   };
 
   if (!open) return null;
@@ -207,25 +221,40 @@ export function CreateAlbumModal({ open, mode = 'create', initialData, onClose, 
                 封面素材
               </label>
               {coverAsset ? (
-                <div className="relative group">
-                  <img
-                    src={coverAsset.thumbnail_url || '/icon.svg'}
+                <div className="space-y-2">
+                  <CoverFocalEditor
+                    src={
+                      coverAsset.preview_url ||
+                      coverAsset.original_url ||
+                      coverAsset.thumbnail_url ||
+                      '/icon.svg'
+                    }
                     alt={coverAsset.original_path || '封面'}
-                    className="w-full h-48 object-cover rounded-xl"
+                    positionX={coverPositionX}
+                    positionY={coverPositionY}
+                    onChange={(x, y) => {
+                      setCoverPositionX(x);
+                      setCoverPositionY(y);
+                    }}
+                    disabled={loading}
                   />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center gap-2">
+                  <div className="flex items-center gap-2">
                     <button
                       type="button"
                       onClick={() => setAssetPickerOpen(true)}
-                      className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors"
+                      className="rounded-lg bg-white/10 px-3 py-1.5 text-sm transition-colors hover:bg-white/20"
                       disabled={loading}
                     >
                       更换
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCoverAsset(null)}
-                      className="px-4 py-2 bg-red-500/20 hover:bg-red-500/30 rounded-lg text-sm transition-colors"
+                      onClick={() => {
+                        setCoverAsset(null);
+                        setCoverPositionX(50);
+                        setCoverPositionY(50);
+                      }}
+                      className="rounded-lg bg-red-500/20 px-3 py-1.5 text-sm transition-colors hover:bg-red-500/30"
                       disabled={loading}
                     >
                       移除

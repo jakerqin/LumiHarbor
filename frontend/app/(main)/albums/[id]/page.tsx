@@ -77,6 +77,8 @@ export default function AlbumDetailPage() {
         start_time: data.start_time,
         end_time: data.end_time,
         cover_asset_id: data.cover_asset_id,
+        cover_position_x: data.cover_position_x,
+        cover_position_y: data.cover_position_y,
       });
     },
     onSuccess: () => {
@@ -251,7 +253,10 @@ export default function AlbumDetailPage() {
         <img
           src={album.coverPreviewUrl || album.coverOriginalUrl || album.coverUrl}
           alt={album.name}
-          className="w-full h-full object-cover"
+          className="h-full w-full object-cover"
+          style={{
+            objectPosition: `${album.coverPositionX ?? 50}% ${album.coverPositionY ?? 50}%`,
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
 

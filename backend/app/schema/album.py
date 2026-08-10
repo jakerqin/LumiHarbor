@@ -29,6 +29,8 @@ class AlbumCreate(BaseModel):
     start_time: Optional[str] = Field(None, description="相册开始时间（格式：YYYY-MM-DD）")
     end_time: Optional[str] = Field(None, description="相册结束时间（格式：YYYY-MM-DD）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID")
+    cover_position_x: Optional[float] = Field(50, ge=0, le=100, description="封面水平焦点 0-100")
+    cover_position_y: Optional[float] = Field(50, ge=0, le=100, description="封面垂直焦点 0-100")
     visibility: str = Field(default="general", description="可见性: general(公共), private(私有)")
 
 
@@ -48,6 +50,8 @@ class AlbumUpdate(BaseModel):
     start_time: Optional[str] = Field(None, description="相册开始时间（格式：YYYY-MM-DD）")
     end_time: Optional[str] = Field(None, description="相册结束时间（格式：YYYY-MM-DD）")
     cover_asset_id: Optional[int] = Field(None, description="封面素材ID（可为空表示移除封面）")
+    cover_position_x: Optional[float] = Field(None, ge=0, le=100, description="封面水平焦点 0-100")
+    cover_position_y: Optional[float] = Field(None, ge=0, le=100, description="封面垂直焦点 0-100")
     visibility: Optional[str] = Field(None, description="可见性: general(公共), private(私有)")
 
 
@@ -61,6 +65,8 @@ class AlbumOut(BaseModel):
         start_time: 相册开始时间
         end_time: 相册结束时间
         cover_asset_id: 封面素材ID
+        cover_position_x: 封面水平焦点
+        cover_position_y: 封面垂直焦点
         visibility: 可见性
         created_by: 创建者用户ID
         created_at: 创建时间
@@ -73,6 +79,8 @@ class AlbumOut(BaseModel):
     start_time: Optional[datetime]
     end_time: Optional[datetime]
     cover_asset_id: Optional[int]
+    cover_position_x: float = 50
+    cover_position_y: float = 50
     visibility: str
     created_by: int
     created_at: datetime

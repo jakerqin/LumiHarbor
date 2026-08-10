@@ -64,6 +64,8 @@ export function AlbumGrid({ filter = {}, onCreateClick }: AlbumGridProps) {
         start_time: data.updateData.start_time,
         end_time: data.updateData.end_time,
         cover_asset_id: data.updateData.cover_asset_id,
+        cover_position_x: data.updateData.cover_position_x,
+        cover_position_y: data.updateData.cover_position_y,
       });
     },
     onSuccess: () => {

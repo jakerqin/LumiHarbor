@@ -1,5 +1,5 @@
 """相册模型"""
-from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Text, Index, func
+from sqlalchemy import Column, String, DateTime, BIGINT, Boolean, Text, Float, Index, func
 from ..db import Base
 
 
@@ -13,6 +13,8 @@ class Album(Base):
         start_time: 相册开始时间（素材最早拍摄时间，自动维护）
         end_time: 相册结束时间（素材最晚拍摄时间，自动维护）
         cover_asset_id: 封面素材ID（自动选择或手动指定）
+        cover_position_x: 封面水平焦点百分比 0-100（object-position）
+        cover_position_y: 封面垂直焦点百分比 0-100（object-position）
         visibility: 可见性（general: 公共, private: 私有）
         created_by: 创建者用户ID
         created_at: 创建时间
@@ -34,6 +36,8 @@ class Album(Base):
 
     # 封面设置
     cover_asset_id = Column(BIGINT, nullable=True, index=True, comment='封面素材ID（自动选择或手动指定）')
+    cover_position_x = Column(Float, nullable=False, default=50.0, comment='封面水平焦点百分比 0-100')
+    cover_position_y = Column(Float, nullable=False, default=50.0, comment='封面垂直焦点百分比 0-100')
 
     # 权限控制
     visibility = Column(
