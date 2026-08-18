@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useDebouncedCallback } from 'use-debounce';
+import { useDebouncedCallback } from '@/lib/hooks/useDebouncedCallback';
 import { format, isValid, parseISO } from 'date-fns';
 import { FolderPlus, FolderOpen, Ban, Search, Calendar, type LucideIcon } from 'lucide-react';
 import { albumsApi, type Album } from '@/lib/api/albums';

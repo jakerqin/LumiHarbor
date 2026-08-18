@@ -12,9 +12,6 @@ class Settings(BaseSettings):
         PROJECT_NAME: 项目名称
         DATABASE_URL: 数据库连接 URL
         NAS_DATA_PATH: NAS 数据路径
-        SECRET_KEY: JWT 密钥
-        ALGORITHM: JWT 算法
-        ACCESS_TOKEN_EXPIRE_MINUTES: Token 过期时间（分钟）
         REDIS_HOST: Redis 主机地址
         REDIS_PORT: Redis 端口
         REDIS_DB: Redis 数据库编号
@@ -28,9 +25,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "mysql+pymysql://root:root@localhost:3306/lumiharbor?charset=utf8mb4"
     DB_TIMEZONE: str = "+08:00"  # 数据库会话时区，默认东八区
     NAS_DATA_PATH: str = "YOUR_NAS_PATH"
-    SECRET_KEY: str = "your-secret-key-change-me"
-    ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Redis 配置（用于异步任务队列）
     REDIS_HOST: str = "localhost"

@@ -13,7 +13,6 @@ import { CoverFocalEditor } from '@/components/albums/CoverFocalEditor';
 import { NoteBackButton } from '@/components/notes/NoteBackButton';
 import { NotePaperShell } from '@/components/notes/NotePaperShell';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
-import { jsonToMarkdown } from '@/lib/utils/jsonToMarkdown';
 
 function formatModifiedLabel(iso: string): string {
   const date = new Date(iso);
@@ -51,11 +50,7 @@ export default function NoteDetailPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (content: JSONContent) => {
-      const markdown = jsonToMarkdown(content);
-      return notesApi.updateNote(noteId, {
-        content,
-        content_markdown: markdown,
-      });
+      return notesApi.updateNote(noteId, { content });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['note', noteId] });

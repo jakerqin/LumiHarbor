@@ -6,13 +6,10 @@ cryptography
 pydantic
 pydantic-settings
 python-multipart
-python-jose[cryptography]
-passlib[bcrypt]
 pillow>=10.0.0,<13.0.0
 pillow-heif>=0.13.0
 smartcrop>=0.4.0
 imagehash
-python-magic
 exifread
 ffmpeg-python
 requests

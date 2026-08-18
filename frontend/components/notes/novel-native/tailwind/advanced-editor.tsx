@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useDebouncedCallback } from "use-debounce";
+import { useDebouncedCallback } from "@/lib/hooks/useDebouncedCallback";
 import {
   EditorCommand,
   EditorCommandEmpty,

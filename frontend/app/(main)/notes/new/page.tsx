@@ -16,14 +16,12 @@ export default function NewNotePage() {
     coverPositionX: number;
     coverPositionY: number;
     content: JSONContent;
-    contentMarkdown: string;
   }) => {
     try {
       if (noteId) {
         await notesApi.updateNote(noteId, {
           title: data.title || '无标题',
           content: data.content,
-          content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
           cover_position_x: data.coverPositionX,
           cover_position_y: data.coverPositionY,
@@ -32,7 +30,6 @@ export default function NewNotePage() {
         const note = await notesApi.createNote({
           title: data.title || '无标题',
           content: data.content,
-          content_markdown: data.contentMarkdown,
           cover_asset_id: data.coverAssetId,
           cover_position_x: data.coverPositionX,
           cover_position_y: data.coverPositionY,

@@ -121,12 +121,12 @@ slash / window.openAssetPicker(editor)
 
 ### 为什么未启用 MarkdownExtension？
 
-`novel@1.0.2` 未导出该扩展；用 `jsonToMarkdown` 在应用层生成副本，避免版本不兼容。
+`novel@1.0.2` 未导出该扩展；笔记主存 JSON，列表摘要由后端从 JSON 抽取。
 
 ## 依赖
 
 ```text
-novel, ai, @ai-sdk/openai, cmdk, Radix UI, lowlight/highlight.js, use-debounce
+novel, ai, @ai-sdk/openai, cmdk, Radix UI, lowlight/highlight.js
 → TailwindAdvancedEditor
 → notes pages / NoteEditor
 → /api/generate（仅 AI）

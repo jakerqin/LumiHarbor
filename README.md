@@ -25,9 +25,9 @@
 ### 🎨 前端界面 (已完成)
 
 #### 首页 - 垂直滚动三大区域
-*   **精选照片墙**：Bento Grid 3x3 不规则网格，支持图片/视频展示，Hover 动画效果
-*   **3D 足迹地图**：React Three Fiber 渲染的交互式地球，位置标记带脉冲动画
-*   **大事记时间轴**：按年份分组的垂直时间线，卡片 Hover 展开详情
+*   **精选照片墙**：Dome Gallery
+*   **足迹地图预览**：高德 2D，点进 `/map`
+*   **大事记时间轴**：按年份分组的垂直时间线
 
 #### 核心功能页面
 *   **素材库**：网格展示所有照片/视频，支持类型、地点、标签、排序筛选，分页浏览
@@ -71,13 +71,12 @@
 *   **缩略图**: WebP 格式
 
 ### 前端
-*   **框架**: Next.js 14 (App Router) + TypeScript
+*   **框架**: Next.js 16 (App Router) + TypeScript
 *   **样式**: Tailwind CSS + 自定义深色主题
-*   **图标**: Phosphor Icons (Duotone 风格)
+*   **图标**: lucide-react
 *   **字体**: Space Grotesk (英文) + Noto Sans SC (中文)
-*   **3D 渲染**: React Three Fiber + @react-three/drei
-*   **动画**: Framer Motion
-*   **状态管理**: TanStack Query (服务端) + Zustand (客户端)
+*   **动画**: GSAP
+*   **状态管理**: TanStack Query
 *   **HTTP 客户端**: Axios
 *   **日期处理**: date-fns
 

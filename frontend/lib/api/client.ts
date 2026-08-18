@@ -36,13 +36,6 @@ apiClient.interceptors.request.use(
   (config) => {
     // 每次请求按当前访问主机解析，避免局域网手机仍打 localhost
     config.baseURL = resolveApiBaseUrl();
-    if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('token');
-      if (token) {
-        config.headers = config.headers ?? {};
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
     // FormData 必须由浏览器自动带 multipart boundary，不能沿用默认 application/json
     if (typeof FormData !== 'undefined' && config.data instanceof FormData) {
       if (config.headers) {
@@ -79,10 +72,6 @@ apiClient.interceptors.response.use(
     return response;
   },
   (error) => {
-    if (error.response?.status === 401 && typeof window !== 'undefined') {
-      window.location.href = '/login';
-    }
-
     const payload = error.response?.data;
     if (isStandardApiResponse(payload)) {
       return Promise.reject(

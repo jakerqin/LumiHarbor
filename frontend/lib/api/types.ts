@@ -17,22 +17,6 @@ export interface Asset {
   location_poi: string | null;
 }
 
-export interface Location {
-  locationId: string;
-  latitude: number;
-  longitude: number;
-  name: string;
-  country: string;
-  assetCount: number;
-  firstVisit: string;
-  lastVisit: string;
-  coverAssets: Array<{
-    id: number;
-    thumbnailUrl: string;
-    type: string;
-  }>;
-}
-
 export interface TimelineNote {
   id: number;
   title: string;

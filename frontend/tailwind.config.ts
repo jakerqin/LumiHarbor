@@ -24,7 +24,7 @@ const config: Config = {
         "meta": ["0.8125rem", { lineHeight: "1.4", fontWeight: "400" }],
       },
       colors: {
-        // 方案 E：暖米金 + 同色相暖灰（见 /theme-lab）
+        // 暖米金 + 同色相暖灰
         border: "rgba(245, 240, 230, 0.12)",
         input: "rgba(245, 240, 230, 0.12)",
         ring: "#d4b483",

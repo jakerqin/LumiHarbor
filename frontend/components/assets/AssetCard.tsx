@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Asset } from '@/lib/api/types';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { motion, useMotionValue, useSpring } from 'motion/react';
+import { gsap } from 'gsap';
 import { assetsApi, type AssetsResponse } from '@/lib/api/assets';
 
 interface AssetCardProps {
@@ -18,10 +18,6 @@ interface AssetCardProps {
   disableHoverEffects?: boolean;
 }
 
-// 弹簧动画配置
-const springConfig = { damping: 30, stiffness: 100, mass: 2 };
-
-// 3D 倾斜幅度
 const ROTATE_AMPLITUDE = 14;
 
 export function AssetCard({
@@ -33,30 +29,34 @@ export function AssetCard({
   disableHoverEffects = false,
 }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
   const queryClient = useQueryClient();
   const [isFavorited, setIsFavorited] = useState(asset.is_favorited);
 
-  // Motion 状态管理
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-  const rotateX = useSpring(0, springConfig);
-  const rotateY = useSpring(0, springConfig);
-  const scale = useSpring(1, springConfig);
-  const overlayOpacity = useSpring(0, springConfig);
+  useEffect(() => {
+    if (disableEntryAnimation || !cardRef.current) return;
+    gsap.fromTo(
+      cardRef.current,
+      { opacity: 0, y: 20 },
+      { opacity: 1, y: 0, duration: 0.5, ease: 'power2.out' }
+    );
+  }, [disableEntryAnimation]);
 
   useEffect(() => {
     if (!disableHoverEffects) return;
-    scale.set(1);
-    overlayOpacity.set(0);
-    rotateX.set(0);
-    rotateY.set(0);
-  }, [disableHoverEffects, overlayOpacity, rotateX, rotateY, scale]);
+    if (innerRef.current) {
+      gsap.set(innerRef.current, { rotateX: 0, rotateY: 0, scale: 1 });
+    }
+    if (overlayRef.current) {
+      gsap.set(overlayRef.current, { opacity: 0 });
+    }
+  }, [disableHoverEffects]);
 
   useEffect(() => {
     setIsFavorited(asset.is_favorited);
   }, [asset.id, asset.is_favorited]);
 
-  // 收藏/取消收藏 mutation
   const favoriteMutation = useMutation({
     mutationFn: async (nextFavorited: boolean) => {
       if (nextFavorited) {
@@ -67,13 +67,9 @@ export function AssetCard({
     },
     onMutate: async (nextFavorited: boolean) => {
       const previousFavorited = isFavorited;
-
-      // 乐观更新：立即更新 UI
       setIsFavorited(nextFavorited);
       await queryClient.cancelQueries({ queryKey: ['assets'] });
-
       const previousQueriesData = queryClient.getQueriesData({ queryKey: ['assets'] });
-
       queryClient.setQueriesData<AssetsResponse>(
         { queryKey: ['assets'] },
         (old) => {
@@ -86,11 +82,9 @@ export function AssetCard({
           };
         }
       );
-
       return { previousFavorited, previousQueriesData };
     },
     onError: (_err, _variables, context) => {
-      // 失败回滚
       if (context?.previousQueriesData) {
         context.previousQueriesData.forEach(([queryKey, queryData]) => {
           queryClient.setQueryData(queryKey, queryData);
@@ -101,57 +95,51 @@ export function AssetCard({
       }
     },
     onSettled: () => {
-      // 刷新数据
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['featured-assets'] });
     },
   });
 
-  // 处理鼠标移动 - 3D 倾斜效果
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (disableHoverEffects) return;
-    if (!cardRef.current) return;
-
-    const rect = cardRef.current.getBoundingClientRect();
+    if (disableHoverEffects || !innerRef.current) return;
+    const rect = innerRef.current.getBoundingClientRect();
     const offsetX = e.clientX - rect.left - rect.width / 2;
     const offsetY = e.clientY - rect.top - rect.height / 2;
-
-    const rotationX = (offsetY / (rect.height / 2)) * -ROTATE_AMPLITUDE;
-    const rotationY = (offsetX / (rect.width / 2)) * ROTATE_AMPLITUDE;
-
-    rotateX.set(rotationX);
-    rotateY.set(rotationY);
-
-    x.set(e.clientX - rect.left);
-    y.set(e.clientY - rect.top);
+    gsap.to(innerRef.current, {
+      rotateX: (offsetY / (rect.height / 2)) * -ROTATE_AMPLITUDE,
+      rotateY: (offsetX / (rect.width / 2)) * ROTATE_AMPLITUDE,
+      scale: 1.05,
+      duration: 0.3,
+      overwrite: 'auto',
+    });
   };
 
-  // 处理鼠标进入
   const handleMouseEnter = () => {
     if (disableHoverEffects) return;
-    scale.set(1.05);
-    overlayOpacity.set(1);
+    if (overlayRef.current) {
+      gsap.to(overlayRef.current, { opacity: 1, duration: 0.25, overwrite: 'auto' });
+    }
   };
 
-  // 处理鼠标离开
   const handleMouseLeave = () => {
     if (disableHoverEffects) return;
-    scale.set(1);
-    overlayOpacity.set(0);
-    rotateX.set(0);
-    rotateY.set(0);
+    if (innerRef.current) {
+      gsap.to(innerRef.current, {
+        rotateX: 0,
+        rotateY: 0,
+        scale: 1,
+        duration: 0.4,
+        overwrite: 'auto',
+      });
+    }
+    if (overlayRef.current) {
+      gsap.to(overlayRef.current, { opacity: 0, duration: 0.25, overwrite: 'auto' });
+    }
   };
 
-  // 处理收藏点击（阻止冒泡）
   const handleFavoriteClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     favoriteMutation.mutate(!isFavorited);
-  };
-
-  // 处理卡片点击
-  const handleCardClick = () => {
-    if (!onClick) return;
-    onClick();
   };
 
   const assetTypeMeta = (() => {
@@ -166,11 +154,8 @@ export function AssetCard({
     }
   })();
 
-  // 获取缩略图 URL
   const getThumbnailUrl = () => {
-    if (asset.thumbnail_url) {
-      return asset.thumbnail_url;
-    }
+    if (asset.thumbnail_url) return asset.thumbnail_url;
     if (asset.thumbnail_path) {
       const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
       const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
@@ -179,10 +164,9 @@ export function AssetCard({
         : `/${asset.thumbnail_path}`;
       return `${normalizedBaseUrl}${normalizedPath}`;
     }
-    return '/icon.svg'; // 占位图
+    return '/icon.svg';
   };
 
-  // 获取地点显示文本
   const getLocationText = () => {
     if (asset.location_city && asset.location_poi) {
       return `${asset.location_city} · ${asset.location_poi}`;
@@ -191,36 +175,25 @@ export function AssetCard({
   };
 
   const locationText = getLocationText();
-
-  // 计算宽高比（用于确保容器高度正确）
-  const aspectRatio = typeof asset.aspect_ratio === 'number' && asset.aspect_ratio > 0
-    ? asset.aspect_ratio
-    : 1;
+  const aspectRatio =
+    typeof asset.aspect_ratio === 'number' && asset.aspect_ratio > 0 ? asset.aspect_ratio : 1;
 
   return (
-    <motion.div
+    <div
       ref={cardRef}
-      onClick={handleCardClick}
+      onClick={() => onClick?.()}
       onMouseMove={disableHoverEffects ? undefined : handleMouseMove}
       onMouseEnter={disableHoverEffects ? undefined : handleMouseEnter}
       onMouseLeave={disableHoverEffects ? undefined : handleMouseLeave}
       className="group cursor-pointer relative"
       style={{ perspective: '1000px' }}
-      initial={disableEntryAnimation ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: [0.4, 0, 0.2, 1] }}
     >
-      <motion.div
+      <div
+        ref={innerRef}
         className={`relative rounded-xl overflow-hidden bg-background-secondary ${
           isSelected ? 'ring-2 ring-primary/80' : ''
         }`}
-        style={{
-          rotateX,
-          rotateY,
-          scale,
-          transformStyle: 'preserve-3d',
-          aspectRatio: aspectRatio.toString(),
-        }}
+        style={{ transformStyle: 'preserve-3d', aspectRatio: aspectRatio.toString() }}
       >
         {showSelectionIndicator && (
           <div
@@ -238,34 +211,24 @@ export function AssetCard({
             </div>
           </div>
         )}
-        {/* 图片：填充容器 */}
-        <motion.img
+        <img
           src={getThumbnailUrl()}
           alt=""
-          className="w-full h-full object-cover transition-transform duration-300"
-          style={{
-            transform: 'translateZ(0)',
-          }}
+          className="w-full h-full object-cover"
+          style={{ transform: 'translateZ(0)' }}
         />
-
-        {/* Hover 信息覆盖层 */}
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none"
-          style={{
-            opacity: overlayOpacity,
-            transform: 'translateZ(0)',
-          }}
+        <div
+          ref={overlayRef}
+          className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/20 to-transparent pointer-events-none opacity-0"
+          style={{ transform: 'translateZ(0)' }}
         >
           <div className="absolute bottom-0 left-0 right-0 p-4 space-y-2">
-            {/* 地点 */}
             {locationText && (
               <div className="flex items-center gap-2 text-white">
                 <MapPin size={16} />
                 <span className="text-sm font-medium">{locationText}</span>
               </div>
             )}
-
-            {/* 日期 */}
             {asset.shot_at && (
               <div className="flex items-center gap-2 text-white/80">
                 <Calendar size={16} />
@@ -275,10 +238,9 @@ export function AssetCard({
               </div>
             )}
           </div>
-        </motion.div>
-      </motion.div>
+        </div>
+      </div>
 
-      {/* 右上角：类型图标 + 收藏按钮（固定在外层容器，不参与卡片 3D 变换） */}
       <div className="absolute top-3 right-3 flex items-center gap-2 cursor-default z-10">
         <div
           className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
@@ -286,7 +248,6 @@ export function AssetCard({
         >
           <assetTypeMeta.Icon size={14} className={assetTypeMeta.className} />
         </div>
-
         <button
           type="button"
           onClick={handleFavoriteClick}
@@ -308,6 +269,6 @@ export function AssetCard({
           />
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 }

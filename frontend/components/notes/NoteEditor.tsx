@@ -6,7 +6,6 @@ import { NoteCoverImage } from './NoteCoverImage';
 import { NotePaperShell } from './NotePaperShell';
 import TailwindAdvancedEditor from './novel-native/tailwind/advanced-editor';
 import { AssetPickerModal } from '@/components/common/AssetPickerModal';
-import { jsonToMarkdown } from '@/lib/utils/jsonToMarkdown';
 import type { Asset } from '@/lib/api/types';
 import type { JSONContent } from 'novel';
 
@@ -22,7 +21,6 @@ interface NoteEditorProps {
     coverPositionX: number;
     coverPositionY: number;
     content: JSONContent;
-    contentMarkdown: string;
   }) => void | Promise<void>;
   autoSave?: boolean;
   onSavingChange?: (isSaving: boolean) => void;
@@ -94,7 +92,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
     try {
       const latest = latestRef.current;
       const currentContent = latest.content || { type: 'doc', content: [] };
-      const markdown = jsonToMarkdown(currentContent);
 
       await onSave({
         title: latest.title,
@@ -102,7 +99,6 @@ export const NoteEditor = forwardRef<NoteEditorRef, NoteEditorProps>(({
         coverPositionX: latest.coverPositionX,
         coverPositionY: latest.coverPositionY,
         content: currentContent,
-        contentMarkdown: markdown,
       });
 
       onLastSavedChange?.(new Date());

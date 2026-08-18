@@ -67,12 +67,12 @@
 | 过时说法 | 现状 |
 |---|---|
 | 首页 Bento 3×3 | 已换成 Dome Gallery |
-| Spotlight 全局搜索 | UI 已移除；`searchApi` 仍为 Mock 且无页面引用 |
-| Notes = Markdown + `asset://` 主链路 | 主链路是 Novel JSON；`asset://` / Streamdown 属遗留 |
+| Spotlight 全局搜索 | UI 与 `searchApi` Mock 均已移除 |
+| 首页内嵌 Mock 地球 | 首页为真实足迹预览 + 链到 `/map` |
+| Notes = Markdown + `asset://` 主链路 | 主链路是 Novel JSON |
 | `/notes/novel` 独立实验页 | 路由已不存在，Novel 接在主笔记上 |
 | 地图 API 未实现 | `/map` 与后端 map 路由已接通 |
-| 首页内嵌 Mock 地球 | 首页为真实足迹预览 + 链到 `/map`；`getLocations` Mock 若残留勿当现网 |
-| Zustand 在广泛使用 | 依赖在，但业务代码基本未用 |
+| Zustand 在广泛使用 | 已卸依赖；服务端状态用 TanStack Query |
 
 ---
 
@@ -240,12 +240,9 @@ npm run build                    # 含类型检查（webpack）
 
 - 无完整认证；`user_id=1` 为开发约定
 - `GET /home/featured` 响应壳与其它接口不一致
-- 首页地点 / `searchApi` 仍 Mock；Spotlight UI 已下线
-- Markdown `asset://` 主笔记未使用，代码仍保留
 - 部分筛选参数前后端声明与实现不一致（见各 design「已知限制」）
-- Zustand、部分未引用组件可能是死依赖/死代码
 
 ---
 
-**最后更新**：2026-08-05  
+**最后更新**：2026-08-13  
 **设计文档入口**：`backend/docs/design/00-架构总览.md` · `frontend/docs/design/00-架构总览.md`

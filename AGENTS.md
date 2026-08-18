@@ -87,13 +87,12 @@
 ### 3.5 笔记
 
 - 主存 **Tiptap / Novel JSON**，不是 Markdown 主链路。
-- `asset://` + Streamdown 为遗留；主笔记流不要按旧 Markdown 协议改。
 - 无独立 `/notes/novel` 页。
 
 ### 3.6 前端状态与列表
 
 - 服务端状态：TanStack Query；全局 `staleTime=0`（见 `app/providers.tsx`）。长缓存在单个 query 上覆写并说明原因。
-- Zustand：依赖在，业务基本未用；不要无故引入全局 store。
+- 不要无故引入全局 store。
 - 素材瀑布流：复用 `AssetMasonry` / `AssetGrid`。
 - 标签展示名：用 `useTagDefinitions` 的 `tag_name`，勿硬编码 `tag_key → 中文`。
 

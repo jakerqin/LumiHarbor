@@ -1,7 +1,7 @@
 ---
 title: 类型与 API 层
 nav_title: 类型与API层
-description: Axios 客户端、共享类型，以及各域 API 的真实接线 / Mock 状态。
+description: Axios 客户端、共享类型，以及各域 API 的接线状态。
 order: 4
 ---
 
@@ -21,11 +21,10 @@ order: 4
 | [`assets.ts`](../../lib/api/assets.ts) | 素材列表/详情/标签/相似/收藏/批量删/地点 |
 | [`albums.ts`](../../lib/api/albums.ts) | 相册 CRUD、素材关联、文件夹导入（走 ingestion） |
 | [`notes.ts`](../../lib/api/notes.ts) | 笔记 CRUD（Tiptap JSON） |
-| [`home.ts`](../../lib/api/home.ts) | 精选、时间轴、**首页地点 Mock** |
+| [`home.ts`](../../lib/api/home.ts) | 精选、时间轴 |
 | [`map.ts`](../../lib/api/map.ts) | 足迹列表/详情/统计 |
 | [`tags.ts`](../../lib/api/tags.ts) | 标签定义元数据 |
 | [`ingestion.ts`](../../lib/api/ingestion.ts) | 批量上传 FormData |
-| [`search.ts`](../../lib/api/search.ts) | **全局搜索 Mock**（无 UI 消费） |
 
 ## 客户端行为摘要
 
@@ -36,7 +35,6 @@ apiClient.get/post/...
     │
     ├─ baseURL = NEXT_PUBLIC_API_URL || http://localhost:8000
     ├─ timeout = 10000
-    ├─ (+ Authorization Bearer 若有 token)
     ▼
 response interceptor
     ├─ 标准壳 code=0 → data = result
@@ -53,11 +51,9 @@ response interceptor
 | `notesApi` | `/notes*` | **真实**（JSON content） |
 | `homeApi.getFeatured` | `/home/featured` | **真实**（响应无 ApiResponse 壳） |
 | `homeApi.getTimeline` | `/home/timeline` | **真实** |
-| `homeApi.getLocations` | — | **Mock**（首页 `MapView3D` 仍用） |
 | `mapApi` | `/map/footprints*`、`/map/statistics` | **真实**（`/map` 页） |
 | `tagsApi` | `/tags/definitions` | **真实** |
 | `ingestionApi` | `/ingestion/upload/batch` | **真实** |
-| `searchApi` | — | **Mock**；Spotlight UI 已移除，**无页面引用** |
 | `assetsApi.getTags` | `/assets/tags` | 代码保留 + TODO；筛选 UI 未使用 |
 
 ## 适配模式
@@ -101,7 +97,5 @@ components / pages
 
 ## 已知限制
 
-- `searchApi` / `homeApi.getLocations` 仍是 Mock，容易误导「搜索/首页地球已接真数据」。
 - `assetsApi.getTags` 指向的后端列表接口状态不明，UI 未接线。
 - 上传超时受 Axios `timeout: 10000` 约束，大文件批量可能不够。
-- `types.ts` 与部分 API 文件内联类型有重叠（如 search 里又定义了 Album/Note），清理时注意别误删在用类型。

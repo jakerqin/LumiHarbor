@@ -4,15 +4,12 @@
 
 ## 技术栈
 
-- **框架**: Next.js 14 (App Router) + TypeScript
+- **框架**: Next.js 16 (App Router) + TypeScript
 - **样式**: Tailwind CSS + 自定义深色主题
 - **图标**: lucide-react
 - **字体**: Space Grotesk (英文标题) + Noto Sans SC (中文正文)
-- **3D 渲染**: React Three Fiber + @react-three/drei
-- **动画**: Framer Motion
-- **状态管理**:
-  - TanStack Query (服务端状态)
-  - Zustand (客户端状态)
+- **动画**: GSAP
+- **状态管理**: TanStack Query
 - **HTTP 客户端**: Axios
 
 ## 项目结构
@@ -30,18 +27,16 @@ frontend/
 │   ├── layout/
 │   │   └── DockNavigation.tsx    # 右侧 Dock 导航栏
 │   └── home/
-│       ├── BentoCard.tsx         # Bento 网格卡片
-│       ├── BentoGrid.tsx         # 精选照片墙（3x3 网格）
-│       ├── LocationMarker.tsx    # 3D 地图位置标记
-│       ├── Globe3D.tsx           # 3D 地球
-│       ├── MapView3D.tsx         # 3D 地图视图容器
-│       ├── TimelineEvent.tsx     # 时间轴事件卡片
-│       └── Timeline.tsx          # 大事记时间轴
+│       ├── DomeGallery.tsx
+│       ├── DomeGalleryContainer.tsx
+│       ├── HomeFootprintPreview.tsx
+│       ├── TimelineEvent.tsx
+│       └── Timeline.tsx
 ├── lib/
 │   ├── api/
 │   │   ├── types.ts         # TypeScript 类型定义
 │   │   ├── client.ts        # Axios 实例
-│   │   └── home.ts          # 首页 API（当前使用 Mock 数据）
+│   │   └── home.ts          # 首页 API
 │   └── utils/
 │       └── cn.ts            # Tailwind 类名合并工具
 ├── package.json
@@ -87,12 +82,8 @@ npm run dev
    - Hover 效果：图片缩放 + 渐变遮罩显示元数据
    - 支持图片和视频类型标识
 
-2. **3D 足迹地图**
-   - React Three Fiber 渲染的 3D 地球
-   - 位置标记点带脉冲动画
-   - 自动旋转 + 用户交互控制
-   - 左侧统计面板显示足迹数据
-   - 右侧操作提示
+2. **足迹地图预览**
+   - 高德 2D 预览，进入 `/map` 看完整足迹
 
 3. **大事记时间轴**
    - 按年份分组显示
@@ -122,20 +113,11 @@ npm run dev
 - 字体配置（Space Grotesk + Noto Sans SC）
 - 深色主题配置
 - 右侧 Dock 导航栏
-- 精选照片墙（Bento Grid）
-- 3D 足迹地图（React Three Fiber）
+- 精选照片墙（Dome Gallery）
+- 足迹地图预览（高德 2D）
 - 大事记时间轴
-- Mock 数据层（API 接口待对接）
 
-### 🚧 待实现
-
-- Spotlight 全局搜索组件
-- 素材库页面
-- 相册页面
-- 笔记页面
-- 标签页面
-- 设置页面
-- 后端 API 对接（替换 Mock 数据）
+功能与接线以 [`docs/design`](./docs/design/00-架构总览.md) 为准。
 
 ## 后端 API 接口要求
 
