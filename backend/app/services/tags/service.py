@@ -1,9 +1,10 @@
 """标签业务逻辑层"""
 from sqlalchemy.orm import Session
-from typing import Dict
+from typing import Dict, Optional
 from ... import model
 from ...tools.utils import get_logger
 from ..metadata_dictionary import MetadataDictionaryService
+from ..templates.service import TemplateService
 
 logger = get_logger(__name__)
 
@@ -28,14 +29,73 @@ class TagService:
         Returns:
             标签键名集合 set{'device_make', 'gps_latitude', ...}
         """
+        ingest = TemplateService.resolve_template(db, 'ingest', template_type)
+        if ingest:
+            fields = TemplateService.list_fields(db, ingest.id)
+            return {f.field_key for f in fields if f.field_source == 'tag'}
+
         template_tags = db.query(
             model.AssetTemplateTag.tag_key
         ).filter(
             model.AssetTemplateTag.template_type == template_type,
             model.AssetTemplateTag.is_deleted == False
         ).all()
-
         return {tag.tag_key for tag in template_tags}
+
+    @staticmethod
+    def _editable_tag_keys(db: Session, asset_type: str) -> set:
+        detail = TemplateService.resolve_template(db, 'detail', asset_type)
+        if not detail:
+            return set()
+        fields = TemplateService.list_fields(db, detail.id)
+        return {f.field_key for f in fields if f.field_source == 'tag'}
+
+    @staticmethod
+    def upsert_user_tags(
+        db: Session,
+        asset_id: int,
+        asset_type: str,
+        tag_data: Dict[str, Optional[str]],
+    ) -> Dict[str, Optional[str]]:
+        """覆盖写入用户语义标签（系统标签拒绝）。"""
+        if not tag_data:
+            return {}
+        allowed = TagService._editable_tag_keys(db, asset_type)
+        defs = db.query(model.TagDefinition).filter(
+            model.TagDefinition.tag_key.in_(list(tag_data.keys())),
+            model.TagDefinition.is_deleted == False,
+        ).all()
+        def_map = {row.tag_key: row for row in defs}
+        TagService._write_user_tag_rows(db, asset_id, tag_data, allowed, def_map)
+        db.commit()
+        return tag_data
+
+    @staticmethod
+    def _write_user_tag_rows(db, asset_id, tag_data, allowed, def_map) -> None:
+        from fastapi import HTTPException
+        for tag_key, tag_value in tag_data.items():
+            definition = def_map.get(tag_key)
+            if not definition or definition.source != 'user':
+                raise HTTPException(status_code=400, detail=f"标签不可编辑: {tag_key}")
+            if allowed and tag_key not in allowed:
+                raise HTTPException(status_code=400, detail=f"标签未挂到详情模板: {tag_key}")
+            TagService._upsert_one(db, asset_id, tag_key, tag_value)
+
+    @staticmethod
+    def _upsert_one(db: Session, asset_id: int, tag_key: str, tag_value: Optional[str]) -> None:
+        row = db.query(model.AssetTag).filter(
+            model.AssetTag.asset_id == asset_id,
+            model.AssetTag.tag_key == tag_key,
+        ).first()
+        if tag_value is None or str(tag_value).strip() == '':
+            if row:
+                row.is_deleted = True
+            return
+        if row:
+            row.tag_value = tag_value
+            row.is_deleted = False
+            return
+        db.add(model.AssetTag(asset_id=asset_id, tag_key=tag_key, tag_value=tag_value))
 
     @staticmethod
     def batch_save_asset_tags(

@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { AssetsFilter } from '@/lib/api/assets';
 import { DateRangePicker } from '@/components/common/DateRangePicker';
+import type { TemplateField } from '@/lib/api/templates';
 
 // ============================================================
 // 类型定义
@@ -18,6 +19,7 @@ import { DateRangePicker } from '@/components/common/DateRangePicker';
 interface AssetFilterBarProps {
   filter: AssetsFilter;
   locations: string[];
+  fields?: TemplateField[];
   onChange: (filter: AssetsFilter) => void;
 }
 
@@ -40,6 +42,12 @@ function normalizeFilter(filter: AssetsFilter): AssetsFilter {
     }
   }
   if (!next.is_favorited) delete next.is_favorited;
+  if (next.tag_filters?.length) {
+    next.tag_filters = next.tag_filters.filter((item) => item.value?.trim());
+    if (!next.tag_filters.length) delete next.tag_filters;
+  } else {
+    delete next.tag_filters;
+  }
   return next;
 }
 
@@ -169,7 +177,7 @@ function LocationFilterPanel({ locations, onSelect, onClose }: LocationFilterPan
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-2 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50 min-w-[240px] overflow-hidden"
+      className="absolute left-0 top-full z-50 mt-2 min-w-[240px] overflow-hidden rounded-2xl border border-white/10 bg-background-secondary shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
     >
       {/* 搜索框 */}
       <div className="p-3 border-b border-white/5">
@@ -222,16 +230,26 @@ function LocationFilterPanel({ locations, onSelect, onClose }: LocationFilterPan
 // 主组件
 // ============================================================
 
-export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarProps) {
+export function AssetFilterBar({ filter, locations, fields, onChange }: AssetFilterBarProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [activePanel, setActivePanel] = useState<FilterType | null>(null);
   const [filterOrder, setFilterOrder] = useState<FilterType[]>([]);
+
+  const extraTagFields = (fields ?? []).filter(
+    (f) => f.field_source === 'tag' && f.field_key !== 'location_poi'
+  );
+  const showDate = !fields?.length || fields.some((f) => f.field_source === 'asset' && f.field_key === 'shot_at');
+  const showLocation = !fields?.length || fields.some((f) => f.field_key === 'location_poi');
+  const showFavorite = !fields?.length || fields.some((f) => f.field_key === 'is_favorited');
 
   // 判断各筛选是否激活
   const hasDateFilter = Boolean(filter.shot_at_start || filter.shot_at_end);
   const hasLocationFilter = Boolean(filter.location_poi);
   const hasFavoriteFilter = Boolean(filter.is_favorited);
-  const hasAnyFilter = hasDateFilter || hasLocationFilter || hasFavoriteFilter;
+  const extraActive = extraTagFields.filter((f) =>
+    (filter.tag_filters ?? []).some((item) => item.field_key === f.field_key)
+  );
+  const hasAnyFilter = hasDateFilter || hasLocationFilter || hasFavoriteFilter || extraActive.length > 0;
 
   // 初始化筛选顺序（仅在组件挂载时执行一次）
   useEffect(() => {
@@ -343,6 +361,22 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
     <div className="relative mb-6 flex flex-wrap items-center gap-2">
       {/* 已激活的筛选 Chips - 按添加顺序显示 */}
       {filterOrder.map(type => renderFilterChip(type))}
+      {extraActive.map((field) => {
+        const current = (filter.tag_filters ?? []).find((item) => item.field_key === field.field_key);
+        return (
+          <FilterChip
+            key={field.field_key}
+            icon={<Plus size={14} />}
+            label={`${field.tag_name || field.field_key}: ${current?.value}`}
+            onRemove={() =>
+              updateFilter({
+                ...filter,
+                tag_filters: (filter.tag_filters ?? []).filter((item) => item.field_key !== field.field_key),
+              })
+            }
+          />
+        );
+      })}
 
       {/* 添加筛选按钮 */}
       <div className="relative">
@@ -361,7 +395,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
         >
           <div className="p-2 space-y-1">
             {/* 时间筛选选项 */}
-            {!hasDateFilter && (
+            {showDate && !hasDateFilter && (
               <button
                 type="button"
                 onClick={() => openPanel('date')}
@@ -372,7 +406,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
               </button>
             )}
             {/* 地点筛选选项 */}
-            {!hasLocationFilter && (
+            {showLocation && !hasLocationFilter && (
               <button
                 type="button"
                 onClick={() => openPanel('location')}
@@ -383,7 +417,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
               </button>
             )}
             {/* 收藏筛选选项 */}
-            {!hasFavoriteFilter && (
+            {showFavorite && !hasFavoriteFilter && (
               <button
                 type="button"
                 onClick={() => {
@@ -397,7 +431,57 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
               </button>
             )}
             {/* 所有筛选都已激活时的提示 */}
-            {hasDateFilter && hasLocationFilter && hasFavoriteFilter && (
+            {extraTagFields
+              .filter((field) => !extraActive.some((a) => a.field_key === field.field_key))
+              .map((field) => {
+                const options = readFieldOptions(field);
+                return (
+                  <div key={field.field_key} className="px-2 py-1">
+                    {options.length ? (
+                      <select
+                        className="w-full px-3 py-2 rounded-lg text-sm bg-white/5"
+                        defaultValue=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          updateFilter({
+                            ...filter,
+                            tag_filters: [
+                              ...(filter.tag_filters ?? []).filter((item) => item.field_key !== field.field_key),
+                              { field_source: 'tag', field_key: field.field_key, value: e.target.value },
+                            ],
+                          });
+                          setMenuOpen(false);
+                        }}
+                      >
+                        <option value="">{field.tag_name || field.field_key}</option>
+                        {options.map((opt) => (
+                          <option key={opt} value={opt}>{opt}</option>
+                        ))}
+                      </select>
+                    ) : (
+                      <button
+                        type="button"
+                        className="w-full text-left px-3 py-2 rounded-lg text-sm hover:bg-white/5"
+                        onClick={() => {
+                          const value = window.prompt(`筛选 ${field.tag_name || field.field_key}`);
+                          if (!value) return;
+                          updateFilter({
+                            ...filter,
+                            tag_filters: [
+                              ...(filter.tag_filters ?? []).filter((item) => item.field_key !== field.field_key),
+                              { field_source: 'tag', field_key: field.field_key, value },
+                            ],
+                          });
+                          setMenuOpen(false);
+                        }}
+                      >
+                        {field.tag_name || field.field_key}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            {showDate && showLocation && showFavorite && hasDateFilter && hasLocationFilter && hasFavoriteFilter && extraActive.length === extraTagFields.length && (
               <div className="px-3 py-2 text-sm text-foreground-secondary">
                 所有筛选条件已添加
               </div>
@@ -406,7 +490,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
         </Dropdown>
 
         {/* 在「添加筛选」按钮下方渲染面板（仅当对应筛选未激活时） */}
-        {activePanel === 'date' && !hasDateFilter && (
+        {activePanel === 'date' && !hasDateFilter && showDate && (
           <DateRangePicker
             startDate={filter.shot_at_start}
             endDate={filter.shot_at_end}
@@ -417,7 +501,7 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
             onClose={closePanel}
           />
         )}
-        {activePanel === 'location' && !hasLocationFilter && (
+        {activePanel === 'location' && !hasLocationFilter && showLocation && (
           <LocationFilterPanel
             locations={locations}
             onSelect={(loc) => {
@@ -441,4 +525,11 @@ export function AssetFilterBar({ filter, locations, onChange }: AssetFilterBarPr
       )}
     </div>
   );
+}
+
+function readFieldOptions(field: TemplateField): string[] {
+  const extra = field.tag_extra_info || field.extra_info || {};
+  const options = extra.options;
+  if (!Array.isArray(options)) return [];
+  return options.map((opt) => (typeof opt === 'string' ? opt : String((opt as { value?: string }).value || '')));
 }

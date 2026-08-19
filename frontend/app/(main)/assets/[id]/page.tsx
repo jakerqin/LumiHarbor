@@ -20,9 +20,11 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { assetsApi, type SimilarAsset } from '@/lib/api/assets';
 import type { Asset } from '@/lib/api/types';
+import { templatesApi } from '@/lib/api/templates';
 import { useTagDefinitions } from '@/lib/hooks/useTagDefinitions';
 import { cn } from '@/lib/utils/cn';
 import { ImageViewer } from '@/components/assets/ImageViewer';
+import { AssetTemplateFields } from '@/components/assets/AssetTemplateFields';
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '-';
@@ -209,6 +211,12 @@ export default function AssetDetailPage() {
   });
 
   const asset = assetQuery.data;
+
+  const detailTplQuery = useQuery({
+    queryKey: ['template-resolve', 'detail', asset?.asset_type],
+    queryFn: () => templatesApi.resolve('detail', asset?.asset_type),
+    enabled: Boolean(asset?.asset_type),
+  });
 
   const tagsEntries = useMemo(() => {
     const tags = tagsQuery.data ?? {};
@@ -482,13 +490,19 @@ export default function AssetDetailPage() {
 
           {/* Side */}
           <div className="lg:col-span-4 space-y-6 lg:sticky lg:top-10 h-fit">
-            {/* Info */}
+            {/* Info + Tags */}
             <div className="rounded-2xl bg-background-secondary border border-white/10 p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Info size={18} className="text-foreground-secondary" />
                 <h2 className="text-lg font-heading font-semibold">素材信息</h2>
               </div>
-
+              {detailTplQuery.data?.fields?.length ? (
+                <AssetTemplateFields
+                  asset={asset}
+                  fields={detailTplQuery.data.fields}
+                  tags={tagsQuery.data ?? {}}
+                />
+              ) : (
               <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-1">
                   <dt className="text-xs text-foreground-tertiary">类型</dt>
@@ -513,9 +527,10 @@ export default function AssetDetailPage() {
                   </div>
                 )}
               </dl>
+              )}
             </div>
 
-            {/* Tags */}
+            {!detailTplQuery.data?.fields?.length && (
             <div className="rounded-2xl bg-background-secondary border border-white/10 p-6">
               <div className="flex items-center justify-between gap-4 mb-4">
                 <div className="flex items-center gap-2">
@@ -558,6 +573,7 @@ export default function AssetDetailPage() {
                 </div>
               )}
             </div>
+            )}
           </div>
         </div>
       </div>

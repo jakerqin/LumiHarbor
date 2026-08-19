@@ -7,7 +7,7 @@ from ...db import get_db
 from ...model.asset import Asset
 from ...model.user_favorite import UserFavorite
 from ...model.asset_tag import AssetTag
-from ...model.asset_template_tag import AssetTemplateTag
+from ...services.templates.service import TemplateService
 from ...services.asset_url import AssetUrlProviderFactory
 from ...schema.home.featured import FeaturedResponse, FeaturedAsset
 
@@ -85,11 +85,15 @@ def get_featured_assets(
     )
     total = db.scalar(count_query)
 
-    # 3. 获取 home_featured 模板需要的标签列表
-    template_query = select(AssetTemplateTag.tag_key).where(
-        AssetTemplateTag.template_type == 'home_featured'
-    )
-    required_tag_keys = [row[0] for row in db.execute(template_query).all()]
+    card = TemplateService.resolve_template(db, 'card', None)
+    required_tag_keys = []
+    if card:
+        required_tag_keys = [
+            f.field_key for f in TemplateService.list_fields(db, card.id)
+            if f.field_source == 'tag'
+        ]
+    if not required_tag_keys:
+        required_tag_keys = ['location_city', 'location_poi', 'aspect_ratio']
 
     # 4. 批量查询所有素材的标签（一次性查询，避免 N+1 问题）
     asset_ids = [asset.id for asset, _ in rows]

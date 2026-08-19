@@ -4,11 +4,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy import and_, func
 from typing import Optional, List
 from datetime import date, datetime
+import json
 from ..db import get_db
 from .. import model, schema
 from ..services.asset import AssetService
 from ..services.metadata_dictionary import MetadataDictionaryService
-from ..tools.perceptual_hash import find_similar_assets
+from ..services.similar import AssetSimilarService
+from ..services.tags.service import TagService
 
 router = APIRouter(
     prefix="/assets",
@@ -29,6 +31,7 @@ def list_assets(
     sort_by: str = Query("created_at", description="排序字段"),
     sort_order: str = Query("desc", description="排序方向: asc/desc"),
     is_favorited: Optional[bool] = Query(None, description="是否仅看收藏"),
+    tag_filters: Optional[str] = Query(None, description='额外标签筛选 JSON'),
     db: Session = Depends(get_db)
 ):
     """获取素材列表（支持筛选、分页、收藏状态）
@@ -79,6 +82,8 @@ def list_assets(
             )
         ).distinct()
         query = query.filter(model.Asset.id.in_(poi_asset_ids))
+
+    query = _apply_extra_tag_filters(db, query, tag_filters)
 
     # 拍摄日期范围筛选
     if shot_at_start:
@@ -207,6 +212,25 @@ def get_asset_tags(
     return schema.ApiResponse.success(data=tags_map)
 
 
+@router.put("/{asset_id}/tags", response_model=schema.ApiResponse[dict])
+def upsert_asset_tags(
+    asset_id: int,
+    payload: schema.AssetTagUpsert,
+    db: Session = Depends(get_db),
+):
+    """覆盖写入用户语义标签。"""
+    asset = db.query(model.Asset).filter(
+        and_(model.Asset.id == asset_id, model.Asset.is_deleted == False)
+    ).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="素材不存在")
+    TagService.upsert_user_tags(db, asset_id, asset.asset_type, payload.tags)
+    tags = db.query(model.AssetTag).filter(
+        and_(model.AssetTag.asset_id == asset_id, model.AssetTag.is_deleted == False)
+    ).all()
+    return schema.ApiResponse.success(data={tag.tag_key: tag.tag_value for tag in tags})
+
+
 @router.get("/{asset_id}/similar", response_model=schema.ApiResponse[dict])
 def get_similar_assets(
     asset_id: int,
@@ -215,13 +239,7 @@ def get_similar_assets(
     limit: int = Query(12, ge=1, le=50, description="返回数量限制"),
     db: Session = Depends(get_db)
 ):
-    """基于 phash 查找相似素材（用于相似推荐）
-
-    默认阈值说明：
-    - threshold=20: 可以找到"有一定相似性"的素材（推荐）
-    - threshold=10: 只能找到"非常相似"的素材（如同一张照片的不同压缩版本）
-    - threshold=30: 相似度要求更宽松，可能包含不太相似的素材
-    """
+    """视觉相似 + 同日/同地/同相册加权排序。"""
     asset = db.query(model.Asset).filter(
         and_(
             model.Asset.id == asset_id,
@@ -240,17 +258,7 @@ def get_similar_assets(
             "has_phash": False
         })
 
-    similar_entries = find_similar_assets(
-        db=db,
-        phash=asset.phash,
-        threshold=threshold,
-        limit=limit,
-        exclude_asset_id=asset_id,
-        asset_type=asset.asset_type,
-        dhash=asset.dhash,
-        average_hash=asset.average_hash,
-        colorhash=asset.colorhash,
-    )
+    similar_entries = AssetSimilarService.find(db, asset, threshold, limit)
 
     similar_assets = [entry['asset'] for entry in similar_entries]
     similar_asset_ids = [a.id for a in similar_assets]
@@ -373,3 +381,31 @@ def batch_delete_assets(
     """批量删除素材（软删除）"""
     result = AssetService.batch_delete_assets(db, request.asset_ids)
     return schema.ApiResponse.success(data=result)
+
+
+def _apply_extra_tag_filters(db: Session, query, tag_filters: Optional[str]):
+    if not tag_filters:
+        return query
+    try:
+        items = json.loads(tag_filters)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="tag_filters 不是合法 JSON")
+    if not isinstance(items, list):
+        raise HTTPException(status_code=400, detail="tag_filters 须为数组")
+    for item in items:
+        field_key = (item or {}).get("field_key")
+        value = (item or {}).get("value")
+        source = (item or {}).get("field_source", "tag")
+        if source != "tag" or not field_key or value in (None, ""):
+            continue
+        if field_key == "location_poi":
+            continue
+        ids = db.query(model.AssetTag.asset_id).filter(
+            and_(
+                model.AssetTag.tag_key == field_key,
+                model.AssetTag.tag_value.like(f"%{value}%"),
+                model.AssetTag.is_deleted == False,
+            )
+        ).distinct()
+        query = query.filter(model.Asset.id.in_(ids))
+    return query

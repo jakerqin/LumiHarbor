@@ -53,7 +53,7 @@ export function DayPickerDropdown(props: DayPickerDropdownProps) {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-white/10 border border-white/10 text-sm hover:bg-white/15 transition-colors focus:outline-none focus:border-primary/50"
+        className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-background-tertiary border border-white/10 text-sm text-foreground hover:border-primary/40 transition-colors focus:outline-none focus:border-primary/50"
       >
         <span>{displayLabel}</span>
         <ChevronDown size={14} className={`text-foreground-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -62,7 +62,7 @@ export function DayPickerDropdown(props: DayPickerDropdownProps) {
       {isOpen && (
         <div
           ref={listRef}
-          className="dropdown-scrollbar absolute top-full left-0 mt-1 min-w-[80px] max-h-[200px] overflow-y-auto rounded-lg bg-background-secondary/95 backdrop-blur-xl border border-white/10 shadow-xl z-[60]"
+          className="dropdown-scrollbar absolute top-full left-0 z-[60] mt-1 max-h-[200px] min-w-[80px] overflow-y-auto rounded-lg border border-white/10 bg-background shadow-[0_16px_40px_rgba(0,0,0,0.45)]"
         >
           {options?.map((opt) => (
             <button

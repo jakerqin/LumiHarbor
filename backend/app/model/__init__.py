@@ -2,7 +2,7 @@
 Models Package
 
 导出所有数据库模型，使其他模块可以通过以下方式导入：
-    from app.model import User, Asset, Note, TagDefinition, AssetTag, AssetTemplateTag, Album, AlbumAsset, UserFavorite, TaskLog, Base
+    from app.model import User, Asset, Note, TagDefinition, AssetTag, AssetTemplateTag, Album, AlbumAsset, UserFavorite, TaskLog, Template, TemplateField, TagMapping, TaskDefinition, Base
 
 模型说明：
     User: 用户表
@@ -15,6 +15,10 @@ Models Package
     Album: 相册表
     AlbumAsset: 相册素材关联表
     TaskLog: 异步任务日志表（通用）
+    Template: 配置模板（详情/筛选/导入/卡片）
+    TemplateField: 模板字段
+    TagMapping: 元数据源键映射
+    TaskDefinition: 可开关后处理任务
 """
 from ..db import Base
 from .user import User
@@ -28,6 +32,10 @@ from .album_asset import AlbumAsset
 from .user_favorite import UserFavorite
 from .task_log import TaskLog
 from .metadata_dictionary import MetadataDictionary
+from .template import Template
+from .template_field import TemplateField
+from .tag_mapping import TagMapping
+from .task_definition import TaskDefinition
 
 # 导出所有模型，方便其他模块导入
 __all__ = [
@@ -43,4 +51,8 @@ __all__ = [
     'UserFavorite',
     'TaskLog',
     'MetadataDictionary',
+    'Template',
+    'TemplateField',
+    'TagMapping',
+    'TaskDefinition',
 ]

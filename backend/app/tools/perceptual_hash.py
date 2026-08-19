@@ -14,7 +14,7 @@
 - dhash: 基于梯度差异，对边缘和结构敏感，抗旋转能力强
 - colorhash: 基于颜色分布，区分不同色调的图片
 """
-from typing import Optional, Dict, Tuple
+from typing import Optional, Dict
 from PIL import Image
 import numpy
 import imagehash
@@ -256,31 +256,6 @@ class MultiHashCalculator:
 
         return combined_distance
 
-    def is_similar(
-        self,
-        hashes1: Dict[str, str],
-        hashes2: Dict[str, str],
-        threshold: float = 10.0,
-        weights: Optional[Dict[str, float]] = None
-    ) -> Tuple[bool, float]:
-        """判断两组哈希是否相似
-
-        Args:
-            hashes1: 第一组哈希
-            hashes2: 第二组哈希
-            threshold: 相似度阈值（默认 10.0）
-            weights: 各哈希的权重
-
-        Returns:
-            (是否相似, 综合距离)
-        """
-        combined_distance = self.calculate_combined_distance(
-            hashes1, hashes2, weights
-        )
-        is_similar = combined_distance <= threshold
-
-        return is_similar, combined_distance
-
 
 def _hamming_distance(hash1: str, hash2: str) -> float:
     """单哈希汉明距离；失败返回 999（视为完全不同）。"""
@@ -291,94 +266,13 @@ def _hamming_distance(hash1: str, hash2: str) -> float:
         return 999.0
 
 
-def find_similar_assets(
-    db,
-    phash: str,
-    threshold: float = 10.0,
-    limit: int = 10,
-    exclude_asset_id: Optional[int] = None,
-    asset_type: Optional[str] = None,
-    dhash: Optional[str] = None,
-    average_hash: Optional[str] = None,
-    colorhash: Optional[str] = None,
-):
-    """在数据库中查找相似素材（多哈希综合判断）
+def visual_percent(distance: float) -> float:
+    """把 0–64 距离换成百分比，越大越像。"""
+    return max(0.0, 100.0 - (distance / 64.0 * 100.0))
 
-    Args:
-        db: 数据库会话
-        phash: 待查找的感知哈希（DCT变换）
-        threshold: 相似度阈值（综合距离，默认 10.0）
-        limit: 返回结果数量限制
-        exclude_asset_id: 排除的素材ID（通常是查询素材自身）
-        asset_type: 素材类型过滤（'image', 'video'）
-        dhash: 梯度差异哈希（可选，用于多哈希判断）
-        average_hash: 平均亮度哈希（可选，用于多哈希判断）
-        colorhash: 颜色分布哈希（可选，用于多哈希判断）
 
-    Returns:
-        相似素材列表，按相似度排序:
-        [
-            {
-                'asset': Asset对象,
-                'distance': float,  # 综合距离
-                'similarity': float  # 相似度百分比
-            }
-        ]
-
-    说明:
-        - 使用多哈希组合策略（phash 0.5 + dhash 0.3 + average 0.1 + color 0.1）
-        - 如果只提供 phash，则退化为单哈希判断（兼容旧数据）
-        - 综合距离阈值推荐：10.0（相似）、8.0（非常相似）
-    """
-    from ..model import Asset
-
-    calculator = MultiHashCalculator()
-
-    # 查询所有有 phash 的素材
-    filters = [
-        Asset.phash.isnot(None),
-        Asset.is_deleted == False,
-    ]
-    if asset_type:
-        filters.append(Asset.asset_type == asset_type)
-
-    assets = db.query(Asset).filter(*filters).limit(1000).all()
-
-    # 计算距离并过滤
-    similar_assets = []
-    for asset in assets:
-        if exclude_asset_id is not None and asset.id == exclude_asset_id:
-            continue  # 跳过自身
-
-        # 多哈希综合判断
-        if dhash and average_hash and colorhash:
-            # 使用多哈希组合策略
-            distance = calculator.calculate_combined_distance(
-                hashes1={
-                    'phash': phash,
-                    'dhash': dhash,
-                    'average_hash': average_hash,
-                    'colorhash': colorhash
-                },
-                hashes2={
-                    'phash': asset.phash,
-                    'dhash': asset.dhash or '',
-                    'average_hash': asset.average_hash or '',
-                    'colorhash': asset.colorhash or ''
-                }
-            )
-        else:
-            # 缺少四哈希时退化为 phash 汉明距离（兼容旧数据）
-            distance = _hamming_distance(phash, asset.phash)
-
-        if distance <= threshold:
-            similar_assets.append({
-                'asset': asset,
-                'distance': distance,
-                'similarity': 100 - (distance / 64 * 100)  # 相似度百分比
-            })
-
-    # 按距离排序（距离越小越相似）
-    similar_assets.sort(key=lambda x: x['distance'])
-
-    return similar_assets[:limit]
+def compute_visual_distance(source: Dict[str, str], target: Dict[str, str]) -> float:
+    """两组哈希的视觉距离；四哈希齐全走加权，否则只比 phash。"""
+    if source.get('dhash') and source.get('average_hash') and source.get('colorhash'):
+        return MultiHashCalculator().calculate_combined_distance(source, target)
+    return _hamming_distance(source.get('phash') or '', target.get('phash') or '')

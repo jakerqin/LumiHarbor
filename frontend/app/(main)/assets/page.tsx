@@ -7,6 +7,7 @@ import { AssetFilterBar } from '@/components/assets/AssetFilterBar';
 import { UploadAssetsModal } from '@/components/assets/UploadAssetsModal';
 import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
+import { templatesApi } from '@/lib/api/templates';
 import { ingestionApi } from '@/lib/api/ingestion';
 import type { Asset } from '@/lib/api/types';
 import { ListChecks, Upload, Trash2, X } from 'lucide-react';
@@ -35,6 +36,11 @@ export default function AssetsPage() {
     queryKey: ['asset-locations'],
     queryFn: () => assetsApi.getLocations(),
     staleTime: 5 * 60 * 1000, // 5 分钟缓存（地点数据相对静态）
+  });
+  const { data: filterTemplate } = useQuery({
+    queryKey: ['template-resolve', 'filter'],
+    queryFn: () => templatesApi.resolve('filter'),
+    staleTime: 5 * 60 * 1000,
   });
 
   const handleAssetClick = (id: number) => {
@@ -132,6 +138,7 @@ export default function AssetsPage() {
         <AssetFilterBar
           filter={filter}
           locations={locations}
+          fields={filterTemplate?.fields}
           onChange={setFilter}
         />
 

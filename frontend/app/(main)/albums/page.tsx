@@ -8,6 +8,7 @@ import { CreateAlbumModal, type CreateAlbumData } from '@/components/albums/Crea
 import { ImportAlbumModal, type ImportAlbumData } from '@/components/albums/ImportAlbumModal';
 import { FolderPlus, FolderInput } from 'lucide-react';
 import { albumsApi } from '@/lib/api/albums';
+import { ingestionApi } from '@/lib/api/ingestion';
 import { toast } from 'sonner';
 import { PageShell } from '@/components/layout/PageShell';
 import { PageHeader } from '@/components/layout/PageHeader';
@@ -42,13 +43,20 @@ export default function AlbumsPage() {
     if (importing) return;
     setImporting(true);
     try {
-      await albumsApi.importFromFolder(data);
+      const result = await ingestionApi.uploadFolderToNewAlbum({
+        files: data.files,
+        albumName: data.album_name,
+        description: data.description,
+        startTime: data.start_time,
+        endTime: data.end_time,
+        locationData: data.locationData,
+      });
       queryClient.invalidateQueries({ queryKey: ['albums'] });
       setImportModalOpen(false);
-      toast.success('导入任务已启动，素材正在后台导入');
+      notifyImportResult(result);
     } catch (error) {
       console.error(error);
-      toast.error('导入失败，请检查路径是否正确');
+      toast.error('导入失败，请稍后重试');
     } finally {
       setImporting(false);
     }
@@ -108,4 +116,13 @@ export default function AlbumsPage() {
       />
     </PageShell>
   );
+}
+
+function notifyImportResult(result: { imported: number; skipped: number; failed: number }) {
+  const { imported, skipped, failed } = result;
+  const parts = [`导入成功 ${imported} 个`];
+  if (skipped) parts.push(`已存在 ${skipped} 个`);
+  if (failed) parts.push(`失败 ${failed} 个`);
+  const toastFn = !imported && !skipped ? toast.error : !imported ? toast.warning : toast.success;
+  toastFn(!imported && !skipped && !failed ? '导入失败，请稍后重试' : parts.join('，'));
 }

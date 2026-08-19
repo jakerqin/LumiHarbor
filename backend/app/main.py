@@ -14,6 +14,8 @@ from .routers import (
     management_router,
     home_router,
     tags_router,
+    templates_router,
+    tasks_router,
     notes_router,
     map_router,
 )
@@ -85,5 +87,7 @@ app.include_router(ingestion_router)
 app.include_router(management_router)
 app.include_router(home_router)
 app.include_router(tags_router)
+app.include_router(templates_router)
+app.include_router(tasks_router)
 app.include_router(notes_router)
 app.include_router(map_router)

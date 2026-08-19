@@ -154,7 +154,7 @@ function NameFilterPanel({ value, onApply, onClose }: NameFilterPanelProps) {
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-2 p-4 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50 min-w-[320px]"
+      className="absolute left-0 top-full z-50 mt-2 min-w-[320px] rounded-2xl border border-white/10 bg-background-secondary p-4 text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
     >
       <div className="space-y-3">
         <div>
@@ -187,7 +187,7 @@ function NameFilterPanel({ value, onApply, onClose }: NameFilterPanelProps) {
           <button
             type="button"
             onClick={handleApply}
-            className="px-4 py-1.5 text-sm bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+            className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover transition-colors"
           >
             应用
           </button>

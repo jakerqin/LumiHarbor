@@ -13,6 +13,7 @@ export interface AssetsFilter {
   is_favorited?: boolean;
   sort_by?: 'shot_at' | 'created_at';
   sort_order?: 'asc' | 'desc';
+  tag_filters?: { field_source: string; field_key: string; value: string }[];
 }
 
 export interface AssetsResponse {
@@ -55,6 +56,9 @@ export const assetsApi = {
         page_size: pageSize,
         user_id: CURRENT_USER_ID,
         ...filter,
+        tag_filters: filter?.tag_filters?.length
+          ? JSON.stringify(filter.tag_filters)
+          : undefined,
       }
     });
     return response.data;
@@ -71,6 +75,16 @@ export const assetsApi = {
   // 获取素材标签（key/value）
   getAssetTags: async (id: number): Promise<Record<string, string | null>> => {
     const response = await apiClient.get<Record<string, string | null>>(`/assets/${id}/tags`);
+    return response.data;
+  },
+
+  upsertAssetTags: async (
+    id: number,
+    tags: Record<string, string | null>
+  ): Promise<Record<string, string | null>> => {
+    const response = await apiClient.put<Record<string, string | null>>(`/assets/${id}/tags`, {
+      tags,
+    });
     return response.data;
   },
 

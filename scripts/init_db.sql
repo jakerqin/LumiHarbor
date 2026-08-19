@@ -53,15 +53,17 @@ CREATE TABLE IF NOT EXISTS tag_definitions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '标签定义ID',
     tag_key VARCHAR(100) UNIQUE NOT NULL COMMENT '标签键名（唯一）: gps_lat, camera_model, ai_tag_person',
     tag_name VARCHAR(200) NOT NULL COMMENT '标签显示名称: GPS纬度, 相机型号, AI人物标签',
-    input_type INT(11) DEFAULT NULL COMMENT '输入组件类型：1:TextInput、2:TreeSelect、3:DateRangePicker',
+    input_type INT(11) DEFAULT NULL COMMENT '输入组件类型：1:TextInput、3:DateRangePicker、4:SingleSelect、5:MultiSelect',
     extra_info JSON COMMENT '扩展信息（JSON格式）: {"min": -90, "max": 90, "options": [...], "placeholder": "..."}',
     description TEXT COMMENT '标签描述',
+    source VARCHAR(20) NOT NULL DEFAULT 'system' COMMENT '来源: system 系统元数据, user 用户语义标签',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     is_deleted BOOLEAN NOT NULL DEFAULT '0' COMMENT '是否删除（软删除标记）',
 
     INDEX idx_tag_key (tag_key),
-    INDEX idx_input_type (input_type)
+    INDEX idx_input_type (input_type),
+    INDEX idx_source (source)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='标签元数据定义表';
 
 -- ==========================================
@@ -202,39 +204,44 @@ CREATE TABLE IF NOT EXISTS album_assets (
 -- 全局标签定义（可跨类型复用）
 -- ==========================================
 
--- 相机/设备信息类 (3个)
-INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('device_model', '设备型号', 1, JSON_OBJECT('placeholder', '如: iPhone 15 Pro, Canon EOS R5'), '拍摄设备型号'),
-('lens_model', '镜头型号', 1, JSON_OBJECT('placeholder', '如: EF 24-70mm f/2.8L'), '使用的镜头型号');
+-- 相机/设备信息类
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description, source) VALUES
+('device_make', '设备品牌', 1, JSON_OBJECT('placeholder', '如: Apple, Canon'), '拍摄设备品牌', 'system'),
+('device_model', '设备型号', 1, JSON_OBJECT('placeholder', '如: iPhone 15 Pro, Canon EOS R5'), '拍摄设备型号', 'system'),
+('lens_model', '镜头型号', 1, JSON_OBJECT('placeholder', '如: EF 24-70mm f/2.8L'), '使用的镜头型号', 'system');
 
 -- 拍摄参数类 (6个)
-INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('exposure_time', '快门速度', 1, JSON_OBJECT('placeholder', '如: 1/125, 1/500'), '曝光时间'),
-('aperture', '光圈值', 1, JSON_OBJECT('placeholder', '如: f/2.8, f/5.6'), '光圈大小'),
-('iso', 'ISO感光度', 1, JSON_OBJECT('placeholder', '如: 100, 400'), 'ISO设置'),
-('focal_length', '焦距', 1, JSON_OBJECT('placeholder', '如: 50mm, 24mm'), '镜头焦距');
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description, source) VALUES
+('exposure_time', '快门速度', 1, JSON_OBJECT('placeholder', '如: 1/125, 1/500'), '曝光时间', 'system'),
+('aperture', '光圈值', 1, JSON_OBJECT('placeholder', '如: f/2.8, f/5.6'), '光圈大小', 'system'),
+('iso', 'ISO感光度', 1, JSON_OBJECT('placeholder', '如: 100, 400'), 'ISO设置', 'system'),
+('focal_length', '焦距', 1, JSON_OBJECT('placeholder', '如: 50mm, 24mm'), '镜头焦距', 'system'),
+('white_balance', '白平衡', 1, JSON_OBJECT('placeholder', '如: Auto'), '白平衡', 'system'),
+('flash', '闪光灯', 1, JSON_OBJECT('placeholder', '如: Off'), '闪光灯', 'system');
 
 -- GPS位置类 (3个)
-INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('gps_latitude', 'GPS纬度', 1, JSON_OBJECT('placeholder', '如: 121.472644'), '拍摄位置纬度'),
-('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 31.231706'), '拍摄位置经度'),
-('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 134189/22602'), '拍摄位置海拔');
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description, source) VALUES
+('gps_latitude', 'GPS纬度', 1, JSON_OBJECT('placeholder', '如: 121.472644'), '拍摄位置纬度', 'system'),
+('gps_longitude', 'GPS经度', 1, JSON_OBJECT('placeholder', '如: 31.231706'), '拍摄位置经度', 'system'),
+('gps_altitude', 'GPS海拔', 1, JSON_OBJECT('placeholder', '如: 134189/22602'), '拍摄位置海拔', 'system'),
+('gps_latitude_ref', 'GPS纬度方向', 1, JSON_OBJECT('placeholder', 'N/S'), '纬度半球', 'system'),
+('gps_longitude_ref', 'GPS经度方向', 1, JSON_OBJECT('placeholder', 'E/W'), '经度半球', 'system');
 
 -- 地点信息类 (6个，基于逆地理编码)
-INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('location_country', '国家', 1, JSON_OBJECT('placeholder', '如: 中国'), '拍摄地点所属国家'),
-('location_province', '省份', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属省份/州'),
-('location_city', '城市', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属城市'),
-('location_district', '区县', 1, JSON_OBJECT('placeholder', '如: 东城区'), '拍摄地点所属区县'),
-('location_poi', '地标', 1, JSON_OBJECT('placeholder', '如: 故宫博物院'), '拍摄地点的地标'),
-('location_formatted', '完整地址', 1, JSON_OBJECT('placeholder', '如: 北京市东城区故宫'), '格式化的完整地址');
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description, source) VALUES
+('location_country', '国家', 1, JSON_OBJECT('placeholder', '如: 中国'), '拍摄地点所属国家', 'system'),
+('location_province', '省份', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属省份/州', 'system'),
+('location_city', '城市', 1, JSON_OBJECT('placeholder', '如: 北京市'), '拍摄地点所属城市', 'system'),
+('location_district', '区县', 1, JSON_OBJECT('placeholder', '如: 东城区'), '拍摄地点所属区县', 'system'),
+('location_poi', '地标', 1, JSON_OBJECT('placeholder', '如: 故宫博物院'), '拍摄地点的地标', 'system'),
+('location_formatted', '完整地址', 1, JSON_OBJECT('placeholder', '如: 北京市东城区故宫'), '格式化的完整地址', 'system');
 
 -- 媒体属性类 (4个)
-INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description) VALUES
-('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 1280'), '媒体宽度（像素）'),
-('height', '高度', 1, JSON_OBJECT('placeholder', '如: 720'), '媒体高度（像素）'),
-('duration', '时长', 1, JSON_OBJECT('placeholder', '如: 00:02:30'), '视频/音频时长'),
-('aspect_ratio', '宽高比', 1, JSON_OBJECT('placeholder', '如: 1.78'), '宽度/高度的比值');
+INSERT INTO tag_definitions (tag_key, tag_name, input_type, extra_info, description, source) VALUES
+('width', '宽度', 1, JSON_OBJECT('placeholder', '如: 1280'), '媒体宽度（像素）', 'system'),
+('height', '高度', 1, JSON_OBJECT('placeholder', '如: 720'), '媒体高度（像素）', 'system'),
+('duration', '时长', 1, JSON_OBJECT('placeholder', '如: 00:02:30'), '视频/音频时长', 'system'),
+('aspect_ratio', '宽高比', 1, JSON_OBJECT('placeholder', '如: 1.78'), '宽度/高度的比值', 'system');
 
 -- ==========================================
 -- Image 模板标签配置（12个）
@@ -292,6 +299,195 @@ INSERT INTO asset_template_tags (template_type, tag_key, sort_order, is_required
 ('video', 'height', 13, FALSE),
 ('video', 'duration', 14, FALSE),
 ('video', 'aspect_ratio', 15, FALSE);
+
+-- ==========================================
+-- 配置模板 / 字段 / 映射 / 任务定义
+-- ==========================================
+CREATE TABLE IF NOT EXISTS templates (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '模板ID',
+    code VARCHAR(80) UNIQUE NOT NULL COMMENT '稳定键: image_detail',
+    name VARCHAR(200) NOT NULL COMMENT '后台展示名',
+    kind VARCHAR(20) NOT NULL COMMENT 'ingest / detail / filter / card',
+    asset_type VARCHAR(20) DEFAULT NULL COMMENT 'image / video / audio；空表示全类型',
+    is_default BOOLEAN NOT NULL DEFAULT '0' COMMENT '同 kind+asset_type 默认模板',
+    extra_info JSON COMMENT '扩展信息',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0',
+    INDEX idx_kind (kind),
+    INDEX idx_asset_type (asset_type),
+    INDEX idx_kind_type (kind, asset_type)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='配置模板';
+
+CREATE TABLE IF NOT EXISTS template_fields (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '字段绑定ID',
+    template_id BIGINT NOT NULL COMMENT '模板ID',
+    field_source VARCHAR(20) NOT NULL COMMENT 'tag / asset / relation',
+    field_key VARCHAR(100) NOT NULL COMMENT 'tag_key 或资产列名',
+    sort_order INT NOT NULL DEFAULT 0,
+    is_required BOOLEAN NOT NULL DEFAULT '0',
+    is_readonly BOOLEAN NOT NULL DEFAULT '0',
+    widget_override INT DEFAULT NULL COMMENT '覆盖 input_type',
+    extra_info JSON COMMENT '字段级扩展',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0',
+    INDEX idx_template_id (template_id),
+    UNIQUE KEY uk_template_field (template_id, field_source, field_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模板字段';
+
+CREATE TABLE IF NOT EXISTS tag_mappings (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '映射ID',
+    tag_key VARCHAR(100) NOT NULL COMMENT '目标标签键',
+    source_key VARCHAR(200) NOT NULL COMMENT '原始元数据键',
+    asset_type VARCHAR(20) DEFAULT NULL COMMENT '限定素材类型；空表示全类型',
+    transform VARCHAR(40) NOT NULL DEFAULT 'identity' COMMENT 'identity / aspect_ratio / gps_dms',
+    priority INT NOT NULL DEFAULT 0 COMMENT '同 tag_key 优先级，小者优先',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0',
+    INDEX idx_tag_key (tag_key),
+    INDEX idx_source_key (source_key)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='元数据源键映射';
+
+CREATE TABLE IF NOT EXISTS task_definitions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '任务定义ID',
+    task_code VARCHAR(50) UNIQUE NOT NULL COMMENT '稳定键',
+    name VARCHAR(200) NOT NULL COMMENT '展示名',
+    description VARCHAR(500) DEFAULT NULL,
+    run_mode VARCHAR(20) NOT NULL DEFAULT 'sync' COMMENT 'sync / async',
+    is_enabled BOOLEAN NOT NULL DEFAULT '1',
+    extra_info JSON COMMENT '重试等参数',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT '0',
+    INDEX idx_task_code (task_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='可开关后处理任务';
+
+INSERT INTO templates (code, name, kind, asset_type, is_default) VALUES
+('image_ingest', '图片导入', 'ingest', 'image', TRUE),
+('video_ingest', '视频导入', 'ingest', 'video', TRUE),
+('image_detail', '图片详情', 'detail', 'image', TRUE),
+('video_detail', '视频详情', 'detail', 'video', TRUE),
+('assets_filter', '素材库筛选', 'filter', NULL, TRUE),
+('home_featured', '首页精选卡片', 'card', NULL, TRUE);
+
+INSERT INTO template_fields (template_id, field_source, field_key, sort_order, is_required, is_readonly)
+SELECT t.id, v.field_source, v.field_key, v.sort_order, FALSE, v.is_readonly
+FROM templates t
+JOIN (
+    SELECT 'image_ingest' AS code, 'tag' AS field_source, 'device_make' AS field_key, 1 AS sort_order, 0 AS is_readonly
+    UNION ALL SELECT 'image_ingest', 'tag', 'device_model', 2, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'lens_model', 3, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'exposure_time', 4, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'aperture', 5, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'iso', 6, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'focal_length', 7, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'white_balance', 8, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'flash', 9, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'gps_latitude', 10, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'gps_longitude', 11, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'gps_altitude', 12, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'gps_latitude_ref', 13, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'gps_longitude_ref', 14, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_country', 15, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_province', 16, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_city', 17, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_district', 18, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_poi', 19, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'location_formatted', 20, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'width', 21, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'height', 22, 0
+    UNION ALL SELECT 'image_ingest', 'tag', 'aspect_ratio', 23, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'device_make', 1, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'device_model', 2, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'gps_latitude', 3, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'gps_longitude', 4, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'gps_altitude', 5, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'gps_latitude_ref', 6, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'gps_longitude_ref', 7, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_country', 8, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_province', 9, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_city', 10, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_district', 11, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_poi', 12, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'location_formatted', 13, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'width', 14, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'height', 15, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'duration', 16, 0
+    UNION ALL SELECT 'video_ingest', 'tag', 'aspect_ratio', 17, 0
+    UNION ALL SELECT 'image_detail', 'asset', 'asset_type', 1, 1
+    UNION ALL SELECT 'image_detail', 'asset', 'file_size', 2, 1
+    UNION ALL SELECT 'image_detail', 'asset', 'shot_at', 3, 1
+    UNION ALL SELECT 'image_detail', 'asset', 'created_at', 4, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'device_make', 10, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'device_model', 11, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'lens_model', 12, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'exposure_time', 13, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'aperture', 14, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'iso', 15, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'focal_length', 16, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'width', 17, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'height', 18, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'aspect_ratio', 19, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_country', 20, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_province', 21, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_city', 22, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_district', 23, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_poi', 24, 1
+    UNION ALL SELECT 'image_detail', 'tag', 'location_formatted', 25, 1
+    UNION ALL SELECT 'video_detail', 'asset', 'asset_type', 1, 1
+    UNION ALL SELECT 'video_detail', 'asset', 'file_size', 2, 1
+    UNION ALL SELECT 'video_detail', 'asset', 'shot_at', 3, 1
+    UNION ALL SELECT 'video_detail', 'asset', 'created_at', 4, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'device_make', 10, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'device_model', 11, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'duration', 12, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'width', 13, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'height', 14, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'aspect_ratio', 15, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'location_city', 16, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'location_poi', 17, 1
+    UNION ALL SELECT 'video_detail', 'tag', 'location_formatted', 18, 1
+    UNION ALL SELECT 'assets_filter', 'asset', 'shot_at', 1, 0
+    UNION ALL SELECT 'assets_filter', 'tag', 'location_poi', 2, 0
+    UNION ALL SELECT 'assets_filter', 'relation', 'is_favorited', 3, 0
+    UNION ALL SELECT 'home_featured', 'tag', 'location_city', 1, 1
+    UNION ALL SELECT 'home_featured', 'tag', 'location_poi', 2, 1
+) v ON v.code = t.code;
+
+INSERT INTO tag_mappings (tag_key, source_key, asset_type, transform, priority) VALUES
+('device_make', 'Image Make', NULL, 'identity', 0),
+('device_make', 'make', NULL, 'identity', 1),
+('device_make', 'com.apple.quicktime.make', NULL, 'identity', 2),
+('device_model', 'Image Model', NULL, 'identity', 0),
+('device_model', 'model', NULL, 'identity', 1),
+('device_model', 'com.apple.quicktime.model', NULL, 'identity', 2),
+('lens_model', 'EXIF LensModel', NULL, 'identity', 0),
+('exposure_time', 'EXIF ExposureTime', NULL, 'identity', 0),
+('aperture', 'EXIF FNumber', NULL, 'identity', 0),
+('iso', 'EXIF ISOSpeedRatings', NULL, 'identity', 0),
+('focal_length', 'EXIF FocalLength', NULL, 'identity', 0),
+('white_balance', 'EXIF WhiteBalance', NULL, 'identity', 0),
+('flash', 'EXIF Flash', NULL, 'identity', 0),
+('gps_latitude', 'GPS GPSLatitude', NULL, 'identity', 0),
+('gps_longitude', 'GPS GPSLongitude', NULL, 'identity', 0),
+('gps_latitude_ref', 'GPS GPSLatitudeRef', NULL, 'identity', 0),
+('gps_longitude_ref', 'GPS GPSLongitudeRef', NULL, 'identity', 0),
+('gps_altitude', 'GPS GPSAltitude', NULL, 'identity', 0),
+('width', 'EXIF ExifImageWidth', NULL, 'identity', 0),
+('width', 'width', NULL, 'identity', 1),
+('height', 'EXIF ExifImageLength', NULL, 'identity', 0),
+('height', 'height', NULL, 'identity', 1),
+('duration', 'duration', NULL, 'identity', 0),
+('aspect_ratio', 'aspect_ratio', NULL, 'aspect_ratio', 0);
+
+INSERT INTO task_definitions (task_code, name, description, run_mode, is_enabled, extra_info) VALUES
+('thumbnail', '缩略图生成', '导入时同步生成列表缩略图', 'sync', TRUE, NULL),
+('preview', '预览图生成', 'HEIC 等浏览器不支持格式转 WebP 预览', 'sync', TRUE, NULL),
+('phash', '感知哈希', '异步计算四哈希，供相似推荐', 'async', TRUE, NULL),
+('geocoding', '逆地理编码', '有 GPS 时异步写入地点标签', 'async', TRUE, JSON_OBJECT('max_retries', 3)),
+('batch_phash', '批量补算哈希', '运维补跑缺失的感知哈希', 'async', TRUE, NULL);
 
 -- ==========================================
 -- 异步任务日志表（通用）

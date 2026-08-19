@@ -24,7 +24,7 @@ order: 4
 | [`home.ts`](../../lib/api/home.ts) | 精选、时间轴 |
 | [`map.ts`](../../lib/api/map.ts) | 足迹列表/详情/统计 |
 | [`tags.ts`](../../lib/api/tags.ts) | 标签定义元数据 |
-| [`ingestion.ts`](../../lib/api/ingestion.ts) | 批量上传 FormData |
+| [`ingestion.ts`](../../lib/api/ingestion.ts) | 批量上传 FormData、相册文件夹导入 |
 
 ## 客户端行为摘要
 
@@ -47,13 +47,13 @@ response interceptor
 | API 模块 | 主要路径 | 状态 |
 |---|---|---|
 | `assetsApi` | `/assets*` | **真实** |
-| `albumsApi` | `/albums*`、`/ingestion/scan`（导入） | **真实** |
+| `albumsApi` | `/albums*` | **真实** |
 | `notesApi` | `/notes*` | **真实**（JSON content） |
 | `homeApi.getFeatured` | `/home/featured` | **真实**（响应无 ApiResponse 壳） |
 | `homeApi.getTimeline` | `/home/timeline` | **真实** |
 | `mapApi` | `/map/footprints*`、`/map/statistics` | **真实**（`/map` 页） |
 | `tagsApi` | `/tags/definitions` | **真实** |
-| `ingestionApi` | `/ingestion/upload/batch` | **真实** |
+| `ingestionApi` | `/ingestion/upload`、`/ingestion/upload/batch` | **真实** |
 | `assetsApi.getTags` | `/assets/tags` | 代码保留 + TODO；筛选 UI 未使用 |
 
 ## 适配模式
@@ -93,7 +93,7 @@ components / pages
             → FastAPI
 ```
 
-标签展示名：`useTagDefinitions` → `tagsApi`（见 [素材库](./07-素材库.md)）。
+标签展示名：`useTagDefinitions` → `tagsApi`。配置后台：`/settings` → `templatesApi` / `tasksApi`。
 
 ## 已知限制
 

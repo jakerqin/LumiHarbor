@@ -15,7 +15,7 @@ export function MobileBottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       aria-label="主导航"
     >
-      <ul className="grid grid-cols-6 h-14">
+      <ul className="grid grid-cols-7 h-14">
         {MAIN_NAV.map((item) => {
           const active = isNavActive(item.href, pathname);
           const Icon = item.icon;
