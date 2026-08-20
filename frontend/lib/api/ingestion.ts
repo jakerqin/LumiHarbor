@@ -101,4 +101,40 @@ export const ingestionApi = {
     });
     return response.data;
   },
+
+  /** 本机文件夹导入：首个文件建相册，后续归入同一相册 */
+  uploadFolderToNewAlbum: async (options: {
+    files: File[];
+    albumName: string;
+    description?: string;
+    startTime?: string;
+    endTime?: string;
+    locationData?: LocationData;
+  }): Promise<{ imported: number; skipped: number; failed: number }> => {
+    let album: AlbumTarget = {
+      mode: 'new',
+      name: options.albumName,
+      description: options.description,
+      startTime: options.startTime,
+      endTime: options.endTime,
+    };
+    const tally = { imported: 0, skipped: 0, failed: 0 };
+    for (const file of options.files) {
+      try {
+        const result = await ingestionApi.uploadSingleAsset(file, {
+          album,
+          locationData: options.locationData,
+        });
+        tally.imported += result.imported;
+        tally.skipped += result.skipped;
+        tally.failed += result.failed;
+        if (result.album?.album_id) {
+          album = { mode: 'existing', albumId: result.album.album_id };
+        }
+      } catch {
+        tally.failed += 1;
+      }
+    }
+    return tally;
+  },
 };

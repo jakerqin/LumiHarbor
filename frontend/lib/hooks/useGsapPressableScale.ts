@@ -1,9 +1,11 @@
 'use client';
 
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MouseEventHandler, RefObject } from 'react';
 import { gsap } from 'gsap';
 import { hoverScale, tapScale } from '@/lib/utils/gsap';
+
+const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
 
 export type PressableScaleHandlers<T extends HTMLElement> = {
   onMouseEnter: MouseEventHandler<T>;
@@ -42,6 +44,17 @@ export function useGsapPressableScale<T extends HTMLElement>(
   } = options;
 
   const isHoveringRef = useRef(false);
+  const canHoverRef = useRef(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(HOVER_QUERY);
+    const onChange = () => {
+      canHoverRef.current = mql.matches;
+    };
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   const tweenTo = useCallback(
     (vars: gsap.TweenVars) => {
@@ -54,6 +67,7 @@ export function useGsapPressableScale<T extends HTMLElement>(
 
   const onMouseEnter = useCallback(() => {
     isHoveringRef.current = true;
+    if (!canHoverRef.current) return;
     tweenTo({ scale: hoverScaleValue, duration: hoverDuration, ease: hoverEase });
   }, [hoverDuration, hoverEase, hoverScaleValue, tweenTo]);
 

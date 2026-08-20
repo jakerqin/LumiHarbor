@@ -4,15 +4,16 @@ import { useEffect, useState } from 'react';
 import { X, FolderInput, Calendar, MapPin } from 'lucide-react';
 import { MapPicker, type LocationData } from '@/components/common/MapPicker';
 import { SingleDatePicker, type ActiveDatePicker } from '@/components/common/SingleDatePicker';
+import { FolderPicker } from '@/components/albums/FolderPicker';
 import { format } from 'date-fns';
 
 export interface ImportAlbumData {
   album_name: string;
   description?: string;
-  source_path: string;
+  files: File[];
   start_time?: string;
   end_time?: string;
-  default_gps?: string; // 格式：经度,纬度
+  locationData?: LocationData;
 }
 
 interface ImportAlbumModalProps {
@@ -31,27 +32,18 @@ export function ImportAlbumModal({ open, onClose, onSubmit, loading }: ImportAlb
   const [formData, setFormData] = useState<ImportAlbumData>({
     album_name: '',
     description: '',
-    source_path: '',
-    start_time: '',
-    end_time: '',
-    default_gps: '',
+    files: [],
   });
+  const [folderName, setFolderName] = useState('');
   const [startDate, setStartDate] = useState<Date | undefined>(undefined);
   const [endDate, setEndDate] = useState<Date | undefined>(undefined);
   const [activePicker, setActivePicker] = useState<ActiveDatePicker>(null);
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
 
-  // 重置表单
   const resetForm = () => {
-    setFormData({
-      album_name: '',
-      description: '',
-      source_path: '',
-      start_time: '',
-      end_time: '',
-      default_gps: '',
-    });
+    setFormData({ album_name: '', description: '', files: [] });
+    setFolderName('');
     setStartDate(undefined);
     setEndDate(undefined);
     setActivePicker(null);
@@ -68,19 +60,14 @@ export function ImportAlbumModal({ open, onClose, onSubmit, loading }: ImportAlb
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    const submitData: ImportAlbumData = {
+    onSubmit({
       album_name: formData.album_name,
       description: formData.description,
-      source_path: formData.source_path,
+      files: formData.files,
       start_time: formatDate(startDate),
       end_time: formatDate(endDate),
-    };
-
-    if (selectedLocation) {
-      submitData.default_gps = `${selectedLocation.longitude},${selectedLocation.latitude}`;
-    }
-
-    onSubmit(submitData);
+      locationData: selectedLocation ?? undefined,
+    });
   };
 
   const handleClose = () => {
@@ -147,22 +134,29 @@ export function ImportAlbumModal({ open, onClose, onSubmit, loading }: ImportAlb
               />
             </div>
 
-            {/* 文件夹路径 */}
             <div>
-              <label className="block text-sm font-medium mb-2">
-                文件夹路径 <span className="text-red-400">*</span>
+              <label className="mb-2 block text-sm font-medium">
+                选择文件夹 <span className="text-red-400">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.source_path}
-                onChange={(e) => setFormData({ ...formData, source_path: e.target.value })}
-                placeholder="/Volumes/NAS/Photos/2024"
-                required
+              <FolderPicker
+                folderName={folderName}
+                fileCount={formData.files.length}
                 disabled={loading}
-                className="w-full px-4 py-2.5 bg-background-tertiary border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50 font-mono text-sm"
+                onPick={(files, name) => {
+                  setFolderName(name);
+                  setFormData({
+                    ...formData,
+                    files,
+                    album_name: formData.album_name || name,
+                  });
+                }}
+                onClear={() => {
+                  setFolderName('');
+                  setFormData({ ...formData, files: [] });
+                }}
               />
               <p className="mt-1.5 text-xs text-foreground-secondary">
-                输入服务器可访问的文件夹路径
+                打开系统选文件夹窗口；点「开始导入」后才上传
               </p>
             </div>
 
@@ -271,7 +265,7 @@ export function ImportAlbumModal({ open, onClose, onSubmit, loading }: ImportAlb
               </button>
               <button
                 type="submit"
-                disabled={loading || !formData.album_name || !formData.source_path}
+                disabled={loading || !formData.album_name || !formData.files.length}
                 className="flex-1 px-4 py-2.5 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {loading ? '导入中...' : '开始导入'}

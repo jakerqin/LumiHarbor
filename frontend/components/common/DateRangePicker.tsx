@@ -77,7 +77,7 @@ export function DateRangePicker({ startDate, endDate, onApply, onClose }: DateRa
   return (
     <div
       ref={ref}
-      className="absolute left-0 top-full mt-2 p-4 rounded-2xl bg-white/5 backdrop-blur-2xl border border-white/10 shadow-2xl z-50"
+      className="absolute left-0 top-full z-50 mt-2 rounded-2xl border border-white/10 bg-background-secondary p-4 text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.55)]"
     >
       {/* 日期选择器 - 支持年月下拉选择 */}
       <DayPicker
@@ -97,20 +97,20 @@ export function DateRangePicker({ startDate, endDate, onApply, onClose }: DateRa
           caption_label: 'hidden',
           dropdowns: 'flex items-center gap-2',
           nav: 'flex items-center gap-1',
-          button_previous: 'p-1.5 rounded-lg hover:bg-white/10 transition-colors absolute left-0 top-0',
-          button_next: 'p-1.5 rounded-lg hover:bg-white/10 transition-colors absolute right-0 top-0',
+          button_previous: 'p-1.5 rounded-lg text-foreground hover:bg-white/10 transition-colors absolute left-0 top-0',
+          button_next: 'p-1.5 rounded-lg text-foreground hover:bg-white/10 transition-colors absolute right-0 top-0',
           weekdays: 'flex',
           weekday: 'w-9 h-9 flex items-center justify-center text-xs text-foreground-secondary font-medium',
           week: 'flex',
-          day: 'w-9 h-9 flex items-center justify-center text-sm rounded-lg transition-colors hover:bg-white/10',
+          day: 'w-9 h-9 flex items-center justify-center text-sm text-foreground rounded-lg transition-colors hover:bg-white/10',
           day_button: 'w-full h-full flex items-center justify-center',
           selected: 'bg-primary/20 text-primary font-medium',
           range_start: 'bg-primary text-primary-foreground rounded-l-lg rounded-r-none',
           range_end: 'bg-primary text-primary-foreground rounded-r-lg rounded-l-none',
           range_middle: 'bg-primary/15 text-primary rounded-none',
           today: 'ring-1 ring-primary/50',
-          outside: 'text-foreground-secondary/40',
-          disabled: 'text-foreground-secondary/30 cursor-not-allowed',
+          outside: 'text-foreground-tertiary',
+          disabled: 'text-foreground-tertiary cursor-not-allowed',
         }}
         components={{
           Chevron: ({ orientation }) =>
@@ -124,7 +124,7 @@ export function DateRangePicker({ startDate, endDate, onApply, onClose }: DateRa
       />
 
       {/* 已选范围显示 */}
-      <div className="mt-3 pt-3 border-t border-white/5">
+      <div className="mt-3 pt-3 border-t border-white/10">
         <div className="text-xs text-foreground-secondary mb-3">
           {range?.from && range?.to ? (
             <span>
@@ -143,21 +143,21 @@ export function DateRangePicker({ startDate, endDate, onApply, onClose }: DateRa
           <button
             type="button"
             onClick={() => setRange(undefined)}
-            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/5 transition-colors"
+            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/10 transition-colors"
           >
             清除
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/5 transition-colors"
+            className="px-3 py-1.5 text-sm text-foreground-secondary hover:text-foreground rounded-lg hover:bg-white/10 transition-colors"
           >
             取消
           </button>
           <button
             type="button"
             onClick={handleApply}
-            className="px-4 py-1.5 text-sm bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-colors"
+            className="px-4 py-1.5 text-sm rounded-lg bg-primary text-primary-foreground hover:bg-primary-hover transition-colors"
           >
             应用
           </button>

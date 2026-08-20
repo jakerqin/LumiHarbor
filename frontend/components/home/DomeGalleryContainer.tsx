@@ -86,7 +86,7 @@ export function DomeGalleryContainer() {
           images={uniqueAssets}
           onLoadMore={handleLoadMore}
           grayscale={false}
-          overlayBlurColor="rgba(22, 20, 15, 0.88)"
+          overlayBlurColor="rgba(22, 20, 15, 0.4)"
           imageBorderRadius="16px"
           openedImageBorderRadius="24px"
           openedImageWidth="auto"

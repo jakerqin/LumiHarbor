@@ -67,7 +67,7 @@ export function FavoriteButton({
         group relative p-2 rounded-full
         bg-black/20 backdrop-blur-sm
         hover:bg-black/40
-        transition-all duration-200
+        transition-colors duration-200
         disabled:opacity-50 disabled:cursor-not-allowed
         ${className}
       `}
@@ -75,10 +75,10 @@ export function FavoriteButton({
     >
       <Heart
         className={`
-          w-5 h-5 transition-all duration-200
+          w-5 h-5 transition-transform duration-200
           ${isFavorited
             ? 'fill-red-500 text-red-500'
-            : 'text-white group-hover:scale-110'
+            : 'text-white motion-group-hover-scale-110'
           }
           ${favoriteMutation.isPending ? 'animate-pulse' : ''}
         `}

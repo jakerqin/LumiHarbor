@@ -14,6 +14,14 @@
     --scrollbar-size: 6px;
     --scrollbar-thumb: rgba(212, 180, 131, 0.35);
     --scrollbar-thumb-hover: rgba(212, 180, 131, 0.55);
+    /* 动效 token（与 lib/utils/gsap.ts 对齐，禁止近似） */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+    --duration-press: 160ms;
+    --duration-tooltip: 150ms;
+    --duration-dropdown: 200ms;
+    --duration-modal: 200ms;
   }
 
   body {
@@ -121,24 +129,30 @@
   [role="button"]:not([aria-disabled="true"]) {
     @apply transition-colors duration-200;
   }
-}
 
-/* GSAP 动画相关样式 */
-@layer utilities {
-  /* 淡入动画 */
-  @keyframes fade-in {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
+  /* 减动：压到极短时长，保留透明度反馈，不核掉 transition */
+  @media (prefers-reduced-motion: reduce) {
+    html:not([data-allow-motion]) *,
+    html:not([data-allow-motion]) *::before,
+    html:not([data-allow-motion]) *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
+}
 
-  .animate-fade-in {
-    animation: fade-in 0.8s ease-out;
+@layer utilities {
+  /* 位移/缩放 hover 仅细指针设备生效 */
+  @media (hover: hover) and (pointer: fine) {
+    .motion-hover-scale-110:hover {
+      transform: scale(1.1);
+    }
+
+    .group:hover .motion-group-hover-scale-110 {
+      transform: scale(1.1);
+    }
   }
 }
 

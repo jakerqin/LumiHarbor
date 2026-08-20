@@ -172,7 +172,7 @@ function UploadSummaryBar({ summary }: UploadSummaryBarProps) {
     <div className="space-y-1.5">
       <div className="h-2 rounded-full bg-white/10 overflow-hidden">
         <div
-          className="h-full bg-primary transition-all duration-300"
+          className="h-full bg-primary transition-[width] duration-200 ease-linear"
           style={{ width: `${percent}%` }}
         />
       </div>

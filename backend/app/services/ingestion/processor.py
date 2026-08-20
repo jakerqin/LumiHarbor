@@ -8,6 +8,8 @@ from ...services.metadata import MetadataExtractorFactory
 from ...services.thumbnail import ThumbnailGeneratorFactory
 from ...services.preview import PreviewGeneratorFactory, needs_preview
 from ...services.tags import TagService, MetadataTagMapper
+from ...services.tags.mapping_service import TagMappingService
+from ...services.tasks import TaskDefinitionService
 from ...tasks.phash_tasks import calculate_phash_task
 from ...tasks.geocoding_tasks import calculate_location_task
 from ...tasks.sender import run_coroutine_sync
@@ -75,7 +77,10 @@ class AssetProcessor:
 
         try:
             # 映射为统一格式
-            mapped_tags = MetadataTagMapper.map_metadata_to_tags(metadata)
+            mapped_tags = MetadataTagMapper.map_metadata_to_tags(
+                metadata,
+                TagMappingService.list_active(self.db, asset.asset_type),
+            )
 
             # GPS 覆盖逻辑：如果元数据中没有 GPS 且配置了默认 GPS，则使用默认值
             if self.default_gps:
@@ -187,6 +192,10 @@ class AssetProcessor:
         Returns:
             是否成功
         """
+        if not TaskDefinitionService.is_enabled(self.db, 'thumbnail'):
+            logger.debug(f"跳过缩略图（任务已关闭）: asset {asset.id}")
+            return True
+
         # 提取原始文件名（不含扩展名）
         original_filename = os.path.basename(original_path)
         filename_without_ext = os.path.splitext(original_filename)[0]
@@ -222,6 +231,10 @@ class AssetProcessor:
         Returns:
             是否成功（如果不需要生成预览图也返回 True）
         """
+        if not TaskDefinitionService.is_enabled(self.db, 'preview'):
+            logger.debug(f"跳过预览图（任务已关闭）: asset {asset.id}")
+            return True
+
         # 检查是否需要生成预览图
         if not needs_preview(asset.mime_type):
             logger.debug(f"跳过预览图生成（格式已支持）: {asset.mime_type}")
@@ -261,65 +274,78 @@ class AssetProcessor:
             tags: 标签字典（可选，用于地理编码）
         """
         # 1. Phash 任务
+        if TaskDefinitionService.is_enabled(self.db, 'phash'):
+            self._send_phash_task(asset, file_path)
+        else:
+            logger.debug(f"跳过 phash（任务已关闭）: asset {asset.id}")
+
+        # 2. Geocoding 任务
+        if tags and 'gps_latitude' in tags and 'gps_longitude' in tags:
+            if TaskDefinitionService.is_enabled(self.db, 'geocoding'):
+                self._send_geocoding_task(asset, tags)
+            else:
+                logger.debug(f"跳过地理编码（任务已关闭）: asset {asset.id}")
+
+    def _send_phash_task(self, asset: Asset, file_path: str) -> None:
         try:
+            task_log = TaskLog(
+                task_type='phash',
+                task_status='pending',
+                asset_id=asset.id,
+                task_params={'file_path': file_path, 'asset_type': asset.asset_type},
+                retry_count=0,
+                max_retries=0,
+                created_at=datetime.now(),
+            )
+            self.db.add(task_log)
+            self.db.commit()
             run_coroutine_sync(
                 calculate_phash_task.kiq(
                     asset_id=asset.id,
                     file_path=file_path,
-                    asset_type=asset.asset_type
+                    asset_type=asset.asset_type,
                 )
             )
-            logger.debug(f"✅ Phash 异步任务已发送 - Asset ID: {asset.id}")
+            logger.debug(f"Phash 异步任务已发送 - Asset ID: {asset.id}")
         except Exception as e:
             logger.warning(
-                f"⚠️ Phash 异步任务发送失败 - Asset ID: {asset.id}: {e}",
-                exc_info=True
+                f"Phash 异步任务发送失败 - Asset ID: {asset.id}: {e}",
+                exc_info=True,
             )
 
-        # 2. Geocoding 任务
-        if tags and 'gps_latitude' in tags and 'gps_longitude' in tags:
-            task_log = None
-            try:
-                # 获取坐标引用 (Ref)
-                lat_ref = tags.get('gps_latitude_ref')
-                lon_ref = tags.get('gps_longitude_ref')
-
-                # 解析坐标 (传入 ref)
-                latitude = self._parse_coordinate(tags.get('gps_latitude', ''), lat_ref)
-                longitude = self._parse_coordinate(tags.get('gps_longitude', ''), lon_ref)
-
-                if latitude is not None and longitude is not None:
-                    # 创建任务日志
-                    task_log = TaskLog(
-                        task_type='geocoding',
-                        task_status='pending',
-                        asset_id=asset.id,
-                        task_params={
-                            'latitude': latitude,
-                            'longitude': longitude
-                        },
-                        retry_count=0,
-                        max_retries=3,
-                        created_at=datetime.now()
-                    )
-                    self.db.add(task_log)
-                    self.db.commit()
-
-                    # 发送任务
-                    run_coroutine_sync(
-                        calculate_location_task.kiq(
-                            asset_id=asset.id,
-                            longitude=longitude,
-                            latitude=latitude,
-                            task_log_id=task_log.id
-                        )
-                    )
-                    logger.debug(f"✅ 地理编码异步任务已发送 - Asset ID: {asset.id}, Task Log ID: {task_log.id}")
-            except Exception as e:
-                logger.warning(
-                    f"⚠️ 地理编码异步任务发送失败 - Asset ID: {asset.id}: {e}",
-                    exc_info=True
+    def _send_geocoding_task(self, asset: Asset, tags: dict) -> None:
+        try:
+            lat_ref = tags.get('gps_latitude_ref')
+            lon_ref = tags.get('gps_longitude_ref')
+            latitude = self._parse_coordinate(tags.get('gps_latitude', ''), lat_ref)
+            longitude = self._parse_coordinate(tags.get('gps_longitude', ''), lon_ref)
+            if latitude is None or longitude is None:
+                return
+            task_log = TaskLog(
+                task_type='geocoding',
+                task_status='pending',
+                asset_id=asset.id,
+                task_params={'latitude': latitude, 'longitude': longitude},
+                retry_count=0,
+                max_retries=3,
+                created_at=datetime.now(),
+            )
+            self.db.add(task_log)
+            self.db.commit()
+            run_coroutine_sync(
+                calculate_location_task.kiq(
+                    asset_id=asset.id,
+                    longitude=longitude,
+                    latitude=latitude,
+                    task_log_id=task_log.id,
                 )
+            )
+            logger.debug(f"地理编码异步任务已发送 - Asset ID: {asset.id}")
+        except Exception as e:
+            logger.warning(
+                f"地理编码异步任务发送失败 - Asset ID: {asset.id}: {e}",
+                exc_info=True,
+            )
 
     def process_asset(self, asset: Asset, original_path: str) -> bool:
         """处理单个素材（一站式方法）

@@ -62,6 +62,41 @@ const DEFAULTS = {
   segments: 35,
 };
 
+const ENLARGE_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+
+/** overlay / closing clone 只过渡合成属性 */
+function enlargeOverlayTransition(ms: number): string {
+  return `transform ${ms}ms ${ENLARGE_EASE}, opacity ${ms}ms ${ENLARGE_EASE}`;
+}
+
+/** 盒模型已写入终态后，用 transform 从 firstRect 过渡到当前位置 */
+function playFlipToIdentity(el: HTMLElement, firstRect: DOMRect, transition: string, onPlay?: () => void) {
+  const lastRect = el.getBoundingClientRect();
+  const dx = firstRect.left - lastRect.left;
+  const dy = firstRect.top - lastRect.top;
+  const sx = lastRect.width > 0 ? firstRect.width / lastRect.width : 1;
+  const sy = lastRect.height > 0 ? firstRect.height / lastRect.height : 1;
+  el.style.transition = 'none';
+  el.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  void el.offsetWidth;
+  el.style.transition = transition;
+  requestAnimationFrame(() => {
+    el.style.transform = 'translate(0, 0) scale(1)';
+    onPlay?.();
+  });
+}
+
+function fitWithin(naturalW: number, naturalH: number, maxW: number, maxH: number) {
+  const aspect = naturalW / Math.max(naturalH, 1);
+  let width = maxW;
+  let height = width / aspect;
+  if (height > maxH) {
+    height = maxH;
+    width = height * aspect;
+  }
+  return { width, height };
+}
+
 const clamp = (v: number, min: number, max: number) => Math.min(Math.max(v, min), max);
 const normalizeAngle = (d: number) => ((d % 360) + 360) % 360;
 const wrapAngleSigned = (deg: number) => {
@@ -173,7 +208,8 @@ export default function DomeGallery({
   const cancelTapRef = useRef(false);
   const movedRef = useRef(false);
   const inertiaRAF = useRef<number | null>(null);
-  const autoRotateRAF = useRef<number | null>(null); // 进场自动旋转动画
+  const autoRotateRAF = useRef<number | null>(null);
+  const hoverPausedRef = useRef(false);
   const pointerTypeRef = useRef<'mouse' | 'pen' | 'touch'>('mouse');
   const tapTargetRef = useRef<HTMLElement | null>(null);
   const openingRef = useRef(false);
@@ -266,7 +302,10 @@ export default function DomeGallery({
         const frameR = frameRef.current.getBoundingClientRect();
         const mainR = mainRef.current.getBoundingClientRect();
 
-        const hasCustomSize = openedImageWidth && openedImageHeight;
+        const hasCustomSize =
+          Boolean(openedImageWidth && openedImageHeight) &&
+          openedImageWidth !== 'auto' &&
+          openedImageHeight !== 'auto';
         if (hasCustomSize) {
           const tempDiv = document.createElement('div');
           tempDiv.style.cssText = `position: absolute; width: ${openedImageWidth}; height: ${openedImageHeight}; visibility: hidden;`;
@@ -306,33 +345,66 @@ export default function DomeGallery({
   useEffect(() => {
     applyTransform(rotationRef.current.x, rotationRef.current.y);
 
-    // 进场自动旋转动画
-    let velocity = 0.5; // 初始旋转速度（度/帧）
-    const damping = 0.98; // 阻尼系数
-    const stopThreshold = 0.01; // 停止阈值
+    const root = rootRef.current;
+    if (!root) return;
 
-    const autoRotate = () => {
-      velocity *= damping;
+    const SPEED_DEG_PER_SEC = 6;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let last = 0;
 
-      if (Math.abs(velocity) < stopThreshold) {
-        autoRotateRAF.current = null;
+    const shouldSpin = () =>
+      !reduced.matches &&
+      !hoverPausedRef.current &&
+      !draggingRef.current &&
+      !inertiaRAF.current &&
+      !focusedElRef.current &&
+      root.getAttribute('data-enlarging') !== 'true';
+
+    const tick = (now: number) => {
+      autoRotateRAF.current = requestAnimationFrame(tick);
+      if (!shouldSpin()) {
+        last = 0;
         return;
       }
-
-      const nextY = rotationRef.current.y + velocity;
+      if (!last) last = now;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      const nextY = rotationRef.current.y - SPEED_DEG_PER_SEC * dt;
       rotationRef.current = { x: rotationRef.current.x, y: nextY };
       applyTransform(rotationRef.current.x, nextY);
-
-      autoRotateRAF.current = requestAnimationFrame(autoRotate);
     };
 
-    // 延迟 500ms 启动，让用户先看到画廊
-    const startTimer = setTimeout(() => {
-      autoRotateRAF.current = requestAnimationFrame(autoRotate);
-    }, 500);
+    const onEnter = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+      hoverPausedRef.current = true;
+    };
+    const onLeave = (event: PointerEvent) => {
+      if (event.pointerType !== 'mouse' && event.pointerType !== 'pen') return;
+      hoverPausedRef.current = false;
+    };
+
+    root.addEventListener('pointerenter', onEnter);
+    root.addEventListener('pointerleave', onLeave);
+    if (!reduced.matches) {
+      autoRotateRAF.current = requestAnimationFrame(tick);
+    }
+    const onReducedChange = () => {
+      if (reduced.matches) {
+        if (autoRotateRAF.current) cancelAnimationFrame(autoRotateRAF.current);
+        autoRotateRAF.current = null;
+        last = 0;
+        return;
+      }
+      if (!autoRotateRAF.current) {
+        autoRotateRAF.current = requestAnimationFrame(tick);
+      }
+    };
+    reduced.addEventListener('change', onReducedChange);
 
     return () => {
-      clearTimeout(startTimer);
+      root.removeEventListener('pointerenter', onEnter);
+      root.removeEventListener('pointerleave', onLeave);
+      reduced.removeEventListener('change', onReducedChange);
       if (autoRotateRAF.current) {
         cancelAnimationFrame(autoRotateRAF.current);
         autoRotateRAF.current = null;
@@ -386,12 +458,6 @@ export default function DomeGallery({
       onDragStart: ({ event }) => {
         if (focusedElRef.current) return;
         stopInertia();
-
-        // 停止进场自动旋转动画
-        if (autoRotateRAF.current) {
-          cancelAnimationFrame(autoRotateRAF.current);
-          autoRotateRAF.current = null;
-        }
 
         const evt = event as PointerEvent;
         pointerTypeRef.current = (evt.pointerType as any) || 'mouse';
@@ -536,9 +602,10 @@ export default function DomeGallery({
         border-radius: ${openedImageBorderRadius};
         overflow: hidden;
         box-shadow: 0 10px 30px rgba(0,0,0,.35);
-        transition: all ${enlargeTransitionMs}ms ease-out;
+        transition: ${enlargeOverlayTransition(enlargeTransitionMs)};
         pointer-events: none;
         margin: 0;
+        transform-origin: top left;
         transform: none;
         filter: ${grayscale ? 'grayscale(1)' : 'none'};
         background: rgba(0, 0, 0, 0.95);
@@ -554,15 +621,20 @@ export default function DomeGallery({
       overlay.remove();
       rootRef.current!.appendChild(animatingOverlay);
 
-      void animatingOverlay.getBoundingClientRect();
-
-      requestAnimationFrame(() => {
-        animatingOverlay.style.left = originalPosRelativeToRoot.left + 'px';
-        animatingOverlay.style.top = originalPosRelativeToRoot.top + 'px';
-        animatingOverlay.style.width = originalPosRelativeToRoot.width + 'px';
-        animatingOverlay.style.height = originalPosRelativeToRoot.height + 'px';
-        animatingOverlay.style.opacity = '0';
-      });
+      const firstCloseRect = animatingOverlay.getBoundingClientRect();
+      animatingOverlay.style.transition = 'none';
+      animatingOverlay.style.left = originalPosRelativeToRoot.left + 'px';
+      animatingOverlay.style.top = originalPosRelativeToRoot.top + 'px';
+      animatingOverlay.style.width = originalPosRelativeToRoot.width + 'px';
+      animatingOverlay.style.height = originalPosRelativeToRoot.height + 'px';
+      playFlipToIdentity(
+        animatingOverlay,
+        firstCloseRect,
+        enlargeOverlayTransition(enlargeTransitionMs),
+        () => {
+          animatingOverlay.style.opacity = '0';
+        }
+      );
 
       const cleanup = () => {
         animatingOverlay.remove();
@@ -584,7 +656,7 @@ export default function DomeGallery({
 
           requestAnimationFrame(() => {
             parent.style.transition = '';
-            el.style.transition = 'opacity 300ms ease-out';
+            el.style.transition = `opacity 300ms ${ENLARGE_EASE}`;
 
             requestAnimationFrame(() => {
               el.style.opacity = '1';
@@ -668,150 +740,43 @@ export default function DomeGallery({
     };
     el.style.visibility = 'hidden';
     (el.style as any).zIndex = 0;
+
+    const sourceImg = el.querySelector('img') as HTMLImageElement | null;
+    const naturalW = sourceImg?.naturalWidth || tileR.width;
+    const naturalH = sourceImg?.naturalHeight || tileR.height;
+    const { width: targetW, height: targetH } = fitWithin(naturalW, naturalH, frameR.width, frameR.height);
+    const left = frameR.left - mainR.left + (frameR.width - targetW) / 2;
+    const top = frameR.top - mainR.top + (frameR.height - targetH) / 2;
+
     const overlay = document.createElement('div');
     overlay.className = 'enlarge';
-    overlay.style.cssText = `position:absolute; left:${frameR.left - mainR.left}px; top:${frameR.top - mainR.top}px; width:${frameR.width}px; height:${frameR.height}px; opacity:0; z-index:30; will-change:transform,opacity; transform-origin:top left; transition:transform ${enlargeTransitionMs}ms ease, opacity ${enlargeTransitionMs}ms ease; border-radius:${openedImageBorderRadius}; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); cursor: pointer; pointer-events: auto; background: rgba(0, 0, 0, 0.95);`;
+    overlay.style.cssText = `position:absolute; left:${left}px; top:${top}px; width:${targetW}px; height:${targetH}px; opacity:0; z-index:30; will-change:transform,opacity; transform-origin:top left; transition:${enlargeOverlayTransition(enlargeTransitionMs)}; border-radius:${openedImageBorderRadius}; overflow:hidden; box-shadow:0 10px 30px rgba(0,0,0,.35); cursor:pointer; pointer-events:auto; background:transparent;`;
 
-    const rawSrc = parent.dataset.src || (el.querySelector('img') as HTMLImageElement)?.src || '';
-    const rawAlt = parent.dataset.alt || (el.querySelector('img') as HTMLImageElement)?.alt || '';
+    const rawSrc = parent.dataset.src || sourceImg?.src || '';
+    const rawAlt = parent.dataset.alt || sourceImg?.alt || '';
     const img = document.createElement('img');
     img.src = rawSrc;
     img.alt = rawAlt;
-    img.style.cssText = `width:100%; height:100%; object-fit:contain; filter:${grayscale ? 'grayscale(1)' : 'none'};`;
+    img.style.cssText = `width:100%; height:100%; object-fit:cover; filter:${grayscale ? 'grayscale(1)' : 'none'};`;
     overlay.appendChild(img);
 
-    // 添加点击事件：放大状态下再次点击跳转详情页
     overlay.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (assetId) {
-        router.push(`/assets/${assetId}`);
-      }
+      if (assetId) router.push(`/assets/${assetId}`);
     });
 
     viewerRef.current!.appendChild(overlay);
-    const tx0 = tileR.left - frameR.left;
-    const ty0 = tileR.top - frameR.top;
-    const sx0 = tileR.width / frameR.width;
-    const sy0 = tileR.height / frameR.height;
-
-    const validSx0 = isFinite(sx0) && sx0 > 0 ? sx0 : 1;
-    const validSy0 = isFinite(sy0) && sy0 > 0 ? sy0 : 1;
-
-    overlay.style.transform = `translate(${tx0}px, ${ty0}px) scale(${validSx0}, ${validSy0})`;
-    setTimeout(() => {
+    const tx0 = tileR.left - (mainR.left + left);
+    const ty0 = tileR.top - (mainR.top + top);
+    const sx0 = targetW > 0 ? tileR.width / targetW : 1;
+    const sy0 = targetH > 0 ? tileR.height / targetH : 1;
+    overlay.style.transform = `translate(${tx0}px, ${ty0}px) scale(${sx0}, ${sy0})`;
+    requestAnimationFrame(() => {
       if (!overlay.parentElement) return;
       overlay.style.opacity = '1';
-      overlay.style.transform = 'translate(0px, 0px) scale(1, 1)';
+      overlay.style.transform = 'translate(0, 0) scale(1)';
       rootRef.current?.setAttribute('data-enlarging', 'true');
-    }, 16);
-
-    const wantsResize = openedImageWidth && openedImageHeight && openedImageWidth !== 'auto' && openedImageHeight !== 'auto';
-    if (wantsResize) {
-      const onFirstEnd = (ev: TransitionEvent) => {
-        if (ev.propertyName !== 'transform') return;
-        overlay.removeEventListener('transitionend', onFirstEnd);
-        const prevTransition = overlay.style.transition;
-        overlay.style.transition = 'none';
-        const tempWidth = openedImageWidth || `${frameR.width}px`;
-        const tempHeight = openedImageHeight || `${frameR.height}px`;
-        overlay.style.width = tempWidth;
-        overlay.style.height = tempHeight;
-        const newRect = overlay.getBoundingClientRect();
-        overlay.style.width = frameR.width + 'px';
-        overlay.style.height = frameR.height + 'px';
-        void overlay.offsetWidth;
-        overlay.style.transition = `left ${enlargeTransitionMs}ms ease, top ${enlargeTransitionMs}ms ease, width ${enlargeTransitionMs}ms ease, height ${enlargeTransitionMs}ms ease`;
-        const centeredLeft = frameR.left - mainR.left + (frameR.width - newRect.width) / 2;
-        const centeredTop = frameR.top - mainR.top + (frameR.height - newRect.height) / 2;
-        requestAnimationFrame(() => {
-          overlay.style.left = `${centeredLeft}px`;
-          overlay.style.top = `${centeredTop}px`;
-          overlay.style.width = tempWidth;
-          overlay.style.height = tempHeight;
-        });
-        const cleanupSecond = () => {
-          overlay.removeEventListener('transitionend', cleanupSecond);
-          overlay.style.transition = prevTransition;
-        };
-        overlay.addEventListener('transitionend', cleanupSecond, {
-          once: true,
-        });
-      };
-      overlay.addEventListener('transitionend', onFirstEnd);
-    } else if (openedImageWidth === 'auto' || openedImageHeight === 'auto') {
-      // 动态计算尺寸：根据图片宽高比
-      const imgElement = overlay.querySelector('img') as HTMLImageElement;
-      const onImageLoad = () => {
-        const naturalWidth = imgElement.naturalWidth;
-        const naturalHeight = imgElement.naturalHeight;
-
-        if (naturalWidth === 0 || naturalHeight === 0) return;
-
-        const aspectRatio = naturalWidth / naturalHeight;
-        const maxWidth = 400;  // 最大宽度
-        const maxHeight = 300; // 最大高度
-
-        let targetWidth: number;
-        let targetHeight: number;
-
-        if (aspectRatio > 1) {
-          // 横图
-          targetWidth = Math.min(maxWidth, naturalWidth);
-          targetHeight = targetWidth / aspectRatio;
-          if (targetHeight > maxHeight) {
-            targetHeight = maxHeight;
-            targetWidth = targetHeight * aspectRatio;
-          }
-        } else {
-          // 竖图或方图
-          targetHeight = Math.min(maxHeight, naturalHeight);
-          targetWidth = targetHeight * aspectRatio;
-          if (targetWidth > maxWidth) {
-            targetWidth = maxWidth;
-            targetHeight = targetWidth / aspectRatio;
-          }
-        }
-
-        const onFirstEnd = (ev: TransitionEvent) => {
-          if (ev.propertyName !== 'transform') return;
-          overlay.removeEventListener('transitionend', onFirstEnd);
-          const prevTransition = overlay.style.transition;
-          overlay.style.transition = 'none';
-
-          overlay.style.width = `${targetWidth}px`;
-          overlay.style.height = `${targetHeight}px`;
-          overlay.style.width = frameR.width + 'px';
-          overlay.style.height = frameR.height + 'px';
-          void overlay.offsetWidth;
-
-          overlay.style.transition = `left ${enlargeTransitionMs}ms ease, top ${enlargeTransitionMs}ms ease, width ${enlargeTransitionMs}ms ease, height ${enlargeTransitionMs}ms ease`;
-          const centeredLeft = frameR.left - mainR.left + (frameR.width - targetWidth) / 2;
-          const centeredTop = frameR.top - mainR.top + (frameR.height - targetHeight) / 2;
-
-          requestAnimationFrame(() => {
-            overlay.style.left = `${centeredLeft}px`;
-            overlay.style.top = `${centeredTop}px`;
-            overlay.style.width = `${targetWidth}px`;
-            overlay.style.height = `${targetHeight}px`;
-          });
-
-          const cleanupSecond = () => {
-            overlay.removeEventListener('transitionend', cleanupSecond);
-            overlay.style.transition = prevTransition;
-          };
-          overlay.addEventListener('transitionend', cleanupSecond, {
-            once: true,
-          });
-        };
-        overlay.addEventListener('transitionend', onFirstEnd);
-      };
-
-      if (imgElement.complete && imgElement.naturalWidth > 0) {
-        onImageLoad();
-      } else {
-        imgElement.addEventListener('load', onImageLoad, { once: true });
-      }
-    }
+    });
   };
 
   useEffect(() => {
@@ -863,7 +828,7 @@ export default function DomeGallery({
       margin: auto;
       transform-origin: 50% 50%;
       backface-visibility: hidden;
-      transition: transform 300ms;
+      transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
       transform: rotateY(calc(var(--rot-y) * (var(--offset-x) + ((var(--item-size-x) - 1) / 2)) + var(--rot-y-delta, 0deg)))
                  rotateX(calc(var(--rot-x) * (var(--offset-y) - ((var(--item-size-y) - 1) / 2)) + var(--rot-x-delta, 0deg)))
                  translateZ(var(--radius));
@@ -889,7 +854,7 @@ export default function DomeGallery({
       cursor: pointer;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
-      transition: transform 300ms;
+      transition: transform 300ms cubic-bezier(0.23, 1, 0.32, 1);
       pointer-events: auto;
       -webkit-transform: translateZ(0);
       transform: translateZ(0);
@@ -994,36 +959,35 @@ export default function DomeGallery({
             </div>
           </div>
 
-          {/* 径向渐变遮罩 */}
+          {/* 径向暗角：只收最外圈，避免下半球被吃黑 */}
           <div
             className="absolute inset-0 m-auto z-[3] pointer-events-none"
             style={{
-              backgroundImage: `radial-gradient(rgba(235, 235, 235, 0) 65%, var(--overlay-blur-color, ${overlayBlurColor}) 100%)`,
+              backgroundImage: `radial-gradient(circle at 50% 48%, transparent 78%, color-mix(in srgb, var(--overlay-blur-color, ${overlayBlurColor}) 35%, transparent) 100%)`,
             }}
           />
 
-          {/* 边缘模糊遮罩 */}
+          {/* 边缘轻模糊，透明区更大 */}
           <div
             className="absolute inset-0 m-auto z-[3] pointer-events-none"
             style={{
-              WebkitMaskImage: `radial-gradient(rgba(235, 235, 235, 0) 70%, var(--overlay-blur-color, ${overlayBlurColor}) 90%)`,
-              maskImage: `radial-gradient(rgba(235, 235, 235, 0) 70%, var(--overlay-blur-color, ${overlayBlurColor}) 90%)`,
-              backdropFilter: 'blur(3px)',
+              WebkitMaskImage: 'radial-gradient(circle at 50% 48%, transparent 82%, #000 100%)',
+              maskImage: 'radial-gradient(circle at 50% 48%, transparent 82%, #000 100%)',
+              backdropFilter: 'blur(2px)',
             }}
           />
 
-          {/* 顶部渐变 */}
+          {/* 顶/底只做短淡出，接到页面底色 */}
           <div
-            className="absolute left-0 right-0 top-0 h-[120px] z-[5] pointer-events-none rotate-180"
+            className="absolute left-0 right-0 top-0 h-10 z-[5] pointer-events-none rotate-180"
             style={{
-              background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))`,
+              background: `linear-gradient(to bottom, transparent, color-mix(in srgb, var(--overlay-blur-color, ${overlayBlurColor}) 32%, transparent))`,
             }}
           />
-          {/* 底部渐变 */}
           <div
-            className="absolute left-0 right-0 bottom-0 h-[120px] z-[5] pointer-events-none"
+            className="absolute left-0 right-0 bottom-0 h-10 z-[5] pointer-events-none"
             style={{
-              background: `linear-gradient(to bottom, transparent, var(--overlay-blur-color, ${overlayBlurColor}))`,
+              background: `linear-gradient(to bottom, transparent, color-mix(in srgb, var(--overlay-blur-color, ${overlayBlurColor}) 32%, transparent))`,
             }}
           />
 

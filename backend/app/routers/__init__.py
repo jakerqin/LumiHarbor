@@ -22,6 +22,8 @@ from .ingestion.upload import router as ingestion_upload_router
 from .management import router as management_router
 from .home import router as home_router
 from .tags import router as tags_router
+from .templates import router as templates_router
+from .tasks import router as tasks_router
 from .notes import router as notes_router
 from .map import router as map_router
 
@@ -36,6 +38,8 @@ __all__ = [
     'management_router',
     'home_router',
     'tags_router',
+    'templates_router',
+    'tasks_router',
     'notes_router',
     'map_router',
 ]

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
+import { usePrefersReducedMotion } from '@/lib/hooks/usePrefersReducedMotion';
 
 type BlurTextProps = {
   text?: string;
@@ -21,12 +22,17 @@ export default function BlurText({
   stepDuration = 0.35,
 }: BlurTextProps) {
   const ref = useRef<HTMLParagraphElement>(null);
+  const reducedMotion = usePrefersReducedMotion();
   const elements = animateBy === 'words' ? text.split(' ') : text.split('');
 
   useEffect(() => {
     const root = ref.current;
     if (!root) return;
     const spans = root.querySelectorAll('span');
+    if (reducedMotion) {
+      gsap.set(spans, { filter: 'blur(0px)', opacity: 1, y: 0 });
+      return;
+    }
     const fromY = direction === 'top' ? -50 : 50;
     gsap.fromTo(
       spans,
@@ -40,7 +46,7 @@ export default function BlurText({
         ease: 'power2.out',
       }
     );
-  }, [delay, direction, stepDuration, text]);
+  }, [delay, direction, reducedMotion, stepDuration, text]);
 
   return (
     <p ref={ref} className={`blur-text ${className} flex flex-wrap`}>

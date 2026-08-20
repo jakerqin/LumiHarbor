@@ -31,7 +31,7 @@ export function MobileAssetPicker({ items, disabled, onAddFiles, onRemove }: Mob
         <button
           type="button"
           onClick={handlePick}
-          className="w-full h-40 rounded-2xl border-2 border-dashed border-white/15 hover:border-primary/40 active:scale-[0.99] transition-all flex flex-col items-center justify-center gap-2 text-foreground-secondary"
+          className="w-full h-40 rounded-2xl border-2 border-dashed border-white/15 hover:border-primary/40 active:scale-[0.97] transition-[border-color,transform] duration-200 flex flex-col items-center justify-center gap-2 text-foreground-secondary"
         >
           <Upload size={32} />
           <span className="text-base font-medium">选择照片 / 视频</span>

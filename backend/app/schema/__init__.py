@@ -17,7 +17,30 @@ Schema 说明：
 """
 from .asset import AssetBase, AssetOut, AssetsPageResponse, AssetBatchDeleteRequest
 from .common import ApiResponse
-from .tag_definition import TagDefinitionOut
+from .tag_definition import (
+    TagDefinitionOut,
+    TagDefinitionCreate,
+    TagDefinitionUpdate,
+    TagMappingOut,
+    TagMappingCreate,
+    TagMappingUpdate,
+    AssetTagUpsert,
+)
+from .template import (
+    TemplateOut,
+    TemplateCreate,
+    TemplateUpdate,
+    TemplateFieldOut,
+    TemplateFieldCreate,
+    TemplateFieldUpdate,
+    TemplateResolveOut,
+)
+from .task_definition import (
+    TaskDefinitionOut,
+    TaskDefinitionUpdate,
+    TaskLogOut,
+    BatchPhashRequest,
+)
 from .album import (
     AlbumCreate,
     AlbumUpdate,
@@ -53,6 +76,23 @@ __all__ = [
     'AssetBatchDeleteRequest',
     'ApiResponse',
     'TagDefinitionOut',
+    'TagDefinitionCreate',
+    'TagDefinitionUpdate',
+    'TagMappingOut',
+    'TagMappingCreate',
+    'TagMappingUpdate',
+    'AssetTagUpsert',
+    'TemplateOut',
+    'TemplateCreate',
+    'TemplateUpdate',
+    'TemplateFieldOut',
+    'TemplateFieldCreate',
+    'TemplateFieldUpdate',
+    'TemplateResolveOut',
+    'TaskDefinitionOut',
+    'TaskDefinitionUpdate',
+    'TaskLogOut',
+    'BatchPhashRequest',
     'AlbumCreate',
     'AlbumUpdate',
     'AlbumOut',

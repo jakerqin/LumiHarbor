@@ -4,6 +4,7 @@ import {
   FolderOpen,
   FileText,
   Map,
+  Settings,
   UploadCloud,
   type LucideIcon,
 } from 'lucide-react';
@@ -22,6 +23,7 @@ export const MAIN_NAV: NavItem[] = [
   { href: '/albums', label: '相册', shortcut: 'L', icon: FolderOpen },
   { href: '/notes', label: '笔记', shortcut: 'N', icon: FileText },
   { href: '/map', label: '地图', shortcut: 'M', icon: Map },
+  { href: '/settings', label: '设置', shortcut: 'S', icon: Settings },
   { href: '/mobile-upload', label: '快传', shortcut: 'U', icon: UploadCloud },
 ];
 

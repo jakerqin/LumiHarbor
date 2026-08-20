@@ -218,7 +218,10 @@ export function ImageViewer({ src, alt, className }: ImageViewerProps) {
           src={src}
           alt={alt}
           className={cn(
-            'w-full max-h-[72vh] object-contain transition-transform duration-100',
+            'w-full max-h-[72vh] object-contain',
+            isDragging
+              ? '[transition:none]'
+              : '[transition:transform_160ms_cubic-bezier(0.23,1,0.32,1)]',
             !isLoaded && 'opacity-0'
           )}
           style={{

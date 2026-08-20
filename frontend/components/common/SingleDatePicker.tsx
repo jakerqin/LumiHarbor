@@ -59,7 +59,7 @@ export function SingleDatePicker({
 
       {isOpen && (
         // 固定舒适宽度并相对触发框居中，避免半宽栅格里挤扁或单边溢出
-        <div className="absolute left-1/2 top-full z-50 mt-2 w-[18.5rem] -translate-x-1/2 rounded-2xl border border-white/10 bg-background-secondary/95 p-4 shadow-2xl backdrop-blur-2xl">
+        <div className="absolute left-1/2 top-full z-50 mt-2 w-[18.5rem] -translate-x-1/2 rounded-2xl border border-white/10 bg-background-secondary p-4 text-foreground shadow-[0_16px_40px_rgba(0,0,0,0.55)]">
           <DayPicker
             mode="single"
             selected={value}

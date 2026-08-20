@@ -12,9 +12,10 @@ class TagDefinition(Base):
         id: 标签定义ID
         tag_key: 标签键名（唯一标识）
         tag_name: 标签显示名称
-        input_type: 输入组件类型（1:TextInput、2:TreeSelect、3:DateRangePicker）
+        input_type: 输入组件类型（1:TextInput、3:DateRangePicker、4:SingleSelect、5:MultiSelect）
         extra_info: 扩展信息（JSON格式，包含 min/max/options/placeholder 等）
         description: 标签描述
+        source: 来源（system 系统元数据 / user 用户语义标签）
         created_at: 创建时间
         updated_at: 更新时间
         is_deleted: 是否删除（软删除标记）
@@ -43,7 +44,7 @@ class TagDefinition(Base):
         Integer,
         nullable=True,
         index=True,
-        comment='输入组件类型：1:TextInput、2:TreeSelect、3:DateRangePicker'
+        comment='输入组件类型：1:TextInput、3:DateRangePicker、4:SingleSelect、5:MultiSelect'
     )
     extra_info = Column(
         JSON,
@@ -53,6 +54,13 @@ class TagDefinition(Base):
 
     # 元信息
     description = Column(Text, nullable=True, comment='标签描述')
+    source = Column(
+        String(20),
+        nullable=False,
+        default='system',
+        index=True,
+        comment='来源: system 系统元数据, user 用户语义标签'
+    )
 
     # 时间戳
     created_at = Column(DateTime, server_default=func.now(), comment='创建时间')
