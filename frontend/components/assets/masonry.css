@@ -7,7 +7,7 @@
 /* 瀑布流元素：绝对定位，由 GSAP 控制位置 */
 .masonry-item {
   position: absolute;
-  will-change: transform, width, height, opacity;
+  will-change: transform, opacity;
   cursor: pointer;
   top: 0;
   left: 0;

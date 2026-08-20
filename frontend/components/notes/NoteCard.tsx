@@ -71,14 +71,14 @@ export function NoteCard({ note, onClick, onDelete }: NoteCardProps) {
       onMouseLeave={handleMouseLeave}
       className="group cursor-pointer relative"
     >
-      <div className="p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
+      <div className="p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-colors duration-200">
         {/* 封面图区域（始终显示） */}
         <div className="relative aspect-video rounded-lg overflow-hidden mb-4">
           {coverUrl ? (
             <img
               src={coverUrl}
               alt={note.title ?? ''}
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+              className="w-full h-full object-cover transition-transform duration-300 motion-group-hover-scale-110"
               style={{
                 objectPosition: `${note.cover_position_x ?? 50}% ${note.cover_position_y ?? 50}%`,
               }}

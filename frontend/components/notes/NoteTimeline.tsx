@@ -144,7 +144,7 @@ export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
                     <div className="absolute left-[-48px] top-6 w-8 h-0.5 bg-gradient-to-r from-primary/50 to-transparent" />
 
                     {/* 笔记卡片 */}
-                    <div className="relative p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all">
+                    <div className="relative p-6 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-colors duration-200">
                       {/* 左右布局：左侧封面图，右侧文案 */}
                       <div className="flex gap-6">
                         {/* 封面图区域（始终显示） */}
@@ -153,7 +153,7 @@ export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
                             <img
                               src={coverUrl}
                               alt={note.title ?? ''}
-                              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-110"
+                              className="w-full h-full object-cover transition-transform duration-300 motion-group-hover-scale-110"
                               style={{
                                 objectPosition: `${note.cover_position_x ?? 50}% ${note.cover_position_y ?? 50}%`,
                               }}
@@ -244,7 +244,7 @@ export function NoteTimeline({ onNoteClick, onNoteDelete }: NoteTimelineProps) {
         <div className="mt-12 flex justify-center">
           <button
             onClick={() => setPage((p) => p + 1)}
-            className="px-6 py-3 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-all"
+            className="px-6 py-3 bg-background-secondary hover:bg-background-tertiary border border-white/10 hover:border-primary/50 rounded-xl transition-colors duration-200"
           >
             加载更多
           </button>

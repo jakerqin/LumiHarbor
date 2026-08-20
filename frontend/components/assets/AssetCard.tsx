@@ -18,7 +18,7 @@ interface AssetCardProps {
   disableHoverEffects?: boolean;
 }
 
-const ROTATE_AMPLITUDE = 14;
+const OVERLAY_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
 
 export function AssetCard({
   asset,
@@ -45,9 +45,6 @@ export function AssetCard({
 
   useEffect(() => {
     if (!disableHoverEffects) return;
-    if (innerRef.current) {
-      gsap.set(innerRef.current, { rotateX: 0, rotateY: 0, scale: 1 });
-    }
     if (overlayRef.current) {
       gsap.set(overlayRef.current, { opacity: 0 });
     }
@@ -100,40 +97,17 @@ export function AssetCard({
     },
   });
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (disableHoverEffects || !innerRef.current) return;
-    const rect = innerRef.current.getBoundingClientRect();
-    const offsetX = e.clientX - rect.left - rect.width / 2;
-    const offsetY = e.clientY - rect.top - rect.height / 2;
-    gsap.to(innerRef.current, {
-      rotateX: (offsetY / (rect.height / 2)) * -ROTATE_AMPLITUDE,
-      rotateY: (offsetX / (rect.width / 2)) * ROTATE_AMPLITUDE,
-      scale: 1.05,
-      duration: 0.3,
-      overwrite: 'auto',
-    });
-  };
-
   const handleMouseEnter = () => {
     if (disableHoverEffects) return;
     if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 1, duration: 0.25, overwrite: 'auto' });
+      gsap.to(overlayRef.current, { opacity: 1, duration: 0.2, ease: OVERLAY_EASE, overwrite: 'auto' });
     }
   };
 
   const handleMouseLeave = () => {
     if (disableHoverEffects) return;
-    if (innerRef.current) {
-      gsap.to(innerRef.current, {
-        rotateX: 0,
-        rotateY: 0,
-        scale: 1,
-        duration: 0.4,
-        overwrite: 'auto',
-      });
-    }
     if (overlayRef.current) {
-      gsap.to(overlayRef.current, { opacity: 0, duration: 0.25, overwrite: 'auto' });
+      gsap.to(overlayRef.current, { opacity: 0, duration: 0.2, ease: OVERLAY_EASE, overwrite: 'auto' });
     }
   };
 
@@ -182,7 +156,6 @@ export function AssetCard({
     <div
       ref={cardRef}
       onClick={() => onClick?.()}
-      onMouseMove={disableHoverEffects ? undefined : handleMouseMove}
       onMouseEnter={disableHoverEffects ? undefined : handleMouseEnter}
       onMouseLeave={disableHoverEffects ? undefined : handleMouseLeave}
       className="group cursor-pointer relative"
@@ -252,7 +225,7 @@ export function AssetCard({
           type="button"
           onClick={handleFavoriteClick}
           disabled={favoriteMutation.isPending}
-          className={`group/fav w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+          className={`group w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
             isFavorited
               ? 'bg-red-500/10 hover:bg-red-500/20'
               : 'bg-black/20 hover:bg-black/35'
@@ -261,10 +234,10 @@ export function AssetCard({
         >
           <Heart
             size={14}
-            className={`transition-all duration-200 ${
+            className={`transition-transform duration-200 ${
               isFavorited
                 ? 'fill-red-500 text-red-500'
-                : 'text-white group-hover/fav:scale-110'
+                : 'text-white motion-group-hover-scale-110'
             } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
           />
         </button>

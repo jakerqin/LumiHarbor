@@ -160,6 +160,8 @@ const ParticleBackground: React.FC<ParticleBackgroundProps> = ({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+    // 减动：不挂 WebGL、不跑常驻 rAF
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     // 创建 WebGL 渲染器
     const renderer = new Renderer({

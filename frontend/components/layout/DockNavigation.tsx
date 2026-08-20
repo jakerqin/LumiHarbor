@@ -4,7 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { gsap } from 'gsap';
 import { cn } from '@/lib/utils/cn';
+import { usePrefersReducedMotion } from '@/lib/hooks/usePrefersReducedMotion';
 import { MAIN_NAV, isNavActive, type NavItem } from './navItems';
+
+const EASE_OUT = 'cubic-bezier(0.23, 1, 0.32, 1)';
+const TOOLTIP_MS = 0.15;
+const TOOLTIP_FOLLOWUP_MS = 0;
+const HOVER_SCALE = 1.02;
+const HOVER_DURATION = 0.16;
+const PRESS_SCALE = 0.97;
+const PRESS_DURATION = 0.16;
+const DOCK_SLIDE = 0.25;
 
 /** 桌面右侧边缘唤出 Dock；移动端隐藏（见 MobileBottomNav） */
 export function DockNavigation() {
@@ -16,15 +26,22 @@ export function DockNavigation() {
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const tooltipRefs = useRef<(HTMLDivElement | null)[]>([]);
   const indicatorRef = useRef<HTMLDivElement>(null);
+  const lastTooltipAt = useRef(0);
+  const reducedMotion = usePrefersReducedMotion();
 
   useEffect(() => {
     if (!navRef.current) return;
+    if (reducedMotion) {
+      gsap.set(navRef.current, { x: isVisible ? '0%' : '100%' });
+      return;
+    }
     gsap.to(navRef.current, {
       x: isVisible ? '0%' : '100%',
-      duration: 0.4,
-      ease: 'power2.out',
+      duration: DOCK_SLIDE,
+      ease: EASE_OUT,
+      overwrite: 'auto',
     });
-  }, [isVisible]);
+  }, [isVisible, reducedMotion]);
 
   useEffect(() => {
     const TRIGGER_EXPAND = 100;
@@ -58,14 +75,20 @@ export function DockNavigation() {
     tooltipRefs.current.forEach((tooltip, index) => {
       if (!tooltip) return;
       if (hoveredIndex === index) {
-        gsap.fromTo(
-          tooltip,
-          { opacity: 0, x: 10 },
-          { opacity: 1, x: 0, duration: 0.2, ease: 'power2.out' }
-        );
-      } else {
-        gsap.to(tooltip, { opacity: 0, x: 10, duration: 0.15, ease: 'power2.in' });
+        const now = performance.now();
+        const duration =
+          now - lastTooltipAt.current < 400 ? TOOLTIP_FOLLOWUP_MS : TOOLTIP_MS;
+        lastTooltipAt.current = now;
+        gsap.to(tooltip, { opacity: 1, x: 0, duration, ease: EASE_OUT, overwrite: 'auto' });
+        return;
       }
+      gsap.to(tooltip, {
+        opacity: 0,
+        x: 10,
+        duration: TOOLTIP_MS,
+        ease: EASE_OUT,
+        overwrite: 'auto',
+      });
     });
   }, [hoveredIndex]);
 
@@ -85,20 +108,26 @@ export function DockNavigation() {
     const activeButton = buttonRefs.current[idx];
     if (!activeButton) return;
     const buttonRect = activeButton.getBoundingClientRect();
+    const y = buttonRect.top + buttonRect.height / 2 - 12;
+    if (reducedMotion) {
+      gsap.set(indicatorRef.current, { y });
+      return;
+    }
     gsap.to(indicatorRef.current, {
-      top: buttonRect.top + buttonRect.height / 2 - 12,
-      duration: 0.3,
-      ease: 'power2.out',
+      y,
+      duration: 0.2,
+      ease: EASE_OUT,
+      overwrite: 'auto',
     });
-  }, [pathname]);
+  }, [pathname, reducedMotion]);
 
   return (
     <div className="hidden md:block">
       <div
         ref={indicatorRef}
         className={cn(
-          'fixed right-0 w-1 h-6 bg-primary rounded-l-full shadow-[0_0_12px_rgba(212,180,131,0.35)]',
-          'transition-all duration-300 z-40'
+          'fixed right-0 top-0 w-1 h-6 bg-primary rounded-l-full shadow-[0_0_12px_rgba(212,180,131,0.35)]',
+          'z-40'
         )}
         style={{
           display: MAIN_NAV.some((item) => isNavActive(item.href, pathname)) ? 'block' : 'none',
@@ -130,18 +159,40 @@ export function DockNavigation() {
                     )}
                     onClick={() => handleClick(item)}
                     onMouseEnter={() => {
-                      animateButton(index, { x: -8, scale: 1.05, duration: 0.3, ease: 'power2.out' });
+                      animateButton(index, {
+                        x: -8,
+                        scale: HOVER_SCALE,
+                        duration: HOVER_DURATION,
+                        ease: EASE_OUT,
+                        overwrite: 'auto',
+                      });
                       setHoveredIndex(index);
                     }}
                     onMouseLeave={() => {
-                      animateButton(index, { x: 0, scale: 1, duration: 0.3, ease: 'power2.out' });
+                      animateButton(index, {
+                        x: 0,
+                        scale: 1,
+                        duration: HOVER_DURATION,
+                        ease: EASE_OUT,
+                        overwrite: 'auto',
+                      });
                       setHoveredIndex(null);
                     }}
                     onMouseDown={() =>
-                      animateButton(index, { scale: 0.95, duration: 0.1, ease: 'power2.out' })
+                      animateButton(index, {
+                        scale: PRESS_SCALE,
+                        duration: PRESS_DURATION,
+                        ease: EASE_OUT,
+                        overwrite: 'auto',
+                      })
                     }
                     onMouseUp={() =>
-                      animateButton(index, { scale: 1.05, duration: 0.1, ease: 'power2.out' })
+                      animateButton(index, {
+                        scale: HOVER_SCALE,
+                        duration: PRESS_DURATION,
+                        ease: EASE_OUT,
+                        overwrite: 'auto',
+                      })
                     }
                   >
                     <Icon
@@ -158,10 +209,7 @@ export function DockNavigation() {
                       tooltipRefs.current[index] = el;
                     }}
                     className="absolute right-16 top-1/2 -translate-y-1/2 px-3 py-2 bg-black/90 backdrop-blur-sm text-white text-sm rounded-lg whitespace-nowrap shadow-lg border border-white/10 pointer-events-none"
-                    style={{
-                      opacity: 0,
-                      display: hoveredIndex === index ? 'block' : 'none',
-                    }}
+                    style={{ opacity: 0 }}
                   >
                     {item.label}
                     <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-white/10 rounded">

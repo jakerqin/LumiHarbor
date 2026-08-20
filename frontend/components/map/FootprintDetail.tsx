@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useQuery } from '@tanstack/react-query';
 import { X, MapPin, Calendar, Image as ImageIcon } from 'lucide-react';
 import { mapApi } from '@/lib/api/map';
-import { cn } from '@/lib/utils/cn';
 
 interface FootprintDetailProps {
   footprintId: string | null;
@@ -13,12 +12,14 @@ interface FootprintDetailProps {
 }
 
 const ANIMATION_MS = 300;
+const EASE_DRAWER = 'cubic-bezier(0.32, 0.72, 0, 1)';
 
 /** 浅色底图上的详情抽屉：不透明暖色底，保证标题与元信息可读 */
 export function FootprintDetail({ footprintId, onClose }: FootprintDetailProps) {
   const router = useRouter();
   const [renderedId, setRenderedId] = useState<string | null>(null);
   const [exiting, setExiting] = useState(false);
+  const [entered, setEntered] = useState(false);
 
   useEffect(() => {
     if (footprintId) {
@@ -32,10 +33,17 @@ export function FootprintDetail({ footprintId, onClose }: FootprintDetailProps) 
   }, [footprintId, renderedId]);
 
   useEffect(() => {
+    if (!renderedId || exiting) return;
+    const id = requestAnimationFrame(() => setEntered(true));
+    return () => cancelAnimationFrame(id);
+  }, [renderedId, exiting]);
+
+  useEffect(() => {
     if (!exiting) return;
     const timer = window.setTimeout(() => {
       setRenderedId(null);
       setExiting(false);
+      setEntered(false);
     }, ANIMATION_MS);
     return () => window.clearTimeout(timer);
   }, [exiting]);
@@ -55,12 +63,11 @@ export function FootprintDetail({ footprintId, onClose }: FootprintDetailProps) 
       role="presentation"
     >
       <div
-        className={cn(
-          'absolute inset-x-0 bottom-0 flex h-[90dvh] flex-col pb-16 md:pb-4 pointer-events-none duration-300',
-          exiting
-            ? 'animate-out slide-out-to-bottom fill-mode-forwards'
-            : 'animate-in slide-in-from-bottom'
-        )}
+        className="absolute inset-x-0 bottom-0 flex h-[90dvh] flex-col pb-16 md:pb-4 pointer-events-none"
+        style={{
+          transform: exiting || !entered ? 'translateY(100%)' : 'translateY(0)',
+          transition: `transform ${ANIMATION_MS}ms ${EASE_DRAWER}`,
+        }}
       >
         <div
           className="mx-4 mb-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-[#e4d4bc] bg-[#fffaf3]/96 shadow-lg shadow-stone-900/15 backdrop-blur-md pointer-events-auto"

@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import type { Asset } from '@/lib/api/types';
 import type { TemplateField } from '@/lib/api/templates';
 import { assetsApi } from '@/lib/api/assets';
+import { formatDateTime } from '@/lib/utils/datetime';
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '-';
@@ -23,8 +24,8 @@ function readAssetValue(asset: Asset, key: string): string {
     return '图片';
   }
   if (key === 'file_size') return formatFileSize(asset.file_size);
-  if (key === 'shot_at') return asset.shot_at || '-';
-  if (key === 'created_at') return asset.created_at || '-';
+  if (key === 'shot_at') return formatDateTime(asset.shot_at);
+  if (key === 'created_at') return formatDateTime(asset.created_at);
   return '-';
 }
 

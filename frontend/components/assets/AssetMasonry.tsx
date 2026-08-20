@@ -4,7 +4,10 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import type { Asset } from '@/lib/api/types';
 import { AssetCard } from '@/components/assets/AssetCard';
+import { usePrefersReducedMotion } from '@/lib/hooks/usePrefersReducedMotion';
 import './masonry.css';
+
+const MASONRY_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
 
 type BreakpointColumns = {
   default: number;
@@ -101,6 +104,64 @@ interface GridItem {
   h: number;
 }
 
+/** 入场初值：相对终态 ±12px，禁止飞出视口 */
+function getInitialPosition(
+  item: GridItem,
+  animateFrom: AssetMasonryProps['animateFrom']
+): { x: number; y: number } {
+  let direction = animateFrom;
+  if (animateFrom === 'random') {
+    const directions = ['top', 'bottom', 'left', 'right'] as const;
+    direction = directions[Math.floor(Math.random() * directions.length)];
+  }
+  switch (direction) {
+    case 'top':
+      return { x: item.x, y: item.y - 12 };
+    case 'bottom':
+      return { x: item.x, y: item.y + 12 };
+    case 'left':
+      return { x: item.x - 12, y: item.y };
+    case 'right':
+      return { x: item.x + 12, y: item.y };
+    default:
+      return { x: item.x, y: item.y };
+  }
+}
+
+/** 尺寸立即 set；入场/重排只 tween transform + opacity */
+function tweenMasonryItem(
+  selector: string,
+  item: GridItem,
+  animateFrom: AssetMasonryProps['animateFrom'],
+  opts: { duration: number; ease: string; delay: number; isEntry: boolean }
+) {
+  gsap.set(selector, { width: item.w, height: item.h, filter: 'none' });
+  if (!opts.isEntry) {
+    gsap.to(selector, {
+      x: item.x,
+      y: item.y,
+      duration: 0.2,
+      ease: MASONRY_EASE,
+      overwrite: 'auto',
+    });
+    return;
+  }
+  const initialPos = getInitialPosition(item, animateFrom);
+  gsap.fromTo(
+    selector,
+    { opacity: 0, x: initialPos.x, y: initialPos.y },
+    {
+      opacity: 1,
+      x: item.x,
+      y: item.y,
+      duration: opts.duration,
+      ease: opts.ease,
+      delay: opts.delay,
+      overwrite: 'auto',
+    }
+  );
+}
+
 /**
  * 获取缩略图 URL
  */
@@ -144,10 +205,10 @@ export function AssetMasonry({
   onSelectionToggle,
   breakpointColumns = defaultBreakpointColumns,
   animateFrom = 'bottom',
-  blurToFocus = true,
-  duration = 0.8,
-  stagger = 0.05,
-  ease = 'power3.out',
+  blurToFocus = false,
+  duration = 0.2,
+  stagger = 0.04,
+  ease = 'cubic-bezier(0.23, 1, 0.32, 1)',
   disableHoverEffects = false,
 }: AssetMasonryProps) {
   // 响应式列数（基于 breakpointColumns 动态生成媒体查询）
@@ -169,6 +230,7 @@ export function AssetMasonry({
   const [containerRef, { width }] = useMeasure<HTMLDivElement>();
   const [imagesReady, setImagesReady] = useState(false);
   const hasMounted = useRef(false);
+  const reducedMotion = usePrefersReducedMotion();
 
   // 预加载图片
   useEffect(() => {
@@ -199,87 +261,33 @@ export function AssetMasonry({
     });
   }, [columns, assets, width]);
 
-  // GSAP 动画处理
+  // GSAP：减动直接落位；否则只 tween transform/opacity
   useLayoutEffect(() => {
     if (!imagesReady) return;
 
-    // 获取初始位置（根据 animateFrom 参数）
-    const getInitialPosition = (item: GridItem) => {
-      const containerRect = containerRef.current?.getBoundingClientRect();
-      if (!containerRect) return { x: item.x, y: item.y };
-
-      let direction = animateFrom;
-
-      if (animateFrom === 'random') {
-        const directions = ['top', 'bottom', 'left', 'right'];
-        direction = directions[Math.floor(Math.random() * directions.length)] as typeof animateFrom;
-      }
-
-      switch (direction) {
-        case 'top':
-          return { x: item.x, y: -200 };
-        case 'bottom':
-          return { x: item.x, y: (typeof window !== 'undefined' ? window.innerHeight : 1000) + 200 };
-        case 'left':
-          return { x: -200, y: item.y };
-        case 'right':
-          return { x: (typeof window !== 'undefined' ? window.innerWidth : 1000) + 200, y: item.y };
-        case 'center':
-          return {
-            x: containerRect.width / 2 - item.w / 2,
-            y: containerRect.height / 2 - item.h / 2,
-          };
-        default:
-          return { x: item.x, y: item.y };
-      }
-    };
-
     grid.forEach((item, index) => {
       const selector = `[data-masonry-key="${item.asset.id}"]`;
-      const animationProps = {
-        x: item.x,
-        y: item.y,
-        width: item.w,
-        height: item.h,
-      };
-
-      if (!hasMounted.current) {
-        // 首次加载：入场动画
-        const initialPos = getInitialPosition(item);
-        const initialState = {
-          opacity: 0,
-          x: initialPos.x,
-          y: initialPos.y,
+      if (reducedMotion) {
+        gsap.set(selector, {
+          x: item.x,
+          y: item.y,
           width: item.w,
           height: item.h,
-          ...(blurToFocus && { filter: 'blur(10px)' }),
-        };
-
-        gsap.fromTo(
-          selector,
-          initialState,
-          {
-            opacity: 1,
-            ...animationProps,
-            ...(blurToFocus && { filter: 'blur(0px)' }),
-            duration,
-            ease,
-            delay: index * stagger,
-          }
-        );
-      } else {
-        // 响应式调整：平滑过渡
-        gsap.to(selector, {
-          ...animationProps,
-          duration: 0.6,
-          ease: 'power3.out',
-          overwrite: 'auto',
+          opacity: 1,
+          filter: 'none',
         });
+        return;
       }
+      tweenMasonryItem(selector, item, animateFrom, {
+        duration,
+        ease,
+        delay: index * stagger,
+        isEntry: !hasMounted.current,
+      });
     });
 
     hasMounted.current = true;
-  }, [grid, imagesReady, stagger, animateFrom, blurToFocus, duration, ease, containerRef]);
+  }, [grid, imagesReady, stagger, animateFrom, blurToFocus, duration, ease, reducedMotion]);
 
   // 计算容器高度
   const containerHeight = useMemo(() => {

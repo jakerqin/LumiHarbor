@@ -1,6 +1,6 @@
 'use client';
 
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { Image as ImageIcon, Calendar, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import type { Album } from '@/lib/api/albums';
@@ -16,10 +16,24 @@ interface AlbumCardProps {
   disableEntryAnimation?: boolean;
 }
 
+const ALBUM_HOVER_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
+const HOVER_QUERY = '(hover: hover) and (pointer: fine)';
+
 export function AlbumCard({ album, onClick, onEdit, onDelete, disableEntryAnimation = false }: AlbumCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const canHoverRef = useRef(false);
   const [showMenu, setShowMenu] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia(HOVER_QUERY);
+    const onChange = () => {
+      canHoverRef.current = mql.matches;
+    };
+    onChange();
+    mql.addEventListener('change', onChange);
+    return () => mql.removeEventListener('change', onChange);
+  }, []);
 
   // 入场动画
   useLayoutEffect(() => {
@@ -51,20 +65,20 @@ export function AlbumCard({ album, onClick, onEdit, onDelete, disableEntryAnimat
   }, [showMenu]);
 
   const handleMouseEnter = () => {
-    if (!cardRef.current) return;
+    if (!canHoverRef.current || !cardRef.current) return;
     gsap.to(cardRef.current, {
-      y: -8,
-      duration: 0.3,
-      ease: 'power2.out',
+      y: -6,
+      duration: 0.16,
+      ease: ALBUM_HOVER_EASE,
     });
   };
 
   const handleMouseLeave = () => {
-    if (!cardRef.current) return;
+    if (!canHoverRef.current || !cardRef.current) return;
     gsap.to(cardRef.current, {
       y: 0,
-      duration: 0.3,
-      ease: 'power2.out',
+      duration: 0.16,
+      ease: ALBUM_HOVER_EASE,
     });
   };
 
@@ -98,7 +112,7 @@ export function AlbumCard({ album, onClick, onEdit, onDelete, disableEntryAnimat
         <img
           src={album.coverUrl}
           alt={album.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 motion-group-hover-scale-110"
           style={{
             objectPosition: `${album.coverPositionX ?? 50}% ${album.coverPositionY ?? 50}%`,
           }}

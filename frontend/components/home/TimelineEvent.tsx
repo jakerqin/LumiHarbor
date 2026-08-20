@@ -47,7 +47,7 @@ export function TimelineEvent({ note, index }: TimelineEventProps) {
     <div ref={noteRef} className="mb-16" style={{ opacity: 0 }}>
       <div
         onClick={() => router.push(`/notes/${note.id}`)}
-        className="glass rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-all"
+        className="glass rounded-2xl overflow-hidden cursor-pointer hover:border-primary/50 transition-colors duration-200"
       >
         {note.coverAsset && (
           <div className="relative h-48 overflow-hidden">
@@ -55,7 +55,7 @@ export function TimelineEvent({ note, index }: TimelineEventProps) {
               src={note.coverAsset.thumbnailUrl}
               alt={note.title}
               fill
-              className="object-cover transition-transform duration-300 hover:scale-110"
+              className="object-cover motion-hover-scale-110 [transition:transform_200ms_cubic-bezier(0.23,1,0.32,1)]"
               unoptimized
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent" />

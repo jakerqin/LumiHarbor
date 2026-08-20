@@ -23,6 +23,7 @@ import type { Asset } from '@/lib/api/types';
 import { templatesApi } from '@/lib/api/templates';
 import { useTagDefinitions } from '@/lib/hooks/useTagDefinitions';
 import { cn } from '@/lib/utils/cn';
+import { formatDateTime } from '@/lib/utils/datetime';
 import { ImageViewer } from '@/components/assets/ImageViewer';
 import { AssetTemplateFields } from '@/components/assets/AssetTemplateFields';
 
@@ -304,8 +305,8 @@ export default function AssetDetailPage() {
 
   const typeMeta = getAssetTypeMeta(asset.asset_type);
   const shotAtDate = asset.shot_at ? new Date(asset.shot_at) : null;
-  const shotAtText = shotAtDate ? format(shotAtDate, 'PPP p', { locale: zhCN }) : '-';
-  const createdAtText = format(new Date(asset.created_at), 'PPP p', { locale: zhCN });
+  const shotAtText = formatDateTime(asset.shot_at);
+  const createdAtText = formatDateTime(asset.created_at);
   const displayUrl = getDisplayUrl(asset);
   const originalUrl =
     resolveMediaUrl(asset.original_url, asset.original_path) ||
