@@ -1,18 +1,5 @@
 services:
-  db:
-    image: mysql:8.0
-    container_name: lumiharbor-db
-    restart: always
-    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-lumipass}
-      MYSQL_DATABASE: ${MYSQL_DATABASE:-lumiharbor}
-      MYSQL_USER: ${MYSQL_USER:-admin}
-      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-lumipass}
-    volumes:
-      - ./data/mysql:/var/lib/mysql
-    ports:
-      - "3306:3306"
+
 
   backend:
     build: ./backend
@@ -21,19 +8,24 @@ services:
     environment:
       DATABASE_URL: mysql+pymysql://${MYSQL_USER:-admin}:${MYSQL_PASSWORD:-lumipass}@db:3306/${MYSQL_DATABASE:-lumiharbor}?charset=utf8mb4
       REDIS_URL: redis://redis:6379/0
+      QDRANT_URL: http://qdrant:6333
     volumes:
       - ./backend:/app
       - ${NAS_DATA_PATH:-./data/nas}:/nas/data
     depends_on:
-      - db
-      - redis
+      - qdrant
     ports:
       - "8000:8000"
 
-  redis:
-    image: redis:7-alpine
-    container_name: lumiharbor-redis
+
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
     restart: always
+    ports:
+      - "6333:6333"
+    volumes:
+      - ./data/qdrant:/qdrant/storage
 
   frontend:
     build: ./frontend

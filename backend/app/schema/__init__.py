@@ -16,6 +16,14 @@ Schema 说明：
     ApiResponse: 统一 API 响应格式
 """
 from .asset import AssetBase, AssetOut, AssetsPageResponse, AssetBatchDeleteRequest
+from .face import FaceOut, FacesPageResponse, FaceBackfillRequest
+from .subject import (
+    SubjectCreate,
+    SubjectUpdate,
+    SubjectOut,
+    SubjectsPageResponse,
+    FaceCandidateOut,
+)
 from .common import ApiResponse
 from .tag_definition import (
     TagDefinitionOut,
@@ -74,6 +82,14 @@ __all__ = [
     'AssetOut',
     'AssetsPageResponse',
     'AssetBatchDeleteRequest',
+    'FaceOut',
+    'FacesPageResponse',
+    'FaceBackfillRequest',
+    'SubjectCreate',
+    'SubjectUpdate',
+    'SubjectOut',
+    'SubjectsPageResponse',
+    'FaceCandidateOut',
     'ApiResponse',
     'TagDefinitionOut',
     'TagDefinitionCreate',

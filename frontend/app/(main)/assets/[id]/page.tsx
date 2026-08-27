@@ -19,6 +19,7 @@ import {
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { assetsApi, type SimilarAsset } from '@/lib/api/assets';
+import { facesApi } from '@/lib/api/faces';
 import type { Asset } from '@/lib/api/types';
 import { templatesApi } from '@/lib/api/templates';
 import { useTagDefinitions } from '@/lib/hooks/useTagDefinitions';
@@ -26,6 +27,7 @@ import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/datetime';
 import { ImageViewer } from '@/components/assets/ImageViewer';
 import { AssetTemplateFields } from '@/components/assets/AssetTemplateFields';
+import { AssetFacesStrip } from '@/components/assets/AssetFacesStrip';
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '-';
@@ -208,6 +210,12 @@ export default function AssetDetailPage() {
   const similarQuery = useQuery({
     queryKey: ['asset-similar', assetId],
     queryFn: () => assetsApi.getSimilarAssets(assetId, { limit: 12 }),
+    enabled: Number.isFinite(assetId),
+  });
+
+  const facesQuery = useQuery({
+    queryKey: ['asset-faces', assetId],
+    queryFn: () => facesApi.getAssetFaces(assetId),
     enabled: Number.isFinite(assetId),
   });
 
@@ -439,6 +447,13 @@ export default function AssetDetailPage() {
                 />
               )}
             </div>
+
+            {asset.asset_type !== 'audio' && (
+              <AssetFacesStrip
+                faces={facesQuery.data ?? []}
+                isLoading={facesQuery.isLoading}
+              />
+            )}
 
             {/* Similar */}
             <div className="mt-10">

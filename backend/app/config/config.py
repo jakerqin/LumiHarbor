@@ -2,7 +2,11 @@
 
 使用 pydantic-settings 管理配置，支持从环境变量和 .env 文件读取。
 """
+from pathlib import Path
+
 from pydantic_settings import BaseSettings
+
+_BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -46,6 +50,11 @@ class Settings(BaseSettings):
     ASSET_URL_PROVIDER: str = "local"  # 'local' | 'oss'（未来可扩展）
     ASSET_STORAGE_PROVIDER: str = "local"  # 'local' | 'oss'（与 ASSET_URL_PROVIDER 建议保持一致）
     OSS_PUBLIC_BASE_URL: str = ""  # 当 ASSET_URL_PROVIDER=oss 时必填，如 https://cdn.example.com
+
+    # 向量库（Docker 中的 Qdrant）。本机开发连 localhost，compose 内用 http://qdrant:6333
+    QDRANT_URL: str = "http://localhost:6333"
+    # 人脸 / 动物权重目录（默认 backend/models，不进 Git）
+    FACE_MODEL_DIR: str = str(_BACKEND_DIR / "models")
 
     class Config:
         """Pydantic 配置"""

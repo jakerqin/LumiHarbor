@@ -11,6 +11,7 @@ from ..services.asset import AssetService
 from ..services.metadata_dictionary import MetadataDictionaryService
 from ..services.similar import AssetSimilarService
 from ..services.tags.service import TagService
+from ..services.face import FaceService
 
 router = APIRouter(
     prefix="/assets",
@@ -183,6 +184,20 @@ def get_asset(
         is_favorited=is_favorited_count > 0,
         tags_map=tags_map
     )))
+
+
+@router.get("/{asset_id}/faces", response_model=schema.ApiResponse[List[schema.FaceOut]])
+def list_asset_faces(asset_id: int, db: Session = Depends(get_db)):
+    """列出素材上未删除的人脸 / 动物脸。"""
+    asset = db.query(model.Asset).filter(
+        and_(model.Asset.id == asset_id, model.Asset.is_deleted == False)
+    ).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="素材不存在")
+    faces = FaceService.list_by_asset(db, asset_id)
+    return schema.ApiResponse.success(
+        data=[schema.FaceOut(**item) for item in FaceService.to_out_many(db, faces)]
+    )
 
 
 @router.get("/{asset_id}/tags", response_model=schema.ApiResponse[dict])

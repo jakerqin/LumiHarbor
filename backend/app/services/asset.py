@@ -196,6 +196,9 @@ class AssetService:
             ).update({model.UserFavorite.is_deleted: True}, synchronize_session=False)
 
         db.commit()
+        if found_ids:
+            from .face import FaceService
+            FaceService.soft_delete_for_assets(db, list(found_ids))
 
         if location_values:
             MetadataDictionaryService.remove_location_poi_if_unused(db, location_values)

@@ -100,6 +100,10 @@ docker-compose.override.yml
 # NAS 挂载目录（如果在本地开发）
 /nas/
 
+# 人脸 / 动物模型权重（运行时自动创建）
+backend/models/
+backend/.cache/
+
 # 处理后的文件（缩略图、缓存等）
 processed/
 thumbnails/

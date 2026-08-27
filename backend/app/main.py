@@ -18,6 +18,8 @@ from .routers import (
     tasks_router,
     notes_router,
     map_router,
+    faces_router,
+    subjects_router,
 )
 from . import schema
 
@@ -91,3 +93,5 @@ app.include_router(templates_router)
 app.include_router(tasks_router)
 app.include_router(notes_router)
 app.include_router(map_router)
+app.include_router(faces_router)
+app.include_router(subjects_router)

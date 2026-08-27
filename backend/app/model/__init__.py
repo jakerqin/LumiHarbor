@@ -19,6 +19,9 @@ Models Package
     TemplateField: 模板字段
     TagMapping: 元数据源键映射
     TaskDefinition: 可开关后处理任务
+    Face: 已匹配名单的脸
+    Subject: 家庭成员 / 宠物
+    SubjectRef: 名单登记照
 """
 from ..db import Base
 from .user import User
@@ -36,6 +39,9 @@ from .template import Template
 from .template_field import TemplateField
 from .tag_mapping import TagMapping
 from .task_definition import TaskDefinition
+from .face import Face
+from .subject import Subject
+from .subject_ref import SubjectRef
 
 # 导出所有模型，方便其他模块导入
 __all__ = [
@@ -55,4 +61,7 @@ __all__ = [
     'TemplateField',
     'TagMapping',
     'TaskDefinition',
+    'Face',
+    'Subject',
+    'SubjectRef',
 ]

@@ -14,7 +14,9 @@ RELATION_FIELD_WHITELIST = {
 ALLOWED_TEMPLATE_KINDS = {"ingest", "detail", "filter", "card"}
 ALLOWED_FIELD_SOURCES = {"tag", "asset", "relation"}
 ALLOWED_TRANSFORMS = {"identity", "aspect_ratio", "gps_dms"}
-ALLOWED_TASK_CODES = {"thumbnail", "preview", "phash", "geocoding", "batch_phash"}
+ALLOWED_TASK_CODES = {
+    "thumbnail", "preview", "phash", "geocoding", "batch_phash", "face_detection",
+}
 
 
 def field_label(field_source: str, field_key: str, tag_name: str | None = None) -> str:
