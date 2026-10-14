@@ -315,17 +315,22 @@ def favorite_asset(
     if not asset:
         raise HTTPException(status_code=404, detail="素材不存在")
 
-    # 2. 检查是否已收藏
+    # 2. 检查是否已收藏（含软删行：uk_user_asset 不含 is_deleted，不能重插，只能复活）
     existing = db.query(model.UserFavorite).filter(
         and_(
             model.UserFavorite.user_id == user_id,
-            model.UserFavorite.asset_id == asset_id,
-            model.UserFavorite.is_deleted == False
+            model.UserFavorite.asset_id == asset_id
         )
     ).first()
 
-    if existing:
+    if existing and not existing.is_deleted:
         return schema.ApiResponse.success(data={"message": "已收藏"})
+
+    if existing:
+        existing.is_deleted = False
+        existing.favorited_at = datetime.now()
+        db.commit()
+        return schema.ApiResponse.success(data={"message": "收藏成功"})
 
     # 3. 创建收藏记录
     favorite = model.UserFavorite(

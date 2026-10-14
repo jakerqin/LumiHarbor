@@ -356,23 +356,12 @@ class AlbumService:
         if not asset:
             return None
 
-        # 检查是否已存在（避免重复添加）
-        existing = db.query(model.AlbumAsset).filter(
-            model.AlbumAsset.album_id == album_id,
-            model.AlbumAsset.asset_id == asset_id,
-            model.AlbumAsset.is_deleted == False
-        ).first()
-        if existing:
-            return existing
+        album_asset, changed = AlbumService._get_or_revive_album_asset(db, album_id, asset_id)
+        if not changed:
+            return album_asset
 
-        # 创建关联记录
-        album_asset = model.AlbumAsset(
-            album_id=album_id,
-            asset_id=asset_id,
-            sort_order=0
-        )
-        db.add(album_asset)
-
+        # 先 flush，保证时间范围/封面计算能查到本次关联
+        db.flush()
         # 更新相册时间范围和封面
         AlbumService._update_album_time_range(db, album_id)
         AlbumService._update_album_cover_if_needed(db, album_id)
@@ -380,6 +369,34 @@ class AlbumService:
         db.commit()
         db.refresh(album_asset)
         return album_asset
+
+    @staticmethod
+    def _get_or_revive_album_asset(
+        db: Session,
+        album_id: int,
+        asset_id: int
+    ) -> Tuple[model.AlbumAsset, bool]:
+        """获取相册关联；软删行直接复活（uk_album_asset 不含 is_deleted，不能重插）
+
+        Returns:
+            (关联记录, 是否新增或复活)
+        """
+        album_asset = db.query(model.AlbumAsset).filter(
+            model.AlbumAsset.album_id == album_id,
+            model.AlbumAsset.asset_id == asset_id
+        ).first()
+
+        if album_asset is None:
+            album_asset = model.AlbumAsset(album_id=album_id, asset_id=asset_id, sort_order=0)
+            db.add(album_asset)
+            return album_asset, True
+
+        if album_asset.is_deleted:
+            album_asset.is_deleted = False
+            album_asset.sort_order = 0
+            return album_asset, True
+
+        return album_asset, False
 
     @staticmethod
     def add_assets_to_album_batch(
@@ -404,7 +421,8 @@ class AlbumService:
         success_count = 0
         failed_ids = []
 
-        for asset_id in asset_ids:
+        # 去重：Session 未开 autoflush，同一 ID 出现两次会重复 INSERT
+        for asset_id in dict.fromkeys(asset_ids):
             # 检查素材是否存在
             asset = db.query(model.Asset).filter(
                 model.Asset.id == asset_id,
@@ -414,23 +432,9 @@ class AlbumService:
                 failed_ids.append(asset_id)
                 continue
 
-            # 检查是否已存在
-            existing = db.query(model.AlbumAsset).filter(
-                model.AlbumAsset.album_id == album_id,
-                model.AlbumAsset.asset_id == asset_id,
-                model.AlbumAsset.is_deleted == False
-            ).first()
-            if existing:
-                continue
-
-            # 创建关联记录
-            album_asset = model.AlbumAsset(
-                album_id=album_id,
-                asset_id=asset_id,
-                sort_order=0
-            )
-            db.add(album_asset)
-            success_count += 1
+            _, changed = AlbumService._get_or_revive_album_asset(db, album_id, asset_id)
+            if changed:
+                success_count += 1
 
         # 更新相册时间范围和封面
         if success_count > 0:
