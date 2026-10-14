@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
@@ -14,6 +14,7 @@ import {
   Info,
   Music,
   RefreshCw,
+  Sparkles,
   Video,
 } from 'lucide-react';
 import { format } from 'date-fns';
@@ -29,6 +30,9 @@ import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 import { ImageViewer } from '@/components/assets/ImageViewer';
 import { AssetTemplateFields } from '@/components/assets/AssetTemplateFields';
 import { AssetFacesStrip } from '@/components/assets/AssetFacesStrip';
+import { AiEditPanel } from '@/components/ai/AiEditPanel';
+import { VersionStrip } from '@/components/ai/VersionStrip';
+import { useAiImageStatus } from '@/lib/hooks/useAiImage';
 
 function formatFileSize(bytes: number): string {
   if (!Number.isFinite(bytes) || bytes <= 0) return '-';
@@ -146,6 +150,8 @@ export default function AssetDetailPage() {
   const queryClient = useQueryClient();
   const idParam = Array.isArray(params.id) ? params.id[0] : params.id;
   const assetId = Number(idParam);
+  const [aiEditOpen, setAiEditOpen] = useState(false);
+  const aiStatus = useAiImageStatus().data;
 
   const favoriteMutation = useMutation({
     mutationFn: async (nextFavorited: boolean) => {
@@ -374,6 +380,17 @@ export default function AssetDetailPage() {
               />
             </button>
 
+            {aiStatus?.enabled && asset.asset_type === 'image' && (
+              <button
+                type="button"
+                onClick={() => setAiEditOpen(true)}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/15 hover:bg-primary/25 border border-primary/30 text-primary transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+              >
+                <Sparkles size={18} />
+                <span className="text-sm hidden sm:inline">AI 修图</span>
+              </button>
+            )}
+
             <a
               href={canOpenOriginal ? originalUrl : undefined}
               target="_blank"
@@ -435,6 +452,8 @@ export default function AssetDetailPage() {
                 />
               )}
             </div>
+
+            {asset.asset_type === 'image' && <VersionStrip assetId={asset.id} />}
 
             {asset.asset_type !== 'audio' && (
               <AssetFacesStrip
@@ -581,6 +600,16 @@ export default function AssetDetailPage() {
           </div>
         </div>
       </div>
+
+      {aiStatus?.enabled && asset.asset_type === 'image' && (
+        <AiEditPanel
+          open={aiEditOpen}
+          assetId={asset.id}
+          beforeUrl={displayUrl}
+          presets={aiStatus.edit}
+          onClose={() => setAiEditOpen(false)}
+        />
+      )}
     </div>
   );
 }

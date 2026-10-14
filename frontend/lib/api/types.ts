@@ -15,6 +15,10 @@ export interface Asset {
   aspect_ratio: number | null;
   location_city: string | null;
   location_poi: string | null;
+  /** 当前展示的 AI 修图版本，空为原图 */
+  current_version_id?: number | null;
+  /** 卡片 AI 角标：edited 修过图 / generated AI 生成 */
+  ai_badge?: 'edited' | 'generated' | null;
 }
 
 export interface TimelineNote {
