@@ -196,13 +196,8 @@ class AssetProcessor:
             logger.debug(f"跳过缩略图（任务已关闭）: asset {asset.id}")
             return True
 
-        # 提取原始文件名（不含扩展名）
-        original_filename = os.path.basename(original_path)
-        filename_without_ext = os.path.splitext(original_filename)[0]
-
-        # 生成缩略图文件名
-        thumb_filename = f"{filename_without_ext}_thumbnail.webp"
-        thumb_rel_path = f"processed/thumbnails/{thumb_filename}"
+        # 按 asset_id 命名：原文件名会撞（Live Photo 的 HEIC/MOV 同名、不同目录同名）
+        thumb_rel_path = f"processed/thumbnails/{asset.id}_thumbnail.webp"
 
         # 完整路径
         file_full_path = os.path.join(self.scan_path, original_path)
@@ -240,13 +235,8 @@ class AssetProcessor:
             logger.debug(f"跳过预览图生成（格式已支持）: {asset.mime_type}")
             return True
 
-        # 提取原始文件名（不含扩展名）
-        original_filename = os.path.basename(original_path)
-        filename_without_ext = os.path.splitext(original_filename)[0]
-
-        # 生成预览图文件名
-        preview_filename = f"{filename_without_ext}_preview.webp"
-        preview_rel_path = f"processed/previews/{preview_filename}"
+        # 按 asset_id 命名，理由同缩略图
+        preview_rel_path = f"processed/previews/{asset.id}_preview.webp"
 
         # 完整路径
         file_full_path = os.path.join(self.scan_path, original_path)
