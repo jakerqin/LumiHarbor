@@ -34,5 +34,7 @@ from .broker import broker
 # Worker 启动时会加载此模块，从而注册所有任务
 from . import phash_tasks  # noqa: F401
 from . import geocoding_tasks  # noqa: F401
+from . import face_detection_tasks  # noqa: F401
+from . import clip_tasks  # noqa: F401
 
-__all__ = ['broker', 'phash_tasks', 'geocoding_tasks']
+__all__ = ['broker', 'phash_tasks', 'geocoding_tasks', 'face_detection_tasks', 'clip_tasks']

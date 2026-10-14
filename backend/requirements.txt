@@ -18,7 +18,11 @@ taskiq-redis>=1.2.0,<2
 # redis-py 客户端：与 taskiq-redis 约束对齐（>=8,<9）。服务端可用 Redis 7.x（RESP 兼容）。
 # 注意：redis-py 8 默认 socket_timeout=5，Broker 侧必须对 BRPOP 设 socket_timeout=None（见 app/tasks/broker.py）。
 redis>=8.0.0,<9
-# AI 相关 (按需启用)
-# insightface
-# onnxruntime
-# sentence-transformers
+# 人脸 / 动物个体识别（推理在 Worker；Qdrant 只存向量）
+insightface
+onnxruntime
+qdrant-client
+opencv-python-headless
+# 语义搜索：SigLIP 2（Worker / 查询懒加载）
+torch
+transformers>=4.49.0

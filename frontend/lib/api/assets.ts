@@ -5,6 +5,7 @@ import type { Asset } from './types';
 const CURRENT_USER_ID = 1;
 
 export interface AssetsFilter {
+  q?: string;
   asset_type?: 'image' | 'video' | 'audio';
   location?: string;
   location_poi?: string;

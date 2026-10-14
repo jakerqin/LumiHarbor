@@ -2,10 +2,12 @@
 
 使用 Redis 作为消息队列 Broker。
 """
+from taskiq import TaskiqEvents, TaskiqState
 from taskiq_redis import ListQueueBroker
-from ..config import settings
-from ..tools.utils import get_logger
 from redis.maint_notifications import MaintNotificationsConfig
+
+from ..config import settings
+from ..tools.utils import get_logger, quiet_third_party_logs
 
 logger = get_logger(__name__)
 
@@ -35,5 +37,10 @@ broker = ListQueueBroker(
     socket_connect_timeout=5,  # 仅限制建连阶段
     maint_notifications_config=MaintNotificationsConfig(enabled=False) # 禁用维护通知，避免非redis 8 没有子命令，打印警告
 )
+
+@broker.on_event(TaskiqEvents.WORKER_STARTUP)
+async def _on_worker_start(_: TaskiqState) -> None:
+    quiet_third_party_logs()
+
 
 logger.info(f"✅ Taskiq Broker 初始化完成 - Redis: {settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}")

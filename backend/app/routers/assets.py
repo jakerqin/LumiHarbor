@@ -1,7 +1,7 @@
 """资源相关路由"""
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import and_, func
+from sqlalchemy import and_, case, func
 from typing import Optional, List
 from datetime import date, datetime
 import json
@@ -9,8 +9,10 @@ from ..db import get_db
 from .. import model, schema
 from ..services.asset import AssetService
 from ..services.metadata_dictionary import MetadataDictionaryService
+from ..services.search import SearchService
 from ..services.similar import AssetSimilarService
 from ..services.tags.service import TagService
+from ..services.face import FaceService
 
 router = APIRouter(
     prefix="/assets",
@@ -32,6 +34,7 @@ def list_assets(
     sort_order: str = Query("desc", description="排序方向: asc/desc"),
     is_favorited: Optional[bool] = Query(None, description="是否仅看收藏"),
     tag_filters: Optional[str] = Query(None, description='额外标签筛选 JSON'),
+    q: Optional[str] = Query(None, description="语义 + 词法混合搜索"),
     db: Session = Depends(get_db)
 ):
     """获取素材列表（支持筛选、分页、收藏状态）
@@ -48,10 +51,15 @@ def list_assets(
         sort_by: 排序字段（shot_at/created_at）
         sort_order: 排序方向（asc/desc）
         is_favorited: 是否仅看收藏
+        q: 语义 + 文件名/地点/成员名混合检索
 
     返回:
         分页的素材列表，包含标签信息和收藏状态
     """
+    ranked_ids = SearchService.rank_asset_ids(db, q) if q and q.strip() else None
+    if ranked_ids is not None and not ranked_ids:
+        return schema.ApiResponse.success(data=_empty_assets_page(page, page_size))
+
     # 1. 构建基础查询
     query = db.query(
         model.Asset,
@@ -66,6 +74,8 @@ def list_assets(
     ).filter(
         model.Asset.is_deleted == False
     ).group_by(model.Asset.id)
+    if ranked_ids:
+        query = query.filter(model.Asset.id.in_(ranked_ids))
 
     # 2. 应用筛选条件
     if asset_type:
@@ -97,12 +107,12 @@ def list_assets(
     elif is_favorited is False:
         query = query.filter(model.UserFavorite.id.is_(None))
 
-    # 3. 排序
-    sort_column = getattr(model.Asset, sort_by, model.Asset.shot_at)
-    if sort_order == 'desc':
-        query = query.order_by(sort_column.desc())
+    # 3. 排序：有 q 时按 RRF 名次，同分已在 rank 里按 shot_at
+    if ranked_ids:
+        query = query.order_by(case({aid: idx for idx, aid in enumerate(ranked_ids)}, value=model.Asset.id))
     else:
-        query = query.order_by(sort_column.asc())
+        sort_column = getattr(model.Asset, sort_by, model.Asset.shot_at)
+        query = query.order_by(sort_column.desc() if sort_order == 'desc' else sort_column.asc())
 
     # 4. 总数统计
     total = query.count()
@@ -183,6 +193,20 @@ def get_asset(
         is_favorited=is_favorited_count > 0,
         tags_map=tags_map
     )))
+
+
+@router.get("/{asset_id}/faces", response_model=schema.ApiResponse[List[schema.FaceOut]])
+def list_asset_faces(asset_id: int, db: Session = Depends(get_db)):
+    """列出素材上未删除的人脸 / 动物脸。"""
+    asset = db.query(model.Asset).filter(
+        and_(model.Asset.id == asset_id, model.Asset.is_deleted == False)
+    ).first()
+    if not asset:
+        raise HTTPException(status_code=404, detail="素材不存在")
+    faces = FaceService.list_by_asset(db, asset_id)
+    return schema.ApiResponse.success(
+        data=[schema.FaceOut(**item) for item in FaceService.to_out_many(db, faces)]
+    )
 
 
 @router.get("/{asset_id}/tags", response_model=schema.ApiResponse[dict])
@@ -386,6 +410,12 @@ def batch_delete_assets(
     """批量删除素材（软删除）"""
     result = AssetService.batch_delete_assets(db, request.asset_ids)
     return schema.ApiResponse.success(data=result)
+
+
+def _empty_assets_page(page: int, page_size: int) -> schema.AssetsPageResponse:
+    return schema.AssetsPageResponse(
+        assets=[], total=0, page=page, page_size=page_size, has_more=False
+    )
 
 
 def _apply_extra_tag_filters(db: Session, query, tag_filters: Optional[str]):

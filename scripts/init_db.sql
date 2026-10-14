@@ -30,6 +30,7 @@ CREATE TABLE `assets` (
   `dhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '差分哈希（dhash，基于梯度，对边缘敏感）',
   `average_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '均值哈希（average_hash，基于亮度，兼容旧数据）',
   `colorhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '颜色哈希（colorhash，基于颜色分布）',
+  `clip_model` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '语义向量模型名，空表示未嵌入',
   `file_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件内容哈希（SHA256，用于精确去重）',
   `visibility` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
   `gps_latitude` decimal(10,8) DEFAULT NULL COMMENT 'GPS纬度（冗余优化）',
@@ -487,7 +488,63 @@ INSERT INTO task_definitions (task_code, name, description, run_mode, is_enabled
 ('preview', '预览图生成', 'HEIC 等浏览器不支持格式转 WebP 预览', 'sync', TRUE, NULL),
 ('phash', '感知哈希', '异步计算四哈希，供相似推荐', 'async', TRUE, NULL),
 ('geocoding', '逆地理编码', '有 GPS 时异步写入地点标签', 'async', TRUE, JSON_OBJECT('max_retries', 3)),
-('batch_phash', '批量补算哈希', '运维补跑缺失的感知哈希', 'async', TRUE, NULL);
+('batch_phash', '批量补算哈希', '运维补跑缺失的感知哈希', 'async', TRUE, NULL),
+('face_detection', '人脸与动物脸', '异步检测人脸/动物脸并写入向量库', 'async', TRUE, JSON_OBJECT('max_retries', 2)),
+('compute_clip', '语义向量', '异步计算 SigLIP 2 向量供素材搜索', 'async', TRUE, JSON_OBJECT('max_retries', 2));
+
+-- ==========================================
+-- 人脸 / 动物脸（业务权威；向量在 Qdrant）
+-- ==========================================
+CREATE TABLE IF NOT EXISTS subjects (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '成员ID',
+    name VARCHAR(100) NOT NULL COMMENT '显示名',
+    kind VARCHAR(20) NOT NULL COMMENT 'human | pet',
+    species VARCHAR(20) DEFAULT NULL COMMENT '宠物 cat/dog',
+    cover_path VARCHAR(255) DEFAULT NULL COMMENT '封面裁剪相对路径',
+    created_by BIGINT NOT NULL COMMENT '创建者',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT 0 COMMENT '软删除',
+    INDEX idx_subjects_user_deleted (created_by, is_deleted),
+    INDEX idx_subjects_kind_deleted (kind, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='家庭成员/宠物名单';
+
+CREATE TABLE IF NOT EXISTS subject_refs (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '登记照ID',
+    subject_id BIGINT NOT NULL COMMENT '成员ID（应用层关联，无 FK）',
+    source VARCHAR(20) NOT NULL COMMENT 'upload | asset',
+    asset_id BIGINT DEFAULT NULL COMMENT '来源素材',
+    crop_path VARCHAR(255) DEFAULT NULL COMMENT '裁剪相对路径',
+    embedding_model VARCHAR(64) NOT NULL COMMENT 'embedding 模型名',
+    qdrant_point_id VARCHAR(64) DEFAULT NULL COMMENT 'Qdrant point id',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT 0 COMMENT '软删除',
+    INDEX idx_subject_refs_subject_deleted (subject_id, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='名单登记照';
+
+CREATE TABLE IF NOT EXISTS faces (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '脸记录ID',
+    asset_id BIGINT NOT NULL COMMENT '素材ID（应用层关联，无 FK）',
+    subject_id BIGINT DEFAULT NULL COMMENT '名单成员ID',
+    subject_type VARCHAR(20) NOT NULL COMMENT 'human | animal',
+    species VARCHAR(50) DEFAULT NULL COMMENT '动物种类，如 cat/dog；人脸为空',
+    bbox_x DECIMAL(8, 6) NOT NULL COMMENT '归一化框左上 x',
+    bbox_y DECIMAL(8, 6) NOT NULL COMMENT '归一化框左上 y',
+    bbox_w DECIMAL(8, 6) NOT NULL COMMENT '归一化框宽',
+    bbox_h DECIMAL(8, 6) NOT NULL COMMENT '归一化框高',
+    det_score DECIMAL(8, 6) DEFAULT NULL COMMENT '检测置信度',
+    quality_score DECIMAL(8, 6) DEFAULT NULL COMMENT '质量分（可用检测分）',
+    embedding_model VARCHAR(64) NOT NULL COMMENT 'buffalo_s / animal-onnx-768',
+    qdrant_point_id VARCHAR(64) DEFAULT NULL COMMENT 'Qdrant point id，登记照用',
+    crop_path VARCHAR(255) DEFAULT NULL COMMENT '相对 NAS 的脸裁剪路径',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    is_deleted BOOLEAN NOT NULL DEFAULT 0 COMMENT '软删除',
+    INDEX idx_faces_asset_deleted (asset_id, is_deleted),
+    INDEX idx_faces_type_deleted (subject_type, is_deleted),
+    INDEX idx_faces_subject_deleted (subject_id, is_deleted)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='素材中已匹配名单的脸';
 
 -- ==========================================
 -- 异步任务日志表（通用）
