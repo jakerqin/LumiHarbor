@@ -52,6 +52,8 @@ class Settings(BaseSettings):
 
     # 单次 /ingestion/upload* 请求体上限（MB），超出返回 413。手机 4K 视频单个就可能数 GB
     MAX_UPLOAD_REQUEST_MB: int = 4096
+    # 回收站保留天数，超过后自动彻底删除文件（数据库记录保留为已删除）；0 关闭自动清理
+    RECYCLE_RETENTION_DAYS: int = 90
     ASSET_URL_PROVIDER: str = "local"  # 'local' | 'oss'（未来可扩展）
     ASSET_STORAGE_PROVIDER: str = "local"  # 'local' | 'oss'（与 ASSET_URL_PROVIDER 建议保持一致）
     OSS_PUBLIC_BASE_URL: str = ""  # 当 ASSET_URL_PROVIDER=oss 时必填，如 https://cdn.example.com

@@ -22,6 +22,7 @@ from .routers import (
     map_router,
     faces_router,
     subjects_router,
+    trash_router,
 )
 from . import schema
 
@@ -92,6 +93,13 @@ async def general_exception_handler(request: Request, exc: Exception):
 
 
 @app.on_event("startup")
+def _start_trash_purge() -> None:
+    from .services.trash import start_purge_loop
+
+    start_purge_loop()
+
+
+@app.on_event("startup")
 def _warmup_clip() -> None:
     from .tools.clip import model_available, warmup
 
@@ -118,3 +126,4 @@ app.include_router(notes_router)
 app.include_router(map_router)
 app.include_router(faces_router)
 app.include_router(subjects_router)
+app.include_router(trash_router)
