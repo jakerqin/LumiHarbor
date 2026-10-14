@@ -1,6 +1,7 @@
 """FastAPI 应用入口
 """
 import os
+import uuid
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,12 +65,17 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """处理所有未捕获的异常,返回统一格式的错误响应"""
+    """处理所有未捕获的异常,返回统一格式的错误响应
+
+    异常详情（SQL、本地路径等）只进日志；响应只带错误ID，便于按ID查日志。
+    """
+    error_id = uuid.uuid4().hex[:8]
+    logger.exception(f"未捕获异常 [错误ID: {error_id}] {request.method} {request.url.path}")
     return JSONResponse(
         status_code=500,
         content=schema.ApiResponse.error(
             code="500",
-            message=f"服务器内部错误: {str(exc)}"
+            message=f"服务器内部错误（错误ID: {error_id}）"
         ).model_dump()
     )
 
