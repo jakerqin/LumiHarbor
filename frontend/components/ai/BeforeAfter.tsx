@@ -10,7 +10,7 @@ function Figure({ src, label }: { src: string; label: string }) {
     <figure className="min-w-0">
       <a href={src} target="_blank" rel="noreferrer" title="在新标签页查看大图"
         className="block rounded-xl bg-black/30 overflow-hidden">
-        <img src={src} alt={label} className="block w-full h-[38vh] sm:h-[52vh] object-contain" />
+        <img src={src} alt={label} className="block w-full h-[26vh] sm:h-[52vh] object-contain" />
       </a>
       <figcaption className="mt-2 text-xs text-center text-foreground-secondary">{label}</figcaption>
     </figure>

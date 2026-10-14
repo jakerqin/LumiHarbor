@@ -46,9 +46,10 @@ export function AiEditPanel({ open, assetId, beforeUrl, presets, onClose }: AiEd
   const reset = () => setJobId(null);
 
   return (
-    <div className="fixed inset-0 z-50">
+    // z-[60]：盖过手机底栏（z-50），否则底栏会压住弹窗下半部分
+    <div className="fixed inset-0 z-[60]">
       <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="关闭" onClick={onClose} />
-      <div className="absolute inset-0 flex items-start justify-center p-4 pt-16 md:pt-24 overflow-y-auto">
+      <div className="absolute inset-0 flex items-start justify-center p-4 pt-8 pb-10 md:pt-24 overflow-y-auto">
         <div className={cn(
           'relative w-full rounded-2xl bg-background border border-white/10 shadow-2xl',
           // 出结果时加宽，两张图并排才看得清
