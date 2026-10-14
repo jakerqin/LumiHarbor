@@ -66,6 +66,16 @@ class Settings(BaseSettings):
     CLIP_MODEL_DIR: str = str(_BACKEND_DIR / "models" / "siglip2")
     CLIP_MATCH: float = 0.045
 
+    # AI 修图 / 生图（OpenAI Images API）。OPENAI_BASE_URL 为空走官方，填写可接兼容 OpenAI 的中转
+    OPENAI_API_KEY: str = ""
+    OPENAI_BASE_URL: str = ""
+    # flare：官方默认型号，效果好且比 gpt-image-2 快一倍；sunburst 精修但更慢
+    AI_IMAGE_MODEL: str = "gpt-image-2.5-flare"
+    AI_IMAGE_QUALITY: str = "medium"  # 「标准」档
+    AI_IMAGE_HQ_QUALITY: str = "high"  # 「精细」档
+    AI_IMAGE_DAILY_LIMIT: int = 50  # 每人每天最多发起的任务数，防误操作产生大额费用
+    AI_IMAGE_TIMEOUT_SECONDS: int = 300
+
     class Config:
         """Pydantic 配置"""
         env_file = ".env"

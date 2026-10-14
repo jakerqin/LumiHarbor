@@ -22,6 +22,8 @@ Models Package
     Face: 已匹配名单的脸
     Subject: 家庭成员 / 宠物
     SubjectRef: 名单登记照
+    AssetVersion: 素材展示版本（AI 修图）
+    AiImageJob: AI 修图 / 生图任务
 """
 from ..db import Base
 from .user import User
@@ -42,6 +44,8 @@ from .task_definition import TaskDefinition
 from .face import Face
 from .subject import Subject
 from .subject_ref import SubjectRef
+from .asset_version import AssetVersion
+from .ai_image_job import AiImageJob
 
 # 导出所有模型，方便其他模块导入
 __all__ = [
@@ -64,4 +68,6 @@ __all__ = [
     'Face',
     'Subject',
     'SubjectRef',
+    'AssetVersion',
+    'AiImageJob',
 ]

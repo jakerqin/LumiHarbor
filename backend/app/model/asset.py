@@ -49,6 +49,8 @@ class Asset(Base):
     average_hash = Column(String(64), nullable=True, comment='感知哈希-平均亮度（权重0.1，兼容旧数据）')
     colorhash = Column(String(64), nullable=True, comment='感知哈希-颜色分布（权重0.1，区分色调）')
     clip_model = Column(String(64), nullable=True, comment='语义向量模型名，空表示未嵌入')
+    # 当前展示的版本（AI 修图）；空表示展示原图。见 asset_versions
+    current_version_id = Column(BIGINT, nullable=True, comment='当前展示版本ID，空为原图')
 
     # 权限控制
     visibility = Column(

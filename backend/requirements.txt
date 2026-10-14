@@ -29,3 +29,5 @@ opencv-python-headless==5.0.0.93
 # 语义搜索：SigLIP 2（Worker / 查询懒加载）
 torch==2.13.0
 transformers==5.16.1
+# AI 修图 / 生图：OpenAI Images API（gpt-image-2.5）
+openai==3.22.1
