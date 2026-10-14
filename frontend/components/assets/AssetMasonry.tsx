@@ -184,6 +184,8 @@ export interface AssetMasonryProps {
   stagger?: number;
   ease?: string;
   disableHoverEffects?: boolean;
+  /** 每张卡片右上角的角标（替换收藏按钮），见 AssetCard.cornerBadge */
+  renderCornerBadge?: (asset: Asset) => React.ReactNode;
 }
 
 export function AssetMasonry({
@@ -200,6 +202,7 @@ export function AssetMasonry({
   stagger = 0.04,
   ease = 'cubic-bezier(0.23, 1, 0.32, 1)',
   disableHoverEffects = false,
+  renderCornerBadge,
 }: AssetMasonryProps) {
   // 响应式列数（基于 breakpointColumns 动态生成媒体查询）
   const breakpoints = useMemo(() => {
@@ -309,6 +312,7 @@ export function AssetMasonry({
             showSelectionIndicator={selectionMode}
             isSelected={selectionMode ? selectedAssetIds?.has(item.asset.id) ?? false : false}
             disableHoverEffects={disableHoverEffects}
+            cornerBadge={renderCornerBadge?.(item.asset)}
             disableEntryAnimation
           />
         </div>

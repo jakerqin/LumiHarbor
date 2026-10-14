@@ -12,6 +12,7 @@ import { ingestionApi } from '@/lib/api/ingestion';
 import { notifyImportResult } from '@/lib/utils/importToast';
 import type { Asset } from '@/lib/api/types';
 import { ListChecks, Upload, Trash2, X } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { PageShell } from '@/components/layout/PageShell';
@@ -83,9 +84,13 @@ export default function AssetsPage() {
     }
     setDeleting(true);
     try {
-      await assetsApi.deleteAssets(Array.from(selectedIds));
+      const result = await assetsApi.deleteAssets(Array.from(selectedIds));
       queryClient.invalidateQueries({ queryKey: ['assets'] });
+      queryClient.invalidateQueries({ queryKey: ['trash'] });
       handleExitBatchMode();
+      toast.success(`已将 ${result.deleted} 个素材移到回收站`, {
+        action: { label: '查看', onClick: () => router.push('/assets/trash') },
+      });
     } catch (error) {
       console.error(error);
       toast.error('删除失败，请稍后重试');
@@ -160,6 +165,17 @@ export default function AssetsPage() {
               批量编辑
             </span>
           </button>
+
+          <Link
+            href="/assets/trash"
+            className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+            aria-label="回收站"
+          >
+            <Trash2 size={20} />
+            <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              回收站
+            </span>
+          </Link>
 
           <button
             type="button"
@@ -239,7 +255,7 @@ export default function AssetsPage() {
       <ConfirmDialog
         open={deleteConfirmOpen}
         title="删除素材"
-        description="删除后素材将进入回收站，同时标记缩略图、预览图与相册关联为已删除。确定继续吗？"
+        description="删除后素材会移到回收站，从相册中移出，收藏也会取消。到期前可以在回收站恢复（收藏不会恢复）。确定继续吗？"
         confirmText="删除"
         cancelText="取消"
         confirmTone="danger"

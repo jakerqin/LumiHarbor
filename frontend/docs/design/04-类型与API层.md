@@ -26,6 +26,7 @@ order: 4
 | [`tags.ts`](../../lib/api/tags.ts) | 标签定义元数据 |
 | [`ingestion.ts`](../../lib/api/ingestion.ts) | 单文件上传、多文件逐个上传（`uploadFilesSequentially`）、相册文件夹导入 |
 | [`faces.ts`](../../lib/api/faces.ts) | 已匹配脸、素材上的脸 |
+| [`trash.ts`](../../lib/api/trash.ts) | 回收站列表、恢复；`trashItemToAsset` 供瀑布流复用 |
 | [`subjects.ts`](../../lib/api/subjects.ts) | 家庭成员、登记照、临时 candidates |
 
 ## 客户端行为摘要

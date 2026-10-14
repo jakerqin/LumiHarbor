@@ -17,6 +17,8 @@ interface AssetCardProps {
   showSelectionIndicator?: boolean;
   isSelected?: boolean;
   disableHoverEffects?: boolean;
+  /** 右上角替换收藏按钮的角标（回收站显示剩余天数）；传入后不显示收藏 */
+  cornerBadge?: React.ReactNode;
 }
 
 const OVERLAY_EASE = 'cubic-bezier(0.23, 1, 0.32, 1)';
@@ -28,6 +30,7 @@ export function AssetCard({
   showSelectionIndicator = false,
   isSelected = false,
   disableHoverEffects = false,
+  cornerBadge,
 }: AssetCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
@@ -211,26 +214,28 @@ export function AssetCard({
         >
           <assetTypeMeta.Icon size={14} className={assetTypeMeta.className} />
         </div>
-        <button
-          type="button"
-          onClick={handleFavoriteClick}
-          disabled={favoriteMutation.isPending}
-          className={`group w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
-            isFavorited
-              ? 'bg-red-500/10 hover:bg-red-500/20'
-              : 'bg-black/20 hover:bg-black/35'
-          }`}
-          aria-label={isFavorited ? '取消收藏' : '收藏'}
-        >
-          <Heart
-            size={14}
-            className={`transition-transform duration-200 ${
+        {cornerBadge ?? (
+          <button
+            type="button"
+            onClick={handleFavoriteClick}
+            disabled={favoriteMutation.isPending}
+            className={`group w-7 h-7 rounded-full backdrop-blur-sm flex items-center justify-center cursor-pointer transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
               isFavorited
-                ? 'fill-red-500 text-red-500'
-                : 'text-white motion-group-hover-scale-110'
-            } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
-          />
-        </button>
+                ? 'bg-red-500/10 hover:bg-red-500/20'
+                : 'bg-black/20 hover:bg-black/35'
+            }`}
+            aria-label={isFavorited ? '取消收藏' : '收藏'}
+          >
+            <Heart
+              size={14}
+              className={`transition-transform duration-200 ${
+                isFavorited
+                  ? 'fill-red-500 text-red-500'
+                  : 'text-white motion-group-hover-scale-110'
+              } ${favoriteMutation.isPending ? 'animate-pulse' : ''}`}
+            />
+          </button>
+        )}
       </div>
     </div>
   );
