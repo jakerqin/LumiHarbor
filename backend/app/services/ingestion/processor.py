@@ -16,8 +16,11 @@ from ...tasks.face_detection_tasks import detect_faces_task
 from ...tasks.clip_tasks import compute_clip_task
 from ...tasks.sender import run_coroutine_sync
 from ...tools.utils import get_logger
+from .gps import resolve_coordinates
 import os
 from datetime import datetime
+from decimal import Decimal
+from typing import Optional, Tuple
 
 logger = get_logger(__name__)
 
@@ -124,65 +127,14 @@ class AssetProcessor:
             logger.warning(f"Asset {asset.id} 标签保存失败: {e}")
             return {}
 
-
-
-    @staticmethod
-    def _parse_coordinate(coord_str: str, ref: str = None) -> float:
-        """解析坐标字符串 (支持 [deg, min, sec] 格式)
-
-        Args:
-            coord_str: 坐标字符串, 例如 "[32, 6, 1167/100]"
-            ref: 方向引用, 例如 "N", "S", "E", "W"
-
-        Returns:
-            float: 十进制坐标值
-        """
-        if not coord_str:
-            return None
-
-        try:
-            # 1. 尝试解析 [deg, min, sec] 格式
-            if '[' in coord_str and ']' in coord_str:
-                clean_str = coord_str.strip("[]")
-                parts = [p.strip() for p in clean_str.split(',')]
-
-                if len(parts) == 3:
-                    def parse_val(v_str):
-                        if '/' in v_str:
-                            n, d = v_str.split('/')
-                            return float(n) / float(d)
-                        return float(v_str)
-
-                    deg = parse_val(parts[0])
-                    min_val = parse_val(parts[1])
-                    sec = parse_val(parts[2])
-
-                    val = deg + (min_val / 60.0) + (sec / 3600.0)
-
-                    # 根据引用处理正负 (S, W 为负)
-                    if ref and ref.upper() in ['S', 'W']:
-                        val = -val
-
-                    return val
-
-            # 2. 兼容旧格式 (e.g., "39.9042° N")
-            coord_str = coord_str.replace('°', '').strip()
-            parts = coord_str.split()
-            value = float(parts[0])
-
-            # 如果字符串中自带方向 (e.g. "39.9 N")
-            if len(parts) > 1:
-                direction = parts[1].upper()
-                if direction in ['S', 'W']:
-                    value = -value
-            # 如果传入了 ref 参数
-            elif ref and ref.upper() in ['S', 'W']:
-                value = -value
-
-            return value
-
-        except (ValueError, IndexError, ZeroDivisionError):
-            return None
+    def sync_gps_columns(self, asset: Asset, coords: Optional[Tuple[float, float]]) -> None:
+        """把解析出的坐标写回 assets.gps_* 冗余列（地图足迹只读这两列）"""
+        if coords is None:
+            return
+        latitude, longitude = coords
+        asset.gps_latitude = Decimal(f"{latitude:.8f}")
+        asset.gps_longitude = Decimal(f"{longitude:.8f}")
+        self.db.commit()
 
     def generate_thumbnail(self, asset: Asset, original_path: str) -> bool:
         """生成缩略图
@@ -257,13 +209,18 @@ class AssetProcessor:
             logger.warning(f"预览图生成失败: {original_path}")
             return False
 
-    def send_async_tasks(self, asset: Asset, file_path: str, tags: dict = None):
+    def send_async_tasks(
+        self,
+        asset: Asset,
+        file_path: str,
+        coords: Optional[Tuple[float, float]] = None
+    ):
         """发送相关异步任务 (Phash, Geocoding)
 
         Args:
             asset: 素材对象
             file_path: 文件完整路径
-            tags: 标签字典（可选，用于地理编码）
+            coords: (纬度, 经度)（可选，用于地理编码）
         """
         # 1. Phash 任务
         if TaskDefinitionService.is_enabled(self.db, 'phash'):
@@ -272,9 +229,9 @@ class AssetProcessor:
             logger.debug(f"跳过 phash（任务已关闭）: asset {asset.id}")
 
         # 2. Geocoding 任务
-        if tags and 'gps_latitude' in tags and 'gps_longitude' in tags:
+        if coords is not None:
             if TaskDefinitionService.is_enabled(self.db, 'geocoding'):
-                self._send_geocoding_task(asset, tags)
+                self._send_geocoding_task(asset, coords)
             else:
                 logger.debug(f"跳过地理编码（任务已关闭）: asset {asset.id}")
 
@@ -357,14 +314,9 @@ class AssetProcessor:
         except Exception as exc:
             logger.warning(f"语义向量任务发送失败 - Asset ID: {asset.id}: {exc}", exc_info=True)
 
-    def _send_geocoding_task(self, asset: Asset, tags: dict) -> None:
+    def _send_geocoding_task(self, asset: Asset, coords: Tuple[float, float]) -> None:
         try:
-            lat_ref = tags.get('gps_latitude_ref')
-            lon_ref = tags.get('gps_longitude_ref')
-            latitude = self._parse_coordinate(tags.get('gps_latitude', ''), lat_ref)
-            longitude = self._parse_coordinate(tags.get('gps_longitude', ''), lon_ref)
-            if latitude is None or longitude is None:
-                return
+            latitude, longitude = coords
             task_log = TaskLog(
                 task_type='geocoding',
                 task_status='pending',
@@ -406,10 +358,10 @@ class AssetProcessor:
         # 1. 提取元数据
         metadata, shot_at = self.extract_metadata(asset.asset_type, file_full_path)
 
-        # 2. 保存标签（包括地理位置信息）
-        mapped_tags = {}
-        if metadata:
-            mapped_tags = self.save_tags(asset, metadata)
+        # 2. 保存标签（元数据为空也要走：default_gps 在这里补进标签）
+        mapped_tags = self.save_tags(asset, metadata)
+        coords = resolve_coordinates(mapped_tags, metadata)
+        self.sync_gps_columns(asset, coords)
 
         # 3. 生成缩略图
         self.generate_thumbnail(asset, original_path)
@@ -418,6 +370,6 @@ class AssetProcessor:
         self.generate_preview(asset, original_path)
 
         # 5. 发送异步任务
-        self.send_async_tasks(asset, file_full_path, mapped_tags)
+        self.send_async_tasks(asset, file_full_path, coords)
 
         return True

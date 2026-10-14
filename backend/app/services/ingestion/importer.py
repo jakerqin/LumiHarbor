@@ -177,7 +177,7 @@ class AssetImportService:
 
         # 提取元数据获取拍摄时间
         asset_type = data['asset_type']
-        metadata, shot_at = self.processor.extract_metadata(asset_type, file_full_path)
+        _, shot_at = self.processor.extract_metadata(asset_type, file_full_path)
 
         # 使用元数据中的拍摄时间，如果没有则使用文件创建时间
         if shot_at:
@@ -185,17 +185,7 @@ class AssetImportService:
         else:
             data['shot_at'] = data.get('file_created_at')
 
-        # 提取 GPS 坐标（冗余优化，提升查询性能）
-        if metadata:
-            gps_lat = metadata.get('gps_latitude')
-            gps_lng = metadata.get('gps_longitude')
-            if gps_lat is not None and gps_lng is not None:
-                try:
-                    from decimal import Decimal
-                    data['gps_latitude'] = Decimal(str(gps_lat))
-                    data['gps_longitude'] = Decimal(str(gps_lng))
-                except (ValueError, TypeError):
-                    logger.warning(f"GPS 坐标格式错误: lat={gps_lat}, lng={gps_lng}")
+        # GPS 冗余列在 process_asset 里由映射后的标签写入（含 default_gps）
 
         # 移除临时字段
         data.pop('file_created_at', None)
