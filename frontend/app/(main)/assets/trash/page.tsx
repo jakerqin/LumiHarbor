@@ -21,18 +21,26 @@ export const dynamic = 'force-dynamic';
 
 function CornerBadge({ item }: { item: TrashItem }) {
   if (!item.restorable) {
-    return <span className="h-7 px-2.5 rounded-full bg-black/45 backdrop-blur-sm text-xs text-white/80 inline-flex items-center">已重新导入</span>;
+    return <span className="h-7 px-2.5 rounded-full bg-black/45 backdrop-blur-sm text-xs text-white/80 inline-flex items-center whitespace-nowrap">已重新导入</span>;
   }
   if (item.days_left === null) return <></>;
   const soon = item.days_left <= EXPIRING_SOON_DAYS;
   return (
     <span
       className={cn(
-        'h-7 px-2.5 rounded-full backdrop-blur-sm text-xs inline-flex items-center tabular-nums',
+        'h-7 px-2.5 rounded-full backdrop-blur-sm text-xs inline-flex items-center tabular-nums whitespace-nowrap',
         soon ? 'bg-red-500/25 text-red-200' : 'bg-black/35 text-white'
       )}
     >
-      {item.days_left === 0 ? '今天删除' : `剩 ${item.days_left} 天`}
+      {item.days_left === 0 ? (
+        '今天删除'
+      ) : (
+        <>
+          <span className="hidden sm:inline">剩&nbsp;</span>
+          {item.days_left}
+          <span className="hidden sm:inline">&nbsp;</span>天
+        </>
+      )}
     </span>
   );
 }
