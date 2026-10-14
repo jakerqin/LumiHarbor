@@ -7,6 +7,7 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .config import settings
+from .middleware import UploadSizeLimitMiddleware
 from .tools.utils import get_logger
 from .routers import (
     assets_router,
@@ -27,6 +28,14 @@ from . import schema
 logger = get_logger(__name__)
 
 app = FastAPI(title=settings.PROJECT_NAME)
+
+# 上传大小限制要先于 CORS 注册：后注册的在外层，CORS 在外才能给 413 也带上跨域头，
+# 否则浏览器只看到 CORS 错误而不是 413
+app.add_middleware(
+    UploadSizeLimitMiddleware,
+    path_prefix="/ingestion/upload",
+    max_bytes=settings.MAX_UPLOAD_REQUEST_MB * 1024 * 1024,
+)
 
 # 局域网私有部署：放开跨域。allow_origins=["*"] 时不能同时 allow_credentials=True
 app.add_middleware(

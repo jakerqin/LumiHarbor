@@ -47,6 +47,9 @@ class Settings(BaseSettings):
     # 对外访问配置（用于生成可访问的资源 URL）
     PUBLIC_BASE_URL: str = "http://localhost:8000"  # 生产环境建议配置为固定域名，如 https://api.example.com
     MEDIA_BASE_PATH: str = "/media"  # 本地文件对外访问的 URL 前缀（StaticFiles mount path）
+
+    # 单次 /ingestion/upload* 请求体上限（MB），超出返回 413。手机 4K 视频单个就可能数 GB
+    MAX_UPLOAD_REQUEST_MB: int = 4096
     ASSET_URL_PROVIDER: str = "local"  # 'local' | 'oss'（未来可扩展）
     ASSET_STORAGE_PROVIDER: str = "local"  # 'local' | 'oss'（与 ASSET_URL_PROVIDER 建议保持一致）
     OSS_PUBLIC_BASE_URL: str = ""  # 当 ASSET_URL_PROVIDER=oss 时必填，如 https://cdn.example.com

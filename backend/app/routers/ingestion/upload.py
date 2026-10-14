@@ -1,4 +1,8 @@
-"""HTTP 上传导入素材"""
+"""HTTP 上传导入素材
+
+接口用同步 def：导入全是阻塞 IO / ffmpeg / 同步 DB，FastAPI 会放进线程池执行；
+写成 async def 会卡住事件循环，上传大视频时其它接口全部排队。
+"""
 from dataclasses import dataclass
 from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
 from sqlalchemy.orm import Session
@@ -34,7 +38,7 @@ class AlbumUploadParams:
 
 
 @router.post("/upload", response_model=schema.ApiResponse[dict])
-async def upload_single_asset(
+def upload_single_asset(
     file: UploadFile = File(...),
     created_by: int = Form(1),
     visibility: str = Form("general"),
@@ -69,11 +73,11 @@ async def upload_single_asset(
     album_params = AlbumUploadParams(
         import_to_album, album_id, album_name, album_description, album_start_time, album_end_time
     )
-    return await _handle_upload([file], created_by, visibility, location_poi, default_gps, album_params, db)
+    return _handle_upload([file], created_by, visibility, location_poi, default_gps, album_params, db)
 
 
 @router.post("/upload/batch", response_model=schema.ApiResponse[dict])
-async def upload_batch_assets(
+def upload_batch_assets(
     files: List[UploadFile] = File(...),
     created_by: int = Form(1),
     visibility: str = Form("general"),
@@ -98,10 +102,10 @@ async def upload_batch_assets(
     album_params = AlbumUploadParams(
         import_to_album, album_id, album_name, album_description, album_start_time, album_end_time
     )
-    return await _handle_upload(files, created_by, visibility, location_poi, default_gps, album_params, db)
+    return _handle_upload(files, created_by, visibility, location_poi, default_gps, album_params, db)
 
 
-async def _handle_upload(
+def _handle_upload(
     files: List[UploadFile],
     created_by: int,
     visibility: str,
@@ -149,7 +153,7 @@ async def _handle_upload(
         finally:
             for file in files:
                 try:
-                    await file.close()
+                    file.file.close()
                 except Exception:
                     continue
 
