@@ -29,6 +29,7 @@ from .map import router as map_router
 from .faces import router as faces_router
 from .subjects import router as subjects_router
 from .trash import router as trash_router
+from .ai_image import router as ai_image_router
 
 ingestion_router = APIRouter()
 ingestion_router.include_router(ingestion_scan_router)
@@ -48,4 +49,5 @@ __all__ = [
     'faces_router',
     'subjects_router',
     'trash_router',
+    'ai_image_router',
 ]

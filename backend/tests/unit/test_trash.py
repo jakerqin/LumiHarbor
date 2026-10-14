@@ -152,3 +152,12 @@ def test_restore_ignores_ds_store(sqlite_db, nas):
 
     assert TrashService.restore(sqlite_db, [1], user_id=1)["restored"] == [1]
     assert (nas / ORIGINAL).exists()
+
+
+def test_purge_removes_ai_versions_dir(sqlite_db, nas):
+    _delete(sqlite_db, nas)
+    version_file = _write(nas, "processed/versions/1/v3.webp")
+
+    purge_expired(sqlite_db, 90, apply=True, now=datetime.now() + timedelta(days=91))
+
+    assert not version_file.exists() and not version_file.parent.exists()

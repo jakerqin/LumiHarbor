@@ -57,6 +57,9 @@ class AssetOut(AssetBase):
     aspect_ratio: Optional[float] = None
     location_city: Optional[str] = None
     location_poi: Optional[str] = None
+    # AI 修图 / 生图
+    current_version_id: Optional[int] = None  # 当前展示的版本，空为原图
+    ai_badge: Optional[str] = None  # edited | generated | None
 
     class Config:
         from_attributes = True

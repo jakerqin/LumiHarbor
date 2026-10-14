@@ -23,6 +23,7 @@ from .routers import (
     faces_router,
     subjects_router,
     trash_router,
+    ai_image_router,
 )
 from . import schema
 
@@ -127,3 +128,4 @@ app.include_router(map_router)
 app.include_router(faces_router)
 app.include_router(subjects_router)
 app.include_router(trash_router)
+app.include_router(ai_image_router)

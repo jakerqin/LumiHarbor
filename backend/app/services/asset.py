@@ -21,7 +21,7 @@ from .scanning.filesystem import RECYCLE_BIN_DIR
 
 
 # 默认查询的标签键
-DEFAULT_TAG_KEYS = ['aspect_ratio', 'location_city', 'location_poi']
+DEFAULT_TAG_KEYS = ['aspect_ratio', 'location_city', 'location_poi', 'ai_generated']
 
 
 class AssetService:
@@ -71,7 +71,18 @@ class AssetService:
             'aspect_ratio': float(tags.get('aspect_ratio')) if tags.get('aspect_ratio') else None,
             'location_city': tags.get('location_city'),
             'location_poi': tags.get('location_poi'),
+            'current_version_id': asset.current_version_id,
+            'ai_badge': AssetService.ai_badge(asset, tags),
         }
+
+    @staticmethod
+    def ai_badge(asset: model.Asset, tags: Dict[str, str]) -> Optional[str]:
+        """卡片上的 AI 角标：edited（正在展示 AI 修图版本）/ generated（AI 生图）/ None"""
+        if asset.current_version_id:
+            return 'edited'
+        if tags.get('ai_generated'):
+            return 'generated'
+        return None
 
     @staticmethod
     def batch_query_asset_tags(

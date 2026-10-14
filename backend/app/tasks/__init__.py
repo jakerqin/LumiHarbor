@@ -36,5 +36,6 @@ from . import phash_tasks  # noqa: F401
 from . import geocoding_tasks  # noqa: F401
 from . import face_detection_tasks  # noqa: F401
 from . import clip_tasks  # noqa: F401
+from . import ai_image_tasks  # noqa: F401
 
-__all__ = ['broker', 'phash_tasks', 'geocoding_tasks', 'face_detection_tasks', 'clip_tasks']
+__all__ = ['broker', 'phash_tasks', 'geocoding_tasks', 'face_detection_tasks', 'clip_tasks', 'ai_image_tasks']

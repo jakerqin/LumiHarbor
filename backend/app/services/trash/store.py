@@ -21,6 +21,8 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 ASSET_DIR_PREFIX = "asset_"
 # 人脸裁剪图不随删除进回收站（恢复后还要用），清理时按素材 ID 删除
 FACE_CROP_GLOB = "processed/faces/{asset_id}_*.webp"
+# AI 修图版本目录（见 services/ai_image/versions.py），同样留在原处供恢复，清理时整目录删除
+VERSIONS_DIR = "processed/versions/{asset_id}"
 # 系统自动生成的文件，判断批次目录是否为空时忽略（macOS 访达会在打开过的目录里写 .DS_Store）
 SYSTEM_JUNK = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
@@ -116,6 +118,12 @@ def remove_face_crops(asset_id: int) -> int:
         path.unlink(missing_ok=True)
         removed += 1
     return removed
+
+
+def remove_versions(asset_id: int) -> None:
+    root = nas_root()
+    if root:
+        shutil.rmtree(root / VERSIONS_DIR.format(asset_id=asset_id), ignore_errors=True)
 
 
 def _is_system_junk(name: str) -> bool:
