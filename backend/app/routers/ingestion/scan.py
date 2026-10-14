@@ -6,11 +6,12 @@
 """
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
-from ...db import get_db
+from ...db import get_db, SessionLocal
 from ... import schema
 from ...config import settings
-from ...schema.ingestion import ScanRequest, ScanResponseData
+from ...schema.ingestion import ScanRequest, ScanResponseData, ScanStatusData
 from ...services.ingestion import AssetImportService, ImportConfig
+from ...services.ingestion.scan_state import scan_state
 from ...services.album import AlbumService
 from ...tools.utils import get_logger
 import os
@@ -80,8 +81,13 @@ def scan_and_import(
         except ValueError:
             raise HTTPException(status_code=400, detail="经纬度格式错误")
 
-    # 添加后台任务
-    background_tasks.add_task(_run_import_task, scan_path, request, db, default_gps)
+    # 同一时间只允许一个扫描：两个扫描同时导入同一批文件，哈希去重来不及生效会插出重复记录
+    if not scan_state.try_start(scan_path):
+        running = scan_state.snapshot()
+        raise HTTPException(status_code=409, detail=f"已有扫描在进行中: {running['path']}，进度见 GET /ingestion/scan/status")
+
+    # 后台任务自己开会话，不复用请求级 db（请求结束后它的生命周期由 FastAPI 管）
+    background_tasks.add_task(_run_import_task, scan_path, request, default_gps)
 
     return schema.ApiResponse.success(
         data=ScanResponseData(
@@ -92,49 +98,48 @@ def scan_and_import(
     )
 
 
+@router.get("/scan/status", response_model=schema.ApiResponse[ScanStatusData])
+def get_scan_status():
+    """查询扫描进度（只反映当前后端进程内的扫描）"""
+    return schema.ApiResponse.success(data=ScanStatusData(**scan_state.snapshot()))
+
+
 def _run_import_task(
     scan_path: str,
     request: ScanRequest,
-    db: Session,
     default_gps: tuple[float, float] = None
 ):
-    """后台导入任务
-
-    职责：
-    - 创建导入配置
-    - 执行导入服务
-    - 记录最终结果
-    """
+    """后台导入任务：执行导入、维护扫描状态、记录结果"""
     logger.info("后台任务开始执行: 素材导入")
-
+    db = SessionLocal()
     try:
-        # 创建导入配置
+        album_info = request.album_info
         config = ImportConfig(
             scan_path=scan_path,
             created_by=request.created_by,
             visibility=request.visibility,
             db=db,
             import_to_album=request.import_to_album,
-            album_id=request.album_info.album_id if request.album_info else None,
-            album_name=request.album_info.album_name if request.album_info else None,
-            album_start_time=request.album_info.start_time if request.album_info else None,
-            album_end_time=request.album_info.end_time if request.album_info else None,
+            album_id=album_info.album_id if album_info else None,
+            album_name=album_info.album_name if album_info else None,
+            album_start_time=album_info.start_time if album_info else None,
+            album_end_time=album_info.end_time if album_info else None,
             default_gps=default_gps
         )
-
-        # 执行导入服务
         service = AssetImportService(config)
+        scan_state.attach(service.statistics)
         statistics = service.import_assets()
 
-        # 最终统计
-        logger.info(statistics.get_summary())
-
-        # 如果有失败，记录详情
         if statistics.has_failures():
             logger.warning(f"以下 {statistics.failed} 个文件导入失败:")
             for file_path, error in statistics.failed_files[:10]:  # 最多显示 10 个
                 logger.warning(f"  - {file_path}: {error}")
+        scan_state.finish()
 
     except Exception as e:
-        logger.error(f"导入任务执行失败: {e}")
+        # 详情只进日志，状态接口只给异常类型
+        logger.exception(f"导入任务执行失败: {e}")
         db.rollback()
+        scan_state.finish(error=f"{type(e).__name__}（详情见后端日志）")
+    finally:
+        db.close()

@@ -174,3 +174,26 @@ class ScanResponseData(BaseModel):
                 "path": "/Volumes/NAS/media"
             }
         }
+
+
+class ScanFailedFile(BaseModel):
+    """扫描失败的文件"""
+    path: str = Field(description="文件相对扫描目录的路径")
+    error: str = Field(description="失败原因")
+
+
+class ScanStatusData(BaseModel):
+    """扫描进度（GET /ingestion/scan/status）
+
+    状态只在当前后端进程内有效；进程重启后为 idle，重新发起扫描即可（已导入的按哈希跳过）。
+    """
+    status: Literal["idle", "scanning", "completed", "failed"] = Field(description="idle 表示本进程内还没扫描过")
+    path: Optional[str] = Field(default=None, description="扫描路径")
+    started_at: Optional[datetime] = None
+    finished_at: Optional[datetime] = None
+    error: Optional[str] = Field(default=None, description="整体失败时的原因（详情见后端日志）")
+    total: int = Field(description="发现的文件数；遍历目录完成前为 0")
+    imported: int
+    skipped: int = Field(description="已存在（哈希重复）跳过数")
+    failed: int
+    failed_files: list[ScanFailedFile] = Field(description="失败文件（最多 20 条）")
