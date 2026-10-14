@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 import { gsap } from 'gsap';
 import { assetsApi, type AssetsResponse } from '@/lib/api/assets';
+import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 
 interface AssetCardProps {
   asset: Asset;
@@ -128,18 +129,7 @@ export function AssetCard({
     }
   })();
 
-  const getThumbnailUrl = () => {
-    if (asset.thumbnail_url) return asset.thumbnail_url;
-    if (asset.thumbnail_path) {
-      const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-      const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
-      const normalizedPath = asset.thumbnail_path.startsWith('/')
-        ? asset.thumbnail_path
-        : `/${asset.thumbnail_path}`;
-      return `${normalizedBaseUrl}${normalizedPath}`;
-    }
-    return '/icon.svg';
-  };
+  const getThumbnailUrl = () => resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/icon.svg';
 
   const getLocationText = () => {
     if (asset.location_city && asset.location_poi) {

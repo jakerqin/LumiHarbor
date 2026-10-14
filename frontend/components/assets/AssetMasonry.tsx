@@ -4,6 +4,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import type { Asset } from '@/lib/api/types';
 import { AssetCard } from '@/components/assets/AssetCard';
+import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 import { usePrefersReducedMotion } from '@/lib/hooks/usePrefersReducedMotion';
 import './masonry.css';
 
@@ -166,18 +167,7 @@ function tweenMasonryItem(
  * 获取缩略图 URL
  */
 function getThumbnailUrl(asset: Asset): string {
-  if (asset.thumbnail_url) {
-    return asset.thumbnail_url;
-  }
-  if (asset.thumbnail_path) {
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || '';
-    const normalizedBaseUrl = baseUrl.replace(/\/$/, '');
-    const normalizedPath = asset.thumbnail_path.startsWith('/')
-      ? asset.thumbnail_path
-      : `/${asset.thumbnail_path}`;
-    return `${normalizedBaseUrl}${normalizedPath}`;
-  }
-  return '/icon.svg';
+  return resolveMediaUrl(asset.thumbnail_url, asset.thumbnail_path) || '/icon.svg';
 }
 
 export interface AssetMasonryProps {

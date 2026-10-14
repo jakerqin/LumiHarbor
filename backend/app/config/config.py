@@ -45,7 +45,9 @@ class Settings(BaseSettings):
     AMAP_API_KEY: str = ""  # 高德地图 API Key（可选，不配置则使用 Nominatim）
 
     # 对外访问配置（用于生成可访问的资源 URL）
-    PUBLIC_BASE_URL: str = "http://localhost:8000"  # 生产环境建议配置为固定域名，如 https://api.example.com
+    # 为空时媒体返回相对路径 /media/...（前端 Next 转发，任何主机访问都可用）；
+    # 媒体要走独立域名/CDN 时再配，如 https://api.example.com
+    PUBLIC_BASE_URL: str = ""
     MEDIA_BASE_PATH: str = "/media"  # 本地文件对外访问的 URL 前缀（StaticFiles mount path）
 
     # 单次 /ingestion/upload* 请求体上限（MB），超出返回 413。手机 4K 视频单个就可能数 GB

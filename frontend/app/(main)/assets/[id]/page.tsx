@@ -25,6 +25,7 @@ import { templatesApi } from '@/lib/api/templates';
 import { useTagDefinitions } from '@/lib/hooks/useTagDefinitions';
 import { cn } from '@/lib/utils/cn';
 import { formatDateTime } from '@/lib/utils/datetime';
+import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 import { ImageViewer } from '@/components/assets/ImageViewer';
 import { AssetTemplateFields } from '@/components/assets/AssetTemplateFields';
 import { AssetFacesStrip } from '@/components/assets/AssetFacesStrip';
@@ -52,19 +53,6 @@ function getAssetTypeMeta(assetType: Asset['asset_type']) {
 
 function formatTagKey(key: string) {
   return key.replaceAll('_', ' ');
-}
-
-function resolveMediaUrl(url?: string | null, path?: string | null) {
-  const cleanedUrl = url?.trim();
-  if (cleanedUrl) return cleanedUrl;
-
-  const cleanedPath = path?.trim();
-  if (!cleanedPath) return null;
-  if (/^https?:\/\//i.test(cleanedPath)) return cleanedPath;
-
-  const baseUrl = (process.env.NEXT_PUBLIC_API_URL || '').replace(/\/$/, '');
-  const normalizedPath = cleanedPath.startsWith('/') ? cleanedPath : `/${cleanedPath}`;
-  return `${baseUrl}${normalizedPath}`;
 }
 
 /**
