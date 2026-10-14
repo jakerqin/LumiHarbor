@@ -21,6 +21,8 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 ASSET_DIR_PREFIX = "asset_"
 # 人脸裁剪图不随删除进回收站（恢复后还要用），清理时按素材 ID 删除
 FACE_CROP_GLOB = "processed/faces/{asset_id}_*.webp"
+# 系统自动生成的文件，判断批次目录是否为空时忽略（macOS 访达会在打开过的目录里写 .DS_Store）
+SYSTEM_JUNK = {".DS_Store", "Thumbs.db", "desktop.ini"}
 
 
 @dataclass
@@ -31,7 +33,8 @@ class TrashEntry:
     root: Path  # recycle_bin/{时间}/asset_{id}
 
     def files(self) -> List[Path]:
-        return [p for p in self.root.rglob("*") if p.is_file()]
+        """素材文件（不含 .DS_Store 等系统文件，恢复时不该挪回 NAS）"""
+        return [p for p in self.root.rglob("*") if p.is_file() and not _is_system_junk(p.name)]
 
     def size_bytes(self) -> int:
         return sum(p.stat().st_size for p in self.files())
@@ -76,10 +79,30 @@ def scan_entries() -> Dict[int, TrashEntry]:
 def remove_entry(entry: TrashEntry) -> None:
     """删除回收站里这个素材的目录；批次目录空了一并删掉"""
     shutil.rmtree(entry.root, ignore_errors=True)
-    batch_dir = entry.root.parent
+    _remove_if_empty(entry.root.parent)
+
+
+def remove_empty_batches() -> None:
+    """清掉只剩系统文件的批次目录（之前删除时被 .DS_Store 挡住没删掉的）"""
+    root = nas_root()
+    trash = root / RECYCLE_BIN_DIR if root else None
+    if not trash or not trash.is_dir():
+        return
+    for batch_dir in trash.iterdir():
+        if batch_dir.is_dir() and _parse_timestamp(batch_dir.name):
+            _remove_if_empty(batch_dir)
+
+
+def _remove_if_empty(batch_dir: Path) -> None:
     try:
-        if batch_dir.is_dir() and not any(batch_dir.iterdir()):
-            batch_dir.rmdir()
+        if not batch_dir.is_dir():
+            return
+        children = list(batch_dir.iterdir())
+        if any(not _is_system_junk(c.name) for c in children):
+            return
+        for child in children:
+            child.unlink()
+        batch_dir.rmdir()
     except OSError as exc:
         logger.warning("删除空的回收站批次目录失败: %s (%s)", batch_dir, exc)
 
@@ -93,6 +116,10 @@ def remove_face_crops(asset_id: int) -> int:
         path.unlink(missing_ok=True)
         removed += 1
     return removed
+
+
+def _is_system_junk(name: str) -> bool:
+    return name in SYSTEM_JUNK or name.startswith("._")
 
 
 def _parse_timestamp(name: str) -> Optional[datetime]:

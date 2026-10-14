@@ -15,7 +15,7 @@ from ... import model
 from ...config import settings
 from ...db import SessionLocal
 from ...tools.utils import get_logger
-from .store import TrashEntry, remove_entry, remove_face_crops, scan_entries
+from .store import TrashEntry, remove_empty_batches, remove_entry, remove_face_crops, scan_entries
 
 logger = get_logger(__name__)
 
@@ -59,6 +59,8 @@ def purge_expired(
         if apply:
             remove_face_crops(entry.asset_id)
             remove_entry(entry)
+    if apply:
+        remove_empty_batches()
     return items
 
 

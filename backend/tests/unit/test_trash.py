@@ -127,3 +127,28 @@ def test_ignores_unrelated_dirs(sqlite_db, nas):
     os.makedirs(nas / "recycle_bin/not-a-timestamp/asset_1")
     os.makedirs(nas / "recycle_bin/20200101_000000/readme")
     assert TrashService.list_items(sqlite_db, user_id=1) == []
+
+
+def test_batch_dir_with_only_ds_store_is_removed(sqlite_db, nas):
+    """macOS 访达写的 .DS_Store 不能让批次目录一直残留"""
+    _delete(sqlite_db, nas)
+    batch_dir = next((nas / "recycle_bin").iterdir())
+    (batch_dir / ".DS_Store").write_bytes(b"x")
+    leftover = nas / "recycle_bin/20200101_000000"
+    leftover.mkdir()
+    (leftover / ".DS_Store").write_bytes(b"x")
+
+    purge_expired(sqlite_db, 90, apply=True, now=datetime.now() + timedelta(days=91))
+
+    assert not batch_dir.exists() and not leftover.exists()
+
+
+def test_restore_ignores_ds_store(sqlite_db, nas):
+    """回收站和原目录里都有 .DS_Store 时，不能判成「原位置已有文件」"""
+    _delete(sqlite_db, nas)
+    asset_dir = next((nas / "recycle_bin").iterdir()) / "asset_1"
+    (asset_dir / "original/ab/.DS_Store").write_bytes(b"x")
+    _write(nas, "original/ab/.DS_Store")
+
+    assert TrashService.restore(sqlite_db, [1], user_id=1)["restored"] == [1]
+    assert (nas / ORIGINAL).exists()
