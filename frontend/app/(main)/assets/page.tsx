@@ -11,7 +11,8 @@ import { templatesApi } from '@/lib/api/templates';
 import { ingestionApi } from '@/lib/api/ingestion';
 import { notifyImportResult } from '@/lib/utils/importToast';
 import type { Asset } from '@/lib/api/types';
-import { ListChecks, Upload, Trash2, X } from 'lucide-react';
+import { ListChecks, Sparkles, Upload, Trash2, X } from 'lucide-react';
+import { useAiImageStatus } from '@/lib/hooks/useAiImage';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
@@ -35,6 +36,7 @@ export default function AssetsPage() {
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
+  const aiEnabled = useAiImageStatus().data?.enabled ?? false;
 
   const { data: locations = [] } = useQuery({
     queryKey: ['asset-locations'],
@@ -168,6 +170,19 @@ export default function AssetsPage() {
               批量编辑
             </span>
           </button>
+
+          {aiEnabled && (
+            <Link
+              href="/assets/create"
+              className="group relative h-11 w-11 rounded-xl bg-background-secondary hover:bg-background-tertiary border border-white/10 inline-flex items-center justify-center transition-colors"
+              aria-label="AI 创作"
+            >
+              <Sparkles size={20} className="text-primary" />
+              <span className="absolute -top-10 left-1/2 -translate-x-1/2 px-3 py-1.5 bg-background-secondary border border-white/10 rounded-lg text-xs whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                AI 创作
+              </span>
+            </Link>
+          )}
 
           <Link
             href="/assets/trash"

@@ -208,6 +208,14 @@ export function AssetCard({
       </div>
 
       <div className="absolute top-3 right-3 flex items-center gap-2 cursor-default z-10">
+        {asset.ai_badge && (
+          <span
+            className="h-7 px-2 rounded-full bg-black/35 backdrop-blur-sm text-[11px] font-semibold tracking-wide text-primary inline-flex items-center"
+            title={asset.ai_badge === 'edited' ? '正在显示 AI 修图版本' : 'AI 生成'}
+          >
+            AI
+          </span>
+        )}
         <div
           className="w-7 h-7 rounded-full bg-black/20 backdrop-blur-sm flex items-center justify-center"
           aria-hidden="true"
