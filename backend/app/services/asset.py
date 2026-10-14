@@ -17,6 +17,7 @@ from .asset_url import AssetUrlProviderFactory, AssetUrlProvider
 from .metadata_dictionary import MetadataDictionaryService
 from ..config import settings
 from ..tools.utils import get_logger
+from .scanning.filesystem import RECYCLE_BIN_DIR
 
 
 # 默认查询的标签键
@@ -255,7 +256,7 @@ class AssetService:
         if not nas_root.exists() or not nas_root.is_dir():
             AssetService._logger.warning("NAS_DATA_PATH 不存在或不是目录: %s", nas_root)
             return None
-        return nas_root / "recycle_bin"
+        return nas_root / RECYCLE_BIN_DIR
 
     @staticmethod
     def _resolve_asset_path(
