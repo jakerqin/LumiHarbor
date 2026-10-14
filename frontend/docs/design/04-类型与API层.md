@@ -103,4 +103,5 @@ components / pages
 ## 已知限制
 
 - `assetsApi.getTags` 指向的后端列表接口状态不明，UI 未接线。
+- React Query 全局 `retry`：**超时（`ECONNABORTED`/`ETIMEDOUT`）不重试**，其他错误最多 3 次（[`providers.tsx`](../../app/providers.tsx)）。后端同步接口取消不了，超时重试只会把同样的慢请求再堆几份。
 - 上传一律逐文件请求，单文件超时 10 分钟（`SINGLE_UPLOAD_TIMEOUT_MS`），不受全局 10 秒超时约束。

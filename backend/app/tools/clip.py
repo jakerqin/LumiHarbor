@@ -1,4 +1,10 @@
-"""SigLIP 2 图文编码。懒加载，查询不阻塞接口。"""
+"""SigLIP 2 图文编码。懒加载，查询不阻塞接口。
+
+推理必须串行：PyTorch 的 MPS 后端不是线程安全的。API 的同步接口跑在线程池里，
+多个搜索同时做第一次推理时会并发写 MPS 的 shader 缓存（C++ unordered_map），
+把哈希表写坏后线程在里面死循环、CPU 100% 且无法结束。加载完成后先预热一次，
+让 shader 在「就绪」之前编译好。
+"""
 import threading
 from pathlib import Path
 from typing import List
@@ -20,6 +26,10 @@ _lock = threading.Lock()
 _load_started = False
 _ready = threading.Event()
 _load_error = None
+# 所有前向推理共用一把锁（见模块说明）；单条文本 MPS 上约几十毫秒，串行不影响体验
+_infer_lock = threading.Lock()
+# 搜索等模型就绪的上限：要明显小于前端 10s 超时，等不到就只走词法
+QUERY_WAIT_SECONDS = 5
 
 
 def encode_image(path: str) -> List[float]:
@@ -29,14 +39,17 @@ def encode_image(path: str) -> List[float]:
 
     inputs = processor(images=image, return_tensors="pt")
     inputs = {key: value.to(device) for key, value in inputs.items()}
-    with torch.no_grad():
+    with _infer_lock, torch.no_grad():
         feats = model.get_image_features(**inputs)
-    return _as_unit_list(feats)
+        return _as_unit_list(feats)
 
 
 def encode_text(text: str) -> List[float]:
-    _wait_ready()
-    model, processor, device = _model, _processor, _device
+    _wait_ready(QUERY_WAIT_SECONDS)
+    return _run_text(_model, _processor, _device, text)
+
+
+def _run_text(model, processor, device, text: str) -> List[float]:
     import torch
 
     inputs = processor(
@@ -47,9 +60,9 @@ def encode_text(text: str) -> List[float]:
         return_tensors="pt",
     )
     inputs = {key: value.to(device) for key, value in inputs.items()}
-    with torch.no_grad():
+    with _infer_lock, torch.no_grad():
         feats = model.get_text_features(**inputs)
-    return _as_unit_list(feats)
+        return _as_unit_list(feats)
 
 
 def model_available() -> bool:
@@ -63,7 +76,7 @@ def warmup() -> None:
 
 
 def _wait_ready(timeout: float = 30) -> None:
-    if _model is not None:
+    if _model is not None and _ready.is_set():
         return
     _start_load_async()
     if not _ready.wait(timeout=timeout):
@@ -124,6 +137,8 @@ def _load_into_globals(root: Path) -> None:
         logger.info(f"加载 SigLIP 2: {root} device={device}")
         processor = AutoProcessor.from_pretrained(str(root))
         model = AutoModel.from_pretrained(str(root)).to(device).eval()
+        # 就绪前先跑一次，把 MPS shader 编译好（见模块说明）；成功后才写全局
+        _run_text(model, processor, device, "warmup")
         _processor = processor
         _model = model
         _device = device
