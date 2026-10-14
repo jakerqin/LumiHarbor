@@ -13,6 +13,7 @@ from ...services.tasks import TaskDefinitionService
 from ...tasks.phash_tasks import calculate_phash_task
 from ...tasks.geocoding_tasks import calculate_location_task
 from ...tasks.face_detection_tasks import detect_faces_task
+from ...tasks.clip_tasks import compute_clip_task
 from ...tasks.sender import run_coroutine_sync
 from ...tools.utils import get_logger
 import os
@@ -293,6 +294,12 @@ class AssetProcessor:
         else:
             logger.debug(f"跳过脸检测（任务已关闭）: asset {asset.id}")
 
+        # 4. 语义向量
+        if TaskDefinitionService.is_enabled(self.db, 'compute_clip'):
+            self._send_clip_task(asset)
+        else:
+            logger.debug(f"跳过语义向量（任务已关闭）: asset {asset.id}")
+
     def _send_phash_task(self, asset: Asset, file_path: str) -> None:
         try:
             task_log = TaskLog(
@@ -339,6 +346,26 @@ class AssetProcessor:
             logger.debug(f"脸检测任务已发送 - Asset ID: {asset.id}")
         except Exception as exc:
             logger.warning(f"脸检测任务发送失败 - Asset ID: {asset.id}: {exc}", exc_info=True)
+
+    def _send_clip_task(self, asset: Asset) -> None:
+        if asset.asset_type == "audio":
+            return
+        try:
+            task_log = TaskLog(
+                task_type="compute_clip",
+                task_status="pending",
+                asset_id=asset.id,
+                task_params={"asset_type": asset.asset_type},
+                retry_count=0,
+                max_retries=2,
+                created_at=datetime.now(),
+            )
+            self.db.add(task_log)
+            self.db.commit()
+            run_coroutine_sync(compute_clip_task.kiq(asset_id=asset.id, task_log_id=task_log.id))
+            logger.debug(f"语义向量任务已发送 - Asset ID: {asset.id}")
+        except Exception as exc:
+            logger.warning(f"语义向量任务发送失败 - Asset ID: {asset.id}: {exc}", exc_info=True)
 
     def _send_geocoding_task(self, asset: Asset, tags: dict) -> None:
         try:

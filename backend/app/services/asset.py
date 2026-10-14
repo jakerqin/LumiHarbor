@@ -198,7 +198,9 @@ class AssetService:
         db.commit()
         if found_ids:
             from .face import FaceService
+            from .vector_store import VectorStore
             FaceService.soft_delete_for_assets(db, list(found_ids))
+            VectorStore.instance().delete_assets(list(found_ids))
 
         if location_values:
             MetadataDictionaryService.remove_location_poi_if_unused(db, location_values)

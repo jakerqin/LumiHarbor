@@ -23,5 +23,6 @@ insightface
 onnxruntime
 qdrant-client
 opencv-python-headless
-# 语义搜索 Phase 2 再启用
-# sentence-transformers
+# 语义搜索：SigLIP 2（Worker / 查询懒加载）
+torch
+transformers>=4.49.0

@@ -76,6 +76,14 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.on_event("startup")
+def _warmup_clip() -> None:
+    from .tools.clip import model_available, warmup
+
+    if model_available():
+        warmup()
+
+
 @app.get("/", response_model=schema.ApiResponse[dict])
 def read_root():
     """根路径欢迎信息"""

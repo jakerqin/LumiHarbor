@@ -30,6 +30,7 @@ CREATE TABLE `assets` (
   `dhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '差分哈希（dhash，基于梯度，对边缘敏感）',
   `average_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '均值哈希（average_hash，基于亮度，兼容旧数据）',
   `colorhash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '颜色哈希（colorhash，基于颜色分布）',
+  `clip_model` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '语义向量模型名，空表示未嵌入',
   `file_hash` varchar(64) COLLATE utf8mb4_unicode_ci DEFAULT NULL COMMENT '文件内容哈希（SHA256，用于精确去重）',
   `visibility` varchar(20) COLLATE utf8mb4_unicode_ci DEFAULT 'general' COMMENT '可见性: general(公共), private(私有)',
   `gps_latitude` decimal(10,8) DEFAULT NULL COMMENT 'GPS纬度（冗余优化）',
@@ -488,7 +489,8 @@ INSERT INTO task_definitions (task_code, name, description, run_mode, is_enabled
 ('phash', '感知哈希', '异步计算四哈希，供相似推荐', 'async', TRUE, NULL),
 ('geocoding', '逆地理编码', '有 GPS 时异步写入地点标签', 'async', TRUE, JSON_OBJECT('max_retries', 3)),
 ('batch_phash', '批量补算哈希', '运维补跑缺失的感知哈希', 'async', TRUE, NULL),
-('face_detection', '人脸与动物脸', '异步检测人脸/动物脸并写入向量库', 'async', TRUE, JSON_OBJECT('max_retries', 2));
+('face_detection', '人脸与动物脸', '异步检测人脸/动物脸并写入向量库', 'async', TRUE, JSON_OBJECT('max_retries', 2)),
+('compute_clip', '语义向量', '异步计算 SigLIP 2 向量供素材搜索', 'async', TRUE, JSON_OBJECT('max_retries', 2));
 
 -- ==========================================
 -- 人脸 / 动物脸（业务权威；向量在 Qdrant）

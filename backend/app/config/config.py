@@ -55,6 +55,9 @@ class Settings(BaseSettings):
     QDRANT_URL: str = "http://localhost:6333"
     # 人脸 / 动物权重目录（默认 backend/models，不进 Git）
     FACE_MODEL_DIR: str = str(_BACKEND_DIR / "models")
+    # SigLIP 2 B 权重目录（默认 backend/models/siglip2）
+    CLIP_MODEL_DIR: str = str(_BACKEND_DIR / "models" / "siglip2")
+    CLIP_MATCH: float = 0.045
 
     class Config:
         """Pydantic 配置"""

@@ -18,7 +18,7 @@ order: 4
 |---|---|
 | [`client.ts`](../../lib/api/client.ts) | `apiClient`、`ApiError`、拦截器 |
 | [`types.ts`](../../lib/api/types.ts) | Asset、Featured、Footprint、Timeline 等共享类型 |
-| [`assets.ts`](../../lib/api/assets.ts) | 素材列表/详情/标签/相似/收藏/批量删/地点 |
+| [`assets.ts`](../../lib/api/assets.ts) | 素材列表（含 `q`）/详情/标签/相似/收藏/批量删/地点 |
 | [`albums.ts`](../../lib/api/albums.ts) | 相册 CRUD、素材关联、文件夹导入（走 ingestion） |
 | [`notes.ts`](../../lib/api/notes.ts) | 笔记 CRUD（Tiptap JSON） |
 | [`home.ts`](../../lib/api/home.ts) | 精选、时间轴 |

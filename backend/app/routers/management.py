@@ -12,7 +12,9 @@ from ..db import get_db
 from .. import schema, model
 from ..services.face import FaceService
 from ..services.tasks import TaskDefinitionService
+from ..services.clip import ClipService
 from ..tasks.face_detection_tasks import detect_faces_task
+from ..tasks.clip_tasks import compute_clip_task
 from ..tasks.sender import run_coroutine_sync
 from ..tools.utils import get_logger
 from datetime import datetime
@@ -110,5 +112,31 @@ def backfill_faces(payload: schema.FaceBackfillRequest, db: Session = Depends(ge
         db.add(task_log)
         db.commit()
         run_coroutine_sync(detect_faces_task.kiq(asset_id=asset_id, task_log_id=task_log.id))
+        queued += 1
+    return schema.ApiResponse.success(data={"queued": queued, "message": "已发送补算任务"})
+
+
+@router.post("/clip/backfill", response_model=schema.ApiResponse[dict])
+def backfill_clip(payload: schema.ClipBackfillRequest, db: Session = Depends(get_db)):
+    """为历史素材补发 compute_clip。missing_only=false 会重算已有向量。"""
+    if not TaskDefinitionService.is_enabled(db, "compute_clip"):
+        raise HTTPException(status_code=400, detail="语义向量任务已关闭")
+    asset_ids = ClipService.assets_need_backfill(
+        db, payload.asset_ids, payload.missing_only, payload.limit
+    )
+    queued = 0
+    for asset_id in asset_ids:
+        task_log = model.TaskLog(
+            task_type="compute_clip",
+            task_status="pending",
+            asset_id=asset_id,
+            task_params={"source": "backfill"},
+            retry_count=0,
+            max_retries=2,
+            created_at=datetime.now(),
+        )
+        db.add(task_log)
+        db.commit()
+        run_coroutine_sync(compute_clip_task.kiq(asset_id=asset_id, task_log_id=task_log.id))
         queued += 1
     return schema.ApiResponse.success(data={"queued": queued, "message": "已发送补算任务"})

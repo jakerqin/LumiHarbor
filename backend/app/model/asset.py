@@ -48,6 +48,7 @@ class Asset(Base):
     dhash = Column(String(64), nullable=True, comment='感知哈希-梯度差异（权重0.3，关注边缘纹理）')
     average_hash = Column(String(64), nullable=True, comment='感知哈希-平均亮度（权重0.1，兼容旧数据）')
     colorhash = Column(String(64), nullable=True, comment='感知哈希-颜色分布（权重0.1，区分色调）')
+    clip_model = Column(String(64), nullable=True, comment='语义向量模型名，空表示未嵌入')
 
     # 权限控制
     visibility = Column(

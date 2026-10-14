@@ -12,10 +12,12 @@ logger = get_logger(__name__)
 
 COLLECTION_HUMAN = "subjects_human"
 COLLECTION_PET = "subjects_pet"
+COLLECTION_CLIP = "assets_clip"
 LEGACY_FACE_COLLECTIONS = ("faces_human", "faces_animal")
 
 DIM_HUMAN = 512
 DIM_PET = 768
+DIM_CLIP = 768
 
 
 def collection_for_subject(kind: str) -> str:
@@ -55,6 +57,7 @@ class VectorStore:
             return
         self._create_if_missing(COLLECTION_HUMAN, DIM_HUMAN)
         self._create_if_missing(COLLECTION_PET, DIM_PET)
+        self._create_if_missing(COLLECTION_CLIP, DIM_CLIP)
         self._drop_legacy()
         self._ensured = True
 
@@ -91,6 +94,48 @@ class VectorStore:
             {"id": hit.id, "score": float(hit.score), "payload": hit.payload or {}}
             for hit in resp.points
         ]
+
+    def upsert_asset(
+        self,
+        asset_id: int,
+        vector: List[float],
+        payload: Dict[str, Any],
+    ) -> None:
+        self.ensure_collections()
+        self._client.upsert(
+            collection_name=COLLECTION_CLIP,
+            points=[PointStruct(id=asset_id, vector=vector, payload=payload)],
+        )
+
+    def search_assets(
+        self,
+        vector: List[float],
+        limit: int,
+        score_threshold: float,
+    ) -> List[Dict[str, Any]]:
+        self.ensure_collections()
+        resp = self._client.query_points(
+            collection_name=COLLECTION_CLIP,
+            query=vector,
+            limit=limit,
+            score_threshold=score_threshold,
+        )
+        return [
+            {"id": hit.id, "score": float(hit.score), "payload": hit.payload or {}}
+            for hit in resp.points
+        ]
+
+    def delete_assets(self, asset_ids: List[int]) -> None:
+        if not asset_ids:
+            return
+        try:
+            self.ensure_collections()
+            self._client.delete(
+                collection_name=COLLECTION_CLIP,
+                points_selector=PointIdsList(points=asset_ids),
+            )
+        except Exception as exc:
+            logger.warning(f"删除 assets_clip 点失败: {exc}")
 
     def delete_points(self, subject_type: str, point_ids: List[int]) -> None:
         if not point_ids:

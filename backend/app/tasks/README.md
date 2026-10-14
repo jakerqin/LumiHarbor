@@ -361,6 +361,7 @@ await detect_faces_task.kiq(asset_id=123, file_path="/path/to/photo.jpg")
 - [Taskiq 官方文档](https://taskiq-python.github.io/)
 - [Redis 官方文档](https://redis.io/documentation)
 - [感知哈希原理](https://github.com/JohannesBuchner/imagehash)
+- [语义搜索](../../docs/design/18-语义搜索.md)（`compute_clip` / `GET /assets?q=`）
 
 ## 维护日志
 

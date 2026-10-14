@@ -16,6 +16,7 @@ ALLOWED_FIELD_SOURCES = {"tag", "asset", "relation"}
 ALLOWED_TRANSFORMS = {"identity", "aspect_ratio", "gps_dms"}
 ALLOWED_TASK_CODES = {
     "thumbnail", "preview", "phash", "geocoding", "batch_phash", "face_detection",
+    "compute_clip",
 }
 
 
