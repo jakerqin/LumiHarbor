@@ -1,7 +1,7 @@
 """地图相关路由"""
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
-from sqlalchemy import func, and_, distinct
+from sqlalchemy import func, and_, desc, distinct
 from typing import Optional
 from datetime import datetime
 from math import radians, sin, cos, sqrt, atan2
@@ -12,6 +12,9 @@ from ..services.asset import AssetService
 from ..tools.utils import get_logger
 
 logger = get_logger(__name__)
+
+# 足迹聚合精度：ROUND(..., 2) 即 0.01°（约 1km）
+GRID_DEGREES = 0.01
 
 router = APIRouter(
     prefix="/map",
@@ -64,13 +67,9 @@ def get_footprints(
     # 3. 按地理位置聚合
     query = query.group_by('lat_group', 'lng_group')
 
-    # 4. 按时间排序
-    query = query.order_by('first_shot_at')
-
-    # 5. 限制返回数量
-    query = query.limit(limit)
-
-    footprints_raw = query.all()
+    # 4~5. 超出 limit 时保留最近的足迹：先倒序取前 limit 个，再翻回按时间正序
+    query = query.order_by(desc('first_shot_at')).limit(limit)
+    footprints_raw = list(reversed(query.all()))
 
     # 6. 获取地点标签（批量查询优化）
     cover_asset_ids = [fp.cover_asset_id for fp in footprints_raw]
@@ -99,6 +98,22 @@ def get_footprints(
             total=len(footprints)
         )
     )
+
+
+def _grid_conditions(lat_group: float, lng_group: float) -> list:
+    """足迹格子（0.01°）的查询条件
+
+    只写 ROUND(列) = 值 时列被函数包住，idx_gps_location 用不上，每次全表扫描；
+    先加一个覆盖该格子的范围条件走索引，再用 ROUND 精确收口（边界 ±0.005 的归属与列表聚合一致）。
+    范围多放 1e-6，避免浮点误差把恰好落在 x.xx5 的点挡在外面。
+    """
+    half = GRID_DEGREES / 2 + 1e-6
+    return [
+        model.Asset.gps_latitude.between(lat_group - half, lat_group + half),
+        model.Asset.gps_longitude.between(lng_group - half, lng_group + half),
+        func.round(model.Asset.gps_latitude, 2) == lat_group,
+        func.round(model.Asset.gps_longitude, 2) == lng_group,
+    ]
 
 
 def _get_location_tags_batch(db: Session, asset_ids: list) -> dict:
@@ -186,8 +201,7 @@ def get_footprint_detail(
         and_(
             model.Asset.is_deleted == False,
             model.Asset.created_by == user_id,
-            func.round(model.Asset.gps_latitude, 2) == lat_group,
-            func.round(model.Asset.gps_longitude, 2) == lng_group
+            *_grid_conditions(lat_group, lng_group)
         )
     ).order_by(model.Asset.shot_at).all()
 
