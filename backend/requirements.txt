@@ -1,28 +1,31 @@
-fastapi
-uvicorn
-sqlalchemy
-pymysql
-cryptography
-pydantic
-pydantic-settings
-python-multipart
-pillow>=10.0.0,<13.0.0
-pillow-heif>=0.13.0
-smartcrop>=0.4.0
-imagehash
-exifread
-ffmpeg-python
-requests
-taskiq
-taskiq-redis>=1.2.0,<2
+# 直接依赖锁定为已验证可用的版本（2026-10 单测通过的环境）。升级请单独改版本号并跑测试，
+# 不要放开成无版本约束：smartcrop 升到 0.5 时改了返回格式，导致缩略图智能裁剪静默失效了很久。
+# 只锁直接依赖；间接依赖由 pip 解析。
+fastapi==0.141.1
+uvicorn==0.52.1
+sqlalchemy==2.0.51
+pymysql==1.2.0
+cryptography==50.0.0
+pydantic==2.13.4
+pydantic-settings==2.14.2
+python-multipart==0.0.32
+pillow==12.3.0
+pillow-heif==1.5.0
+smartcrop==0.5.0
+imagehash==4.3.2
+exifread==3.5.1
+ffmpeg-python==0.2.0
+requests==2.34.2
+taskiq==0.12.4
+taskiq-redis==1.2.3
 # redis-py 客户端：与 taskiq-redis 约束对齐（>=8,<9）。服务端可用 Redis 7.x（RESP 兼容）。
 # 注意：redis-py 8 默认 socket_timeout=5，Broker 侧必须对 BRPOP 设 socket_timeout=None（见 app/tasks/broker.py）。
-redis>=8.0.0,<9
+redis==8.1.0
 # 人脸 / 动物个体识别（推理在 Worker；Qdrant 只存向量）
-insightface
-onnxruntime
-qdrant-client
-opencv-python-headless
+insightface==1.0.1
+onnxruntime==1.29.0
+qdrant-client==1.19.0
+opencv-python-headless==5.0.0.93
 # 语义搜索：SigLIP 2（Worker / 查询懒加载）
-torch
-transformers>=4.49.0
+torch==2.13.0
+transformers==5.16.1

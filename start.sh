@@ -64,8 +64,9 @@ if ! python3 -c "import fastapi, uvicorn, taskiq" >/dev/null 2>&1; then
 fi
 
 if [ ! -d frontend/node_modules ]; then
-    echo -e "${BLUE}[前端] 未找到 node_modules，正在 npm install...${NC}"
-    (cd frontend && npm install)
+    # npm ci 严格按 package-lock.json 安装，避免装到和锁文件不一致的版本
+    echo -e "${BLUE}[前端] 未找到 node_modules，正在 npm ci...${NC}"
+    (cd frontend && npm ci)
 fi
 
 if ! command -v ffmpeg >/dev/null 2>&1; then
