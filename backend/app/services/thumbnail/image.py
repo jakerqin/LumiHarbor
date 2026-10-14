@@ -180,10 +180,11 @@ class ImageThumbnailGenerator(ThumbnailGenerator):
                 # 缩放到目标尺寸
                 thumb = cropped.resize(target_size, Image.Resampling.LANCZOS)
 
-                logger.debug(
-                    f"智能裁剪区域: ({x}, {y}, {width}x{height}), "
-                    f"评分: {top_crop.get('score', {}).get('total', 'N/A')}"
-                )
+                # smartcrop 0.5 起 score 是浮点数，旧版是 {'total': ...}
+                score = top_crop.get('score', 'N/A')
+                if isinstance(score, dict):
+                    score = score.get('total', 'N/A')
+                logger.debug(f"智能裁剪区域: ({x}, {y}, {width}x{height}), 评分: {score}")
 
                 return thumb
 
