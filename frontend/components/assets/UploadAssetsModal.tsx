@@ -16,6 +16,8 @@ interface UploadAssetsModalProps {
   files: File[];
   locations: string[];
   uploading: boolean;
+  /** 逐文件上传进度，上传中时显示在按钮上 */
+  progress?: { done: number; total: number } | null;
   onPickFiles: () => void;
   onClose: () => void;
   onSubmit: (payload: {
@@ -29,12 +31,14 @@ export function UploadAssetsModal({
   files,
   locations,
   uploading,
+  progress,
   onPickFiles,
   onClose,
   onSubmit,
 }: UploadAssetsModalProps) {
   const [mapPickerOpen, setMapPickerOpen] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState<LocationData | null>(null);
+  const progressLabel = progress ? `${progress.done}/${progress.total}` : '...';
 
   useEffect(() => {
     if (open) return;
@@ -162,7 +166,7 @@ export function UploadAssetsModal({
                 className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Upload size={16} />
-                {uploading ? '上传中...' : '开始上传'}
+                {uploading ? `上传中 ${progressLabel}` : '开始上传'}
               </button>
             </div>
           </div>

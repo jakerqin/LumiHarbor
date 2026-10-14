@@ -9,6 +9,7 @@ import { ConfirmDialog } from '@/components/common/ConfirmDialog';
 import { assetsApi, type AssetsFilter } from '@/lib/api/assets';
 import { templatesApi } from '@/lib/api/templates';
 import { ingestionApi } from '@/lib/api/ingestion';
+import { notifyImportResult } from '@/lib/utils/importToast';
 import type { Asset } from '@/lib/api/types';
 import { ListChecks, Upload, Trash2, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -25,6 +26,7 @@ export default function AssetsPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ done: number; total: number } | null>(null);
   const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [filter, setFilter] = useState<AssetsFilter>({});
   const [isBatchMode, setIsBatchMode] = useState(false);
@@ -114,16 +116,20 @@ export default function AssetsPage() {
   const handleUploadSubmit = async (payload: { files: File[]; locationData?: import('@/components/common/MapPicker').LocationData }) => {
     if (uploading) return;
     setUploading(true);
+    setUploadProgress({ done: 0, total: payload.files.length });
     try {
-      await ingestionApi.uploadAssets(payload.files, payload.locationData);
+      // 逐个文件上传：单个大请求会超时，且一个失败全部白传
+      const result = await ingestionApi.uploadFilesSequentially(payload.files, {
+        locationData: payload.locationData,
+        onFileDone: (done, total) => setUploadProgress({ done, total }),
+      });
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       setUploadOpen(false);
       setPendingFiles([]);
-    } catch (error) {
-      console.error(error);
-      toast.error('上传失败，请稍后重试');
+      notifyImportResult(result);
     } finally {
       setUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -224,6 +230,7 @@ export default function AssetsPage() {
         files={pendingFiles}
         locations={locations}
         uploading={uploading}
+        progress={uploadProgress}
         onPickFiles={handleUploadPick}
         onClose={handleUploadClose}
         onSubmit={handleUploadSubmit}

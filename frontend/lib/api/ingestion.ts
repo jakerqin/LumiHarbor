@@ -1,16 +1,6 @@
 import { apiClient } from './client';
 import type { LocationData } from '@/components/common/MapPicker';
 
-export interface UploadAssetsResponse {
-  status: string;
-  total: number;
-  imported: number;
-  skipped: number;
-  failed: number;
-  location_tags: number;
-  album?: AlbumAssociationResult | null;
-}
-
 export interface AlbumAssociationResult {
   album_id: number;
   album_name: string;
@@ -30,6 +20,13 @@ export interface UploadSingleAssetResponse {
   skipped: number;
   failed: number;
   album: AlbumAssociationResult | null;
+}
+
+/** 多文件逐个上传的汇总 */
+export interface UploadTally {
+  imported: number;
+  skipped: number;
+  failed: number;
 }
 
 // 大文件（尤其视频）在 Wi-Fi 下耗时可能超过全局默认的 10 秒超时，单文件上传需要单独放宽
@@ -61,18 +58,6 @@ function appendLocationData(formData: FormData, locationData?: LocationData): vo
 }
 
 export const ingestionApi = {
-  uploadAssets: async (files: File[], locationData?: LocationData): Promise<UploadAssetsResponse> => {
-    const formData = new FormData();
-    files.forEach((file) => {
-      formData.append('files', file);
-    });
-
-    appendLocationData(formData, locationData);
-
-    const response = await apiClient.post<UploadAssetsResponse>('/ingestion/upload/batch', formData);
-    return response.data;
-  },
-
   /**
    * 单文件上传（移动端上传队列专用）。
    * 每个文件独立请求，配合队列可实现逐文件进度、失败重试与相册关联。
@@ -102,28 +87,25 @@ export const ingestionApi = {
     return response.data;
   },
 
-  /** 本机文件夹导入：首个文件建相册，后续归入同一相册 */
-  uploadFolderToNewAlbum: async (options: {
-    files: File[];
-    albumName: string;
-    description?: string;
-    startTime?: string;
-    endTime?: string;
-    locationData?: LocationData;
-  }): Promise<{ imported: number; skipped: number; failed: number }> => {
-    let album: AlbumTarget = {
-      mode: 'new',
-      name: options.albumName,
-      description: options.description,
-      startTime: options.startTime,
-      endTime: options.endTime,
-    };
-    const tally = { imported: 0, skipped: 0, failed: 0 };
-    for (const file of options.files) {
+  /**
+   * 多文件逐个上传：每个文件独立请求（单文件超时），失败不中断后续文件。
+   * 首个文件新建相册后，后续文件改用返回的 album_id，避免重复建册。
+   */
+  uploadFilesSequentially: async (
+    files: File[],
+    options?: {
+      album?: AlbumTarget;
+      locationData?: LocationData;
+      onFileDone?: (done: number, total: number) => void;
+    }
+  ): Promise<UploadTally> => {
+    let album: AlbumTarget = options?.album ?? { mode: 'none' };
+    const tally: UploadTally = { imported: 0, skipped: 0, failed: 0 };
+    for (const [index, file] of files.entries()) {
       try {
         const result = await ingestionApi.uploadSingleAsset(file, {
           album,
-          locationData: options.locationData,
+          locationData: options?.locationData,
         });
         tally.imported += result.imported;
         tally.skipped += result.skipped;
@@ -134,7 +116,28 @@ export const ingestionApi = {
       } catch {
         tally.failed += 1;
       }
+      options?.onFileDone?.(index + 1, files.length);
     }
     return tally;
   },
+
+  /** 本机文件夹导入：首个文件建相册，后续归入同一相册 */
+  uploadFolderToNewAlbum: (options: {
+    files: File[];
+    albumName: string;
+    description?: string;
+    startTime?: string;
+    endTime?: string;
+    locationData?: LocationData;
+  }): Promise<UploadTally> =>
+    ingestionApi.uploadFilesSequentially(options.files, {
+      album: {
+        mode: 'new',
+        name: options.albumName,
+        description: options.description,
+        startTime: options.startTime,
+        endTime: options.endTime,
+      },
+      locationData: options.locationData,
+    }),
 };

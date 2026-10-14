@@ -24,7 +24,7 @@ order: 4
 | [`home.ts`](../../lib/api/home.ts) | 精选、时间轴 |
 | [`map.ts`](../../lib/api/map.ts) | 足迹列表/详情/统计 |
 | [`tags.ts`](../../lib/api/tags.ts) | 标签定义元数据 |
-| [`ingestion.ts`](../../lib/api/ingestion.ts) | 批量上传 FormData、相册文件夹导入 |
+| [`ingestion.ts`](../../lib/api/ingestion.ts) | 单文件上传、多文件逐个上传（`uploadFilesSequentially`）、相册文件夹导入 |
 | [`faces.ts`](../../lib/api/faces.ts) | 已匹配脸、素材上的脸 |
 | [`subjects.ts`](../../lib/api/subjects.ts) | 家庭成员、登记照、临时 candidates |
 
@@ -55,7 +55,7 @@ response interceptor
 | `homeApi.getTimeline` | `/home/timeline` | **真实** |
 | `mapApi` | `/map/footprints*`、`/map/statistics` | **真实**（`/map` 页） |
 | `tagsApi` | `/tags/definitions` | **真实** |
-| `ingestionApi` | `/ingestion/upload`、`/ingestion/upload/batch` | **真实** |
+| `ingestionApi` | `/ingestion/upload`（前端不再调用 `/upload/batch`） | **真实** |
 | `facesApi` | `/assets/{id}/faces`、`GET /faces`、`POST /management/faces/backfill` | **真实**（已匹配脸 / 历史补算） |
 | `subjectsApi` | `/subjects*` | **真实** |
 | `assetsApi.getTags` | `/assets/tags` | 代码保留 + TODO；筛选 UI 未使用 |
@@ -102,4 +102,4 @@ components / pages
 ## 已知限制
 
 - `assetsApi.getTags` 指向的后端列表接口状态不明，UI 未接线。
-- 上传超时受 Axios `timeout: 10000` 约束，大文件批量可能不够。
+- 上传一律逐文件请求，单文件超时 10 分钟（`SINGLE_UPLOAD_TIMEOUT_MS`），不受全局 10 秒超时约束。
