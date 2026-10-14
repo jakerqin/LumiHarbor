@@ -13,7 +13,7 @@ type BreakpointColumns = {
   [breakpoint: number]: number;
 };
 
-// 瀑布流断点配置（相册使用 4→1 列）
+// 瀑布流断点配置（相册 4→1 列）：key 为「视口宽度不超过多少 px」，值为列数；更宽时用 default
 const defaultBreakpointColumns: BreakpointColumns = {
   default: 4,
   1280: 3,
@@ -192,9 +192,10 @@ export function AlbumMasonry({
       .filter((key) => key !== 'default')
       .map((key) => Number(key))
       .filter((value) => Number.isFinite(value))
-      .sort((a, b) => b - a); // 从大到小排序
+      // 断点表示「宽度不超过 N 时用几列」：从小到大取第一个命中的 max-width，都不命中用 default
+      .sort((a, b) => a - b);
 
-    const queries = numericBreakpoints.map((bp) => `(min-width: ${bp}px)`);
+    const queries = numericBreakpoints.map((bp) => `(max-width: ${bp}px)`);
     const values = numericBreakpoints.map((bp) => breakpointColumns[bp]);
 
     return { queries, values, defaultValue: breakpointColumns.default };
