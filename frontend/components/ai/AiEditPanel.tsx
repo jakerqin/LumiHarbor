@@ -6,9 +6,10 @@ import { Loader2, Sparkles, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { aiImageApi, type AiImageJob, type AiPreset } from '@/lib/api/aiImage';
 import { useAiJob } from '@/lib/hooks/useAiImage';
+import { cn } from '@/lib/utils/cn';
 import { resolveMediaUrl } from '@/lib/utils/mediaUrl';
 import { AiPromptForm, canSubmitPrompt, type AiPromptValue } from './AiPromptForm';
-import { CompareSlider } from './CompareSlider';
+import { BeforeAfter } from './BeforeAfter';
 
 interface AiEditPanelProps {
   open: boolean;
@@ -48,7 +49,11 @@ export function AiEditPanel({ open, assetId, beforeUrl, presets, onClose }: AiEd
     <div className="fixed inset-0 z-50">
       <button type="button" className="absolute inset-0 bg-black/60 backdrop-blur-sm" aria-label="关闭" onClick={onClose} />
       <div className="absolute inset-0 flex items-start justify-center p-4 pt-16 md:pt-24 overflow-y-auto">
-        <div className="relative w-full max-w-2xl rounded-2xl bg-background border border-white/10 shadow-2xl">
+        <div className={cn(
+          'relative w-full rounded-2xl bg-background border border-white/10 shadow-2xl',
+          // 出结果时加宽，两张图并排才看得清
+          job?.status === 'success' ? 'max-w-5xl' : 'max-w-2xl'
+        )}>
           <div className="flex items-start justify-between gap-4 p-5 border-b border-white/10">
             <div>
               <h2 className="text-lg font-heading font-semibold">AI 修图</h2>
@@ -128,7 +133,7 @@ function EditResult({ assetId, job, beforeUrl, onDone, onAgain }: {
 
   return (
     <div className="space-y-4">
-      {afterUrl ? <CompareSlider before={beforeUrl} after={afterUrl} /> : (
+      {afterUrl ? <BeforeAfter before={beforeUrl} after={afterUrl} /> : (
         <div className="h-64 rounded-xl bg-background-secondary animate-pulse" />
       )}
       <div className="flex flex-wrap items-center justify-end gap-2">
