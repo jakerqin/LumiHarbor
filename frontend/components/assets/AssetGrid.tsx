@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { AssetMasonry } from './AssetMasonry';
 import { assetsApi, type AssetsFilter, type AssetsResponse } from '@/lib/api/assets';
@@ -17,6 +17,8 @@ interface AssetGridProps {
   selectedAssetIds?: Set<number>;
   onSelectionToggle?: (asset: Asset) => void;
   onUploadClick?: () => void;
+  /** 刚删除的素材：列表按页只处理一次，删除后重拉的数据不会替换已加载的页，由调用方传入直接隐藏 */
+  removedIds?: Set<number>;
 }
 
 export function AssetGrid({
@@ -27,6 +29,7 @@ export function AssetGrid({
   selectedAssetIds,
   onSelectionToggle,
   onUploadClick,
+  removedIds,
 }: AssetGridProps) {
   const [page, setPage] = useState(1);
   const [allAssets, setAllAssets] = useState<Asset[]>([]);
@@ -38,6 +41,11 @@ export function AssetGrid({
     queryKey: ['assets', page, pageSize, filter],
     queryFn: () => assetsApi.getAssets(page, pageSize, filter),
   });
+
+  const visibleAssets = useMemo(
+    () => (removedIds?.size ? allAssets.filter((asset) => !removedIds.has(asset.id)) : allAssets),
+    [allAssets, removedIds]
+  );
 
   // 组件挂载时重置到第一页
   useEffect(() => {
@@ -96,7 +104,7 @@ export function AssetGrid({
     );
   }
 
-  if (allAssets.length === 0 && !isLoading && !isFetching) {
+  if (visibleAssets.length === 0 && !isLoading && !isFetching) {
     if (filter?.q?.trim()) {
       return (
         <EmptyState
@@ -125,7 +133,7 @@ export function AssetGrid({
     <div>
       {/* 瀑布流网格 */}
       <AssetMasonry
-        assets={allAssets}
+        assets={visibleAssets}
         onAssetClick={(id) => onAssetClick?.(id)}
         onAssetSelect={onAssetSelect}
         selectionMode={selectionMode}
@@ -142,7 +150,7 @@ export function AssetGrid({
       )}
 
       {/* 已加载全部提示 */}
-      {!data?.has_more && allAssets.length > 0 && (
+      {!data?.has_more && visibleAssets.length > 0 && (
         <div className="flex items-center justify-center py-8">
           <p className="text-sm text-foreground-secondary">
             已加载全部 {data?.total} 个素材

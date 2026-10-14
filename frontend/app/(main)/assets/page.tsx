@@ -34,6 +34,7 @@ export default function AssetsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
 
   const { data: locations = [] } = useQuery({
     queryKey: ['asset-locations'],
@@ -84,7 +85,9 @@ export default function AssetsPage() {
     }
     setDeleting(true);
     try {
-      const result = await assetsApi.deleteAssets(Array.from(selectedIds));
+      const ids = Array.from(selectedIds);
+      const result = await assetsApi.deleteAssets(ids);
+      setRemovedIds((prev) => new Set([...prev, ...ids]));
       queryClient.invalidateQueries({ queryKey: ['assets'] });
       queryClient.invalidateQueries({ queryKey: ['trash'] });
       handleExitBatchMode();
@@ -198,6 +201,7 @@ export default function AssetsPage() {
         selectedAssetIds={selectedIds}
         onSelectionToggle={handleSelectionToggle}
         onUploadClick={handleUploadPick}
+        removedIds={removedIds}
       />
 
       {isBatchMode && (
