@@ -18,6 +18,8 @@ from .routers import (
     tasks_router,
     notes_router,
     map_router,
+    faces_router,
+    subjects_router,
 )
 from . import schema
 
@@ -74,6 +76,14 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 
+@app.on_event("startup")
+def _warmup_clip() -> None:
+    from .tools.clip import model_available, warmup
+
+    if model_available():
+        warmup()
+
+
 @app.get("/", response_model=schema.ApiResponse[dict])
 def read_root():
     """根路径欢迎信息"""
@@ -91,3 +101,5 @@ app.include_router(templates_router)
 app.include_router(tasks_router)
 app.include_router(notes_router)
 app.include_router(map_router)
+app.include_router(faces_router)
+app.include_router(subjects_router)

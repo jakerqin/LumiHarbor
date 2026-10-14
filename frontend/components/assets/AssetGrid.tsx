@@ -97,6 +97,14 @@ export function AssetGrid({
   }
 
   if (allAssets.length === 0 && !isLoading && !isFetching) {
+    if (filter?.q?.trim()) {
+      return (
+        <EmptyState
+          title="没有对上这句话"
+          description="换个说法，或试试成员名、地点、文件名。"
+        />
+      );
+    }
     return (
       <EmptyState
         title="还没有素材"

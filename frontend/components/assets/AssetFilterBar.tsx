@@ -6,6 +6,7 @@ import {
   MapPin,
   Heart,
   Plus,
+  Search,
   X,
 } from 'lucide-react';
 import type { AssetsFilter } from '@/lib/api/assets';
@@ -31,6 +32,11 @@ type FilterType = 'date' | 'location' | 'favorite';
 
 function normalizeFilter(filter: AssetsFilter): AssetsFilter {
   const next: AssetsFilter = { ...filter };
+  if (next.q !== undefined) {
+    const cleaned = next.q.trim();
+    if (cleaned) next.q = cleaned;
+    else delete next.q;
+  }
   if (!next.shot_at_start) delete next.shot_at_start;
   if (!next.shot_at_end) delete next.shot_at_end;
   if (next.location_poi !== undefined) {
@@ -246,10 +252,11 @@ export function AssetFilterBar({ filter, locations, fields, onChange }: AssetFil
   const hasDateFilter = Boolean(filter.shot_at_start || filter.shot_at_end);
   const hasLocationFilter = Boolean(filter.location_poi);
   const hasFavoriteFilter = Boolean(filter.is_favorited);
+  const hasQuery = Boolean(filter.q?.trim());
   const extraActive = extraTagFields.filter((f) =>
     (filter.tag_filters ?? []).some((item) => item.field_key === f.field_key)
   );
-  const hasAnyFilter = hasDateFilter || hasLocationFilter || hasFavoriteFilter || extraActive.length > 0;
+  const hasAnyFilter = hasDateFilter || hasLocationFilter || hasFavoriteFilter || extraActive.length > 0 || hasQuery;
 
   // 初始化筛选顺序（仅在组件挂载时执行一次）
   useEffect(() => {
@@ -359,6 +366,10 @@ export function AssetFilterBar({ filter, locations, fields, onChange }: AssetFil
 
   return (
     <div className="relative mb-6 flex flex-wrap items-center gap-2">
+      <SearchBox
+        value={filter.q}
+        onChange={(q) => updateFilter({ ...filter, q })}
+      />
       {/* 已激活的筛选 Chips - 按添加顺序显示 */}
       {filterOrder.map(type => renderFilterChip(type))}
       {extraActive.map((field) => {
@@ -521,6 +532,52 @@ export function AssetFilterBar({ filter, locations, fields, onChange }: AssetFil
           className="ml-1 px-2 py-1 text-xs text-foreground-secondary hover:text-foreground transition-colors"
         >
           清空全部
+        </button>
+      )}
+    </div>
+  );
+}
+
+function SearchBox({ value, onChange }: { value?: string; onChange: (q?: string) => void }) {
+  const [draft, setDraft] = useState(value ?? '');
+
+  useEffect(() => {
+    setDraft(value ?? '');
+  }, [value]);
+
+  const commit = (raw: string) => {
+    const next = raw.trim();
+    onChange(next || undefined);
+  };
+
+  return (
+    <div className="relative">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-secondary" />
+      <input
+        type="text"
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            commit(draft);
+          }
+        }}
+        placeholder="搜红衣服、海边、成员名…"
+        className="h-11 w-52 md:w-64 pl-9 pr-8 rounded-xl bg-white/5 border border-white/10 text-sm placeholder:text-foreground-secondary/50 focus:outline-none focus:border-primary/50"
+        aria-label="搜索素材，按回车开始"
+      />
+      {draft && (
+        <button
+          type="button"
+          onClick={() => {
+            setDraft('');
+            onChange(undefined);
+          }}
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10"
+          aria-label="清除搜索"
+        >
+          <X size={12} className="text-foreground-secondary" />
         </button>
       )}
     </div>

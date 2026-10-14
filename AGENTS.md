@@ -44,8 +44,8 @@
 |---|---|
 | `backend/` | FastAPI API、Service、Model、Taskiq 任务 |
 | `frontend/` | Next.js App Router UI |
-| `backend/docs/design/` | 后端内部设计（序号 `00`–`16`） |
-| `frontend/docs/design/` | 前端内部设计（序号 `00`–`13`） |
+| `backend/docs/design/` | 后端内部设计（序号 `00`–`17`） |
+| `frontend/docs/design/` | 前端内部设计（序号 `00`–`15`） |
 | `scripts/init_db.sql` | 表结构权威之一；**改表必同步** |
 | `CLAUDE.md` | 人类/AI 协作入口（非模块规格） |
 
@@ -124,6 +124,9 @@
 ## 5. 常用命令
 
 ```bash
+# 全栈（检查依赖，Ctrl+C 停前后端）
+./start.sh
+
 # 前端
 npm --prefix frontend run dev
 npm --prefix frontend run lint
@@ -149,7 +152,8 @@ pytest backend/tests
 | 想改… | 先看 |
 |---|---|
 | 导入 / 去重 / NAS | 后端 `06` → `14` → `15` |
-| 素材列表/相似/收藏 | 后端 `07` + 前端 `07` |
+| 人脸 / 猫狗名单 / 匹配入库 | 后端 `17` + 前端 `15` |
+| 素材列表/相似/收藏/语义搜索 | 后端 `07` + `18`；前端 `07` |
 | 相册 | 后端 `08` + 前端 `08` |
 | 笔记 / 编辑器 / AI | 前端 `09`→`10`；后端 `09` |
 | 地图足迹 | 前端 `12` + 后端 `12` |

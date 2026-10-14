@@ -1,6 +1,7 @@
 import {
   Home,
   Image,
+  ScanFace,
   FolderOpen,
   FileText,
   Map,
@@ -20,6 +21,7 @@ export interface NavItem {
 export const MAIN_NAV: NavItem[] = [
   { href: '/', label: '首页', shortcut: 'H', icon: Home },
   { href: '/assets', label: '素材', shortcut: 'A', icon: Image },
+  { href: '/faces', label: '成员墙', shortcut: 'F', icon: ScanFace },
   { href: '/albums', label: '相册', shortcut: 'L', icon: FolderOpen },
   { href: '/notes', label: '笔记', shortcut: 'N', icon: FileText },
   { href: '/map', label: '地图', shortcut: 'M', icon: Map },

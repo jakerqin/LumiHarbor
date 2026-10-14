@@ -169,6 +169,16 @@ docker-compose up -d --build
 
 #### 方式 B：本地开发模式
 
+仓库根目录一条命令（检查依赖、启动前后端、日志带前缀、Ctrl+C 一起停）：
+
+```bash
+./start.sh
+```
+
+需已配置 `backend/.env`，并激活能 `import fastapi` 的 Python 环境。Qdrant 在已安装 Docker 且 6333 未就绪时会 `docker compose up -d qdrant`。
+
+也可分开启动：
+
 **后端启动：**
 
 建议使用 `pyenv` 创建独立的虚拟环境：

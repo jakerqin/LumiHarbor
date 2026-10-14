@@ -1,5 +1,5 @@
 """资源相关 Schema"""
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from typing import Optional, List
 
@@ -82,3 +82,10 @@ class AssetsPageResponse(BaseModel):
 class AssetBatchDeleteRequest(BaseModel):
     """批量删除素材请求"""
     asset_ids: List[int]
+
+
+class ClipBackfillRequest(BaseModel):
+    """语义向量补算请求"""
+    asset_ids: Optional[List[int]] = None
+    missing_only: bool = True
+    limit: int = Field(default=200, ge=1, le=20000)
